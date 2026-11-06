@@ -625,10 +625,11 @@ export default function AdminDashboard() {
         <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
           <div className="flex items-center gap-3">
             
-            {/* ปุ่มกดเปิดเมนูด้านข้างบนมือถือ (3 ขีด) */}
+            {/* 📌 ปุ่มกดเปิดเมนูด้านข้างบนมือถือ (3 ขีด) */}
             <button 
               onClick={() => setSidebarOpen(true)}
               className="md:hidden p-2 bg-white/20 hover:bg-white/30 rounded-xl text-white cursor-pointer shrink-0"
+              title="เปิดเมนู"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -1068,7 +1069,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 2. Notice Bill Modal */}
+      {/* 2. Notice Bill Modal (มีช่องเลือกธนาคารดรอปดาวน์ และดึงบัญชีแอดมินเดิมได้) */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-rose-200 rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl relative my-8 text-slate-800 max-h-[90vh] flex flex-col">
@@ -1251,7 +1252,7 @@ export default function AdminDashboard() {
                 className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
-                <span>📤 แชร์</span>
+                <span>📤 แชร์บิล</span>
               </button>
               <button 
                 onClick={() => setNoticeModalOpen(false)}
