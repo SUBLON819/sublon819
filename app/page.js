@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import Sidebar from '@/components/Sidebar';
 import { 
   FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3
 } from 'lucide-react';
@@ -616,9 +615,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
       
-      {/* Sidebar Component ฝั่งซ้าย */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
+     
       <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
 
         {/* Header Control Panel */}
