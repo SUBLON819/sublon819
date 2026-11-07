@@ -436,9 +436,9 @@ export default function ApplyPage() {
                 />
               </div>
 
-              {/* 🛠️ แก้ไขปัญหาช่องวันที่ทับซ้อนกัน: บนมือถือเรียงแนวตั้ง 1 คอลัมน์ และขยายเป็น 2 คอลัมน์เฉพาะจอใหญ่ */}
-              <div className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0">
-                <div className="space-y-1">
+              {/* 🛠️ จัดแยกกรอบวันที่กู้และวันที่คืนออกจากกันอย่างชัดเจน และทำกรอบวันที่คืนเป็นสีแดง */}
+              <div className="space-y-2.5 pt-1">
+                <div className="bg-white/5 p-2.5 rounded-xl border border-white/10 space-y-1">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                     <span>วันที่กู้ <span className="text-red-400">*</span></span>
@@ -448,21 +448,21 @@ export default function ApplyPage() {
                     required
                     value={formData.loan_date}
                     onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
+                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>กำหนดดืน<span className="text-red-400">*</span></span>
+                <div className="bg-red-500/10 p-2.5 rounded-xl border-2 border-red-500 shadow-sm space-y-1">
+                  <label className="text-xs font-semibold text-red-200 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <span>กำหนดคืน <span className="text-red-400">*</span></span>
                   </label>
                   <input 
                     type="date"
                     required
                     value={formData.cycle_date}
                     onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
+                    className="w-full bg-white/5 border border-red-400 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-red-500 font-mono font-bold"
                   />
                 </div>
               </div>
