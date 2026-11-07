@@ -290,7 +290,6 @@ export default function ApplyPage() {
           </p>
         </div>
 
-        {/* ปรับแต่ง padding และ space ให้กระชับ สบายตา */}
         <div className="p-3.5 sm:p-6 space-y-3 text-slate-200">
           {step === 'otp' && (
             <form onSubmit={handleRequestOtp} className="space-y-3">
@@ -304,7 +303,7 @@ export default function ApplyPage() {
                   <Phone className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                   <span>เบอร์โทรศัพท์มือถือ</span>
                 </label>
-                {/* 🔒 ป้องกัน iOS/Android ซูมจออัตโนมัติด้วย text-base (16px) */}
+                {/* 🔒 ป้องกันซูมด้วย text-base (16px) บนมือถือ */}
                 <input 
                   type="tel" required placeholder="08x-xxx-xxxx"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -343,7 +342,6 @@ export default function ApplyPage() {
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>รหัส OTP 6 หลัก</span>
                 </label>
-                {/* 🔒 ป้องกันซูมด้วย text-base */}
                 <input 
                   type="text" required maxLength={6} placeholder="------"
                   value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
@@ -405,7 +403,6 @@ export default function ApplyPage() {
                   <User className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                   <span>ชื่อ-นามสกุลจริง <span className="text-red-400">*</span></span>
                 </label>
-                {/* 🔒 บังคับ text-base บนมือถือเพื่อป้องกันหน้าจอซูม */}
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
@@ -439,7 +436,8 @@ export default function ApplyPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              {/* 🛠️ แก้ไขปัญหาช่องวันที่ทับซ้อนกัน: บนมือถือเรียงแนวตั้ง 1 คอลัมน์ และขยายเป็น 2 คอลัมน์เฉพาะจอใหญ่ */}
+              <div className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
@@ -450,21 +448,21 @@ export default function ApplyPage() {
                     required
                     value={formData.loan_date}
                     onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>วันที่คาดว่าจะคืน <span className="text-red-400">*</span></span>
+                    <span>กำหนดดืน<span className="text-red-400">*</span></span>
                   </label>
                   <input 
                     type="date"
                     required
                     value={formData.cycle_date}
                     onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
                   />
                 </div>
               </div>
