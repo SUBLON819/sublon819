@@ -3,14 +3,23 @@ import React from 'react';
 export default function CustomerDetail({ customer, onBack, onOpenEditLoan, onOpenReceivePayment }) {
   // ป้องกันกรณีที่ส่งข้อมูลลูกค้ามาเป็นค่าว่าง
   const customerData = customer || {
-    name: 'ไม่ระบชื่อ',
+    name: 'ไม่ระบุชื่อ',
     phone: '-',
-    facebook: '-',
+    facebook: '',
     totalLoan: 0,
     totalRemaining: 0,
     totalPaid: 0,
-    loans: []
+    loans: [],
+    payments: []
   };
+
+  // 🟢 คำนวณยอดชำระแล้วทั้งหมด (เงินหลัก + ค่าปรับ) ให้ตรงกับหน้า customers เสมอ
+  const calculatedTotalPaid = (customerData.payments || []).reduce((sum, p) => {
+    return sum + Number(p.amount || 0) + Number(p.fine_amount || 0);
+  }, 0);
+
+  // ถ้ามี totalPaid ส่งมาจากตัวแม่ ให้เทียบใช้ค่าที่คำนวณใหม่นี้ได้เลย
+  const finalTotalPaid = calculatedTotalPaid > 0 ? calculatedTotalPaid : Number(customerData?.totalPaid || 0);
 
   return (
     <div className="min-h-screen bg-slate-950 p-3 sm:p-6 lg:p-8 font-sans text-white">
@@ -19,7 +28,7 @@ export default function CustomerDetail({ customer, onBack, onOpenEditLoan, onOpe
         {/* ปุ่มย้อนกลับ */}
         <button
           onClick={onBack}
-          className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-purple-500/50 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-purple-500/50 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
         >
           &larr; ย้อนกลับสู่แดชบอร์ด
         </button>
@@ -38,15 +47,15 @@ export default function CustomerDetail({ customer, onBack, onOpenEditLoan, onOpe
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto flex-1 max-w-3xl">
             <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-xl text-center">
               <span className="text-[10px] text-slate-400 block uppercase tracking-wider">ยอดกู้สะสมทั้งหมด</span>
-              <span className="text-lg font-bold text-sky-400">{Number(customerData?.totalLoan || 0).toLocaleString()} ฿</span>
+              <span className="text-lg font-bold text-sky-400 font-mono">{Number(customerData?.totalLoan || 0).toLocaleString()} ฿</span>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-xl text-center">
               <span className="text-[10px] text-slate-400 block uppercase tracking-wider">ยอดเงินต้นคงค้างปัจจุบัน</span>
-              <span className="text-lg font-bold text-red-400">{Number(customerData?.totalRemaining || 0).toLocaleString()} ฿</span>
+              <span className="text-lg font-bold text-red-400 font-mono">{Number(customerData?.totalRemaining || 0).toLocaleString()} ฿</span>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-xl text-center">
-              <span className="text-[10px] text-slate-400 block uppercase tracking-wider">ยอดชำระสะสมทั้งหมด</span>
-              <span className="text-lg font-bold text-emerald-400">{Number(customerData?.totalPaid || 0).toLocaleString()} ฿</span>
+              <span className="text-[10px] text-slate-400 block uppercase tracking-wider">ยอดชำระสะสมทั้งหมด (รวมค่าปรับ)</span>
+              <span className="text-lg font-bold text-emerald-400 font-mono">{finalTotalPaid.toLocaleString()} ฿</span>
             </div>
           </div>
 
