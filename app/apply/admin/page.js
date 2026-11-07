@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Globe, Palette, Save, Copy, Check, ExternalLink, Smartphone } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Globe, Palette, Save, Copy, Check, ExternalLink, Smartphone, Loader2 } from 'lucide-react';
 
 export default function ApplyAdminThemePage() {
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [copied, setCopied] = useState(false);
 
   // State สำหรับเก็บค่าธีมและการตั้งค่าหน้าบ้านสมาชิก
@@ -13,8 +15,38 @@ export default function ApplyAdminThemePage() {
     banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
     theme_color: 'purple',
     line_contact: '@sublon819',
-    is_open: true,
+    is_frontend_open: true,
   });
+
+  // โหลดค่าการตั้งค่าจาก Supabase (ตาราง system_settings) เมื่อเข้าหน้าแอดมิน
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setFetching(true);
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*');
+
+      if (data && !error) {
+        let loadedConfig = {};
+        data.forEach(item => {
+          if (item.key === 'banner_title') loadedConfig.banner_title = item.value;
+          if (item.key === 'banner_subtitle') loadedConfig.banner_subtitle = item.value;
+          if (item.key === 'theme_color') loadedConfig.theme_color = item.value;
+          if (item.key === 'line_contact') loadedConfig.line_contact = item.value;
+          if (item.key === 'is_frontend_open') loadedConfig.is_frontend_open = item.value !== 'false';
+        });
+        setSettings(prev => ({ ...prev, ...loadedConfig }));
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err.message);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   // ลิงก์สำหรับให้ลูกค้ากดสมัคร (ลิงก์หน้า /apply จริง)
   const applyUrl = typeof window !== 'undefined' ? `${window.location.origin}/apply` : '';
@@ -25,19 +57,77 @@ export default function ApplyAdminThemePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ฟังก์ชันบันทึกข้อมูลลงตาราง system_settings ใน Supabase
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const updates = [
+        { key: 'banner_title', value: settings.banner_title },
+        { key: 'banner_subtitle', value: settings.banner_subtitle },
+        { key: 'theme_color', value: settings.theme_color },
+        { key: 'line_contact', value: settings.line_contact },
+        { key: 'is_frontend_open', value: String(settings.is_frontend_open) },
+      ];
+
+      for (let item of updates) {
+        const { error } = await supabase
+          .from('system_settings')
+          update({ value: item.value }) // กรณีใช้ upsert หรือ update ตามโครงสร้างตาราง
+          .eq('key', item.key);
+        
+        // หากระบบตารางใช้ upsert แนะนำให้ใช้แบบนี้แทน:
+        await supabase
+          .from('system_settings')
+          .upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
+      }
+
       alert('บันทึกการตั้งค่าหน้าบ้านสมาชิกสำเร็จ!');
     } catch (err) {
-      console.error(err);
-      alert('เกิดข้อผิดพลาดในการบันทึก');
+      console.error('Error saving settings:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  // ฟังก์ชันช่วยเปลี่ยนสีธีมของกล่องพรีวิวให้ตรงกับที่เลือก
+  const getPreviewThemeClasses = (color) => {
+    switch (color) {
+      case 'indigo':
+        return {
+          bg: 'from-indigo-900 to-slate-900',
+          badge: 'bg-indigo-600',
+          button: 'bg-gradient-to-r from-indigo-600 to-blue-600'
+        };
+      case 'pink':
+        return {
+          bg: 'from-pink-700 to-rose-900',
+          badge: 'bg-pink-600',
+          button: 'bg-gradient-to-r from-pink-600 to-rose-600'
+        };
+      default: // purple
+        return {
+          bg: 'from-purple-900 to-indigo-950',
+          badge: 'bg-purple-600',
+          button: 'bg-gradient-to-r from-purple-600 to-pink-600'
+        };
+    }
+  };
+
+  const themeClasses = getPreviewThemeClasses(settings.theme_color);
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-700 mx-auto" />
+          <p className="text-xs text-slate-500">กำลังโหลดข้อมูลการตั้งค่า...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-4 sm:p-6 font-sans text-slate-800">
@@ -57,6 +147,7 @@ export default function ApplyAdminThemePage() {
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handleCopy}
               className="flex-1 sm:flex-none px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
@@ -135,8 +226,8 @@ export default function ApplyAdminThemePage() {
                 <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700">
                   <input 
                     type="checkbox"
-                    checked={settings.is_open}
-                    onChange={(e) => setSettings({...settings, is_open: e.target.checked})}
+                    checked={settings.is_frontend_open}
+                    onChange={(e) => setSettings({...settings, is_frontend_open: e.target.checked})}
                     className="w-4 h-4 accent-purple-600 rounded"
                   />
                   <span>เปิดฟอร์มรับสมัครออนไลน์ (สถานะเปิดใช้งาน)</span>
@@ -149,38 +240,38 @@ export default function ApplyAdminThemePage() {
                   disabled={loading}
                   className="px-6 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md transition-colors cursor-pointer flex items-center gap-2"
                 >
-                  <Save className="w-4 h-4" />
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>{loading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}</span>
                 </button>
               </div>
             </form>
           </div>
 
-          {/* พรีวิวหน้าเว็บ (1 คอลัมน์) */}
+          {/* พรีวิวหน้าเว็บ (1 คอลัมน์) - แสดงผลแบบเรียลไทม์ตาม State ปัจจุบัน */}
           <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-3xl p-6 shadow-xl space-y-4 flex flex-col">
             <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 border-b border-purple-100 pb-3">
               <Smartphone className="w-4 h-4 text-purple-700" />
               <span>ตัวอย่างหน้าเว็บ (Preview)</span>
             </h3>
 
-            <div className="flex-1 bg-slate-900 rounded-2xl p-4 text-white flex flex-col justify-between border-4 border-slate-800 shadow-inner min-h-[260px]">
+            <div className={`flex-1 bg-gradient-to-br ${themeClasses.bg} rounded-2xl p-4 text-white flex flex-col justify-between border-4 border-slate-800 shadow-inner min-h-[260px] transition-all duration-300`}>
               <div className="space-y-3">
-                <div className="inline-block px-2.5 py-0.5 bg-purple-600 text-white font-bold text-[10px] rounded-full">
+                <div className={`inline-block px-2.5 py-0.5 ${themeClasses.badge} text-white font-bold text-[10px] rounded-full`}>
                   SUBLON819
                 </div>
-                <h4 className="text-sm font-bold leading-snug text-purple-100">
-                  {settings.banner_title}
+                <h4 className="text-sm font-bold leading-snug text-white">
+                  {settings.banner_title || 'หัวข้อแบนเนอร์...'}
                 </h4>
-                <p className="text-[11px] text-slate-400">
-                  {settings.banner_subtitle}
+                <p className="text-[11px] text-slate-200">
+                  {settings.banner_subtitle || 'คำโปรย...'}
                 </p>
               </div>
 
-              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 text-center space-y-2 mt-4">
-                <div className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-xs font-bold shadow">
+              <div className="bg-black/20 backdrop-blur-sm p-3 rounded-xl border border-white/10 text-center space-y-2 mt-4">
+                <div className={`w-full py-2 ${themeClasses.button} text-white rounded-lg text-xs font-bold shadow`}>
                   กรอกฟอร์มขอสินเชื่อ
                 </div>
-                <div className="text-[10px] text-slate-400">ติดต่อ: {settings.line_contact}</div>
+                <div className="text-[10px] text-slate-300">ติดต่อ: {settings.line_contact}</div>
               </div>
             </div>
           </div>
