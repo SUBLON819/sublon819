@@ -602,14 +602,14 @@ export default function AdminDashboard() {
     return true;
   });
 
-  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName);
+  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName && l.status !== 'ปฏิเสธคำขอ');
   const customerLoanIds = new Set(customerLoans.map(l => l.id));
   const customerPayments = payments.filter(p => customerLoanIds.has(p.loan_id));
   const customerInfo = customerLoans[0] || {};
   const totalCustomerBorrowed = customerLoans.reduce((sum, l) => sum + Number(l.principal_amount || 0), 0);
   const totalCustomerRemaining = customerLoans
-    .filter(l => l.status === 'อนุมัติแล้ว')
-    .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
+  .filter(l => l.status === 'อนุมัติแล้ว') // กรองเฉพาะบิลที่อนุมัติแล้วเท่านั้น
+  .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || p.interest_paid || 0), 0);
 
   return (
