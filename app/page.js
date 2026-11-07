@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3, Trash2
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -96,7 +96,6 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [todayStr, setTodayStr] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Header Actions State
   const [searchQuery, setSearchQuery] = useState('');
@@ -460,6 +459,25 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🗑️ ฟังก์ชันลบรายการบิลออกจาก Supabase
+  const handleDeleteLoan = async (loanId, billCode) => {
+    if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
+      return;
+    }
+
+    try {
+      await supabase.from('payments').delete().eq('loan_id', loanId);
+      const { error } = await supabase.from('loans').delete().eq('id', loanId);
+      if (error) throw error;
+
+      alert('ลบบิลรายการเรียบร้อยแล้ว!');
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting loan:', err.message);
+      alert('เกิดข้อผิดพลาดในการลบบิล: ' + err.message);
+    }
+  };
+
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -468,13 +486,13 @@ export default function AdminDashboard() {
     const fineVal = Number(fineAmount || 0);
     const discountVal = Number(discountAmount || 0);
 
+    // อนุญาตให้ผ่านได้ถ้ามีการกรอก ยอดชำระ, ค่าปรับ หรือส่วนลด อย่างน้อย 1 อย่าง
     if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
-      alert('กรุณากรอกจำนวนเงินที่ชำระ หรือระบุค่าปรับ/ส่วนลดอย่างน้อย 1 อย่าง');
+      alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
       return;
     }
 
     try {
-      const netPrincipalPay = Math.max(0, basePayVal - discountVal);
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
 
       let interestPaid = 0;
@@ -484,26 +502,28 @@ export default function AdminDashboard() {
       if (selectedPaymentLoan.loan_type === 'ยอดค้างรอเคลียร์') {
         interestPaid = basePayVal;   
         principalPaid = basePayVal;  
-        newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือ
+        newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
         const totalPayable = origPrin + totalInt;
         
+        const netPrincipalPay = Math.max(0, basePayVal);
         const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
-        interestPaid = netPrincipalPay * interestRatio; 
-        principalPaid = netPrincipalPay - interestPaid; 
-        newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือ
+        interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
+        principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
+        
+        newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
       } else {
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
         if (basePayVal >= accruedInterest) {
           interestPaid = accruedInterest; 
           principalPaid = basePayVal - accruedInterest; 
-          newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือ
+          newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
         } else {
           interestPaid = basePayVal; 
           principalPaid = 0;
-          newRemPrin = Math.max(0, currentPrin - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือโดยตรง
+          newRemPrin = Math.max(0, currentPrin - discountVal);
         }
       }
 
@@ -525,7 +545,7 @@ export default function AdminDashboard() {
         principal_paid: principalPaid,
         fine_amount: fineVal,
         discount_amount: discountVal,
-        note: paymentNote,
+        note: paymentNote || (discountVal > 0 ? `ให้ส่วนลด -${discountVal}` : 'รับชำระปกติ'),
         created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
       }]);
 
@@ -553,9 +573,9 @@ export default function AdminDashboard() {
       setDiscountAmount('');
       setPaymentNote('');
       fetchData();
-      alert('บันทึกรับชำระและตัดยอดเรียบร้อยแล้ว!');
+      alert('บันทึกข้อมูลและตัดยอดเรียบร้อยแล้ว!');
     } catch (err) {
-      alert('เกิดข้อผิดพลาดในการบันทึกชำระ: ' + err.message);
+      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
     }
   };
 
@@ -616,7 +636,7 @@ export default function AdminDashboard() {
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
-  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || p.interest_paid || 0) + Number(p.fine_amount || 0), 0);
+  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
@@ -861,58 +881,71 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-1 flex-wrap sm:flex-nowrap">
-                      {loan.status === 'รออนุมัติ' ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedLoanForApproval(loan);
-                            setApprovalData({
-                              loan_type: 'ดอกลอย',
-                              daily_interest: '',
-                              total_interest: '',
-                              installment_count: '',
-                              payment_schedule: loan.payment_schedule || 'จ่ายทุกวัน',
-                              schedule_start: '',
-                              schedule_end: '',
-                              calc_next_day: false,
-                            });
-                            setApprovalModalOpen(true);
-                          }}
-                          className="w-full py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer animate-pulse"
-                        >
-                          🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
-                        </button>
-                      ) : (
-                        <>
+                    <div className="flex gap-2 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
+                      {/* 🗑️ ปุ่มถังขยะสำหรับลบบิลรายการนี้ในหน้าแดชบอร์ด */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLoan(loan.id, loan.bill_code)}
+                        className="px-3 py-2.5 sm:py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                        title="ลบรายการบิลนี้"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>ลบบิลนี้</span>
+                      </button>
+
+                      <div className="flex gap-2 flex-1 sm:justify-end">
+                        {loan.status === 'รออนุมัติ' ? (
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedPaymentLoan(loan);
-                              setPaymentAmount('');
-                              setFineAmount('');
-                              setDiscountAmount('');
-                              setPaymentNote('');
-                              setPaymentModalOpen(true);
+                              setSelectedLoanForApproval(loan);
+                              setApprovalData({
+                                loan_type: 'ดอกลอย',
+                                daily_interest: '',
+                                total_interest: '',
+                                installment_count: '',
+                                payment_schedule: loan.payment_schedule || 'จ่ายทุกวัน',
+                                schedule_start: '',
+                                schedule_end: '',
+                                calc_next_day: false,
+                              });
+                              setApprovalModalOpen(true);
                             }}
-                            className="flex-1 py-2.5 sm:py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer animate-pulse"
                           >
-                            บันทึกรับชำระ
+                            🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNoticeLoan(loan);
-                              setCustomNoticeAmount(currentRemaining);
-                              setNoticeModalOpen(true);
-                            }}
-                            className="px-4 py-2.5 sm:py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span>ออกบิลแจ้งยอด (NOTICE)</span>
-                          </button>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPaymentLoan(loan);
+                                setPaymentAmount('');
+                                setFineAmount('');
+                                setDiscountAmount('');
+                                setPaymentNote('');
+                                setPaymentModalOpen(true);
+                              }}
+                              className="flex-1 sm:flex-initial px-4 py-2.5 sm:py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer"
+                            >
+                              บันทึกรับชำระ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNoticeLoan(loan);
+                                setCustomNoticeAmount(currentRemaining);
+                                setNoticeModalOpen(true);
+                              }}
+                              className="px-4 py-2.5 sm:py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>ออกบิลแจ้งยอด (NOTICE)</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1345,7 +1378,17 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-purple-200/60 flex justify-end">
+                      <div className="pt-2 border-t border-purple-200/60 flex justify-between items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLoan(l.id, l.bill_code)}
+                          className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1"
+                          title="ลบรายการบิลนี้"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>ลบบิลนี้</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -1633,7 +1676,6 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
             
-            {/* Header Modal */}
             <div className="flex justify-between items-center border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">💵</span>
@@ -1649,7 +1691,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* กล่องแสดงประเภท, ยอดคงเหลือ, และรายละเอียด */}
             <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-1 text-xs font-medium text-slate-700">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
