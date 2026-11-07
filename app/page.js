@@ -501,7 +501,8 @@ export default function AdminDashboard() {
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
         interestPaid = basePayVal;   
         principalPaid = basePayVal;  
-        newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal);
+        // 📌 ตัดยอดเฉพาะยอดชำระหลัก (basePayVal) เท่านั้น โดยไม่นำค่าปรับมาหักซ้ำซ้อนในเงินต้น
+        newRemPrin = Math.max(0, currentPrin - basePayVal);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
@@ -512,17 +513,17 @@ export default function AdminDashboard() {
         interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
         principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
         
-        newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
+        newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
         if (basePayVal >= accruedInterest) {
           interestPaid = accruedInterest; 
           principalPaid = basePayVal - accruedInterest; 
-          newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
+          newRemPrin = Math.max(0, currentPrin - principalPaid);
         } else {
           interestPaid = basePayVal; 
           principalPaid = 0;
-          newRemPrin = Math.max(0, currentPrin - discountVal);
+          newRemPrin = Math.max(0, currentPrin);
         }
       }
 
@@ -1282,8 +1283,9 @@ export default function AdminDashboard() {
       {/* 3. Customer Profile Full Screen Modal */}
       {customerProfileModalOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
-          <div className="bg-purple-900 text-white px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {/* ปรับดีไซน์ Header ของหน้าประวัติลูกค้า ให้ปุ่มปิดอยู่ขวาบนตามที่คุณออกแบบ */}
+          <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-16 sm:pr-0">
               <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
                 <User className="w-5 h-5 text-purple-300" />
               </div>
@@ -1306,11 +1308,13 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
               </div>
             </div>
+
             <button 
               onClick={() => setCustomerProfileModalOpen(false)}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0 shadow"
+              className="absolute right-4 top-4 sm:static px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs flex flex-col items-center justify-center leading-tight shadow-lg transition-all cursor-pointer shrink-0 border border-purple-500/50"
             >
-              <span>✕ ปิดหน้าจอ</span>
+              <span className="text-sm font-black">✕ ปิด</span>
+              <span className="text-[9px] text-purple-200">หน้าจอ</span>
             </button>
           </div>
 
