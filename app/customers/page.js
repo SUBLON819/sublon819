@@ -54,6 +54,10 @@ export default function CustomersPage() {
   const customerMap = {};
   loans.forEach((loan) => {
     const name = loan.full_name || 'ไม่ระบุชื่อ';
+    
+    // 🛑 ข้ามบิลที่ถูกปฏิเสธคำขอทันที ไม่ให้นำมาจัดกลุ่มและไม่แสดงรายชื่อ
+    if (loan.status === 'ปฏิเสธคำขอ') return;
+
     if (!customerMap[name]) {
       customerMap[name] = {
         full_name: name,
@@ -68,7 +72,7 @@ export default function CustomersPage() {
     }
     customerMap[name].loans.push(loan);
     customerMap[name].totalBorrowed += Number(loan.principal_amount || 0);
-    customerMap[name].totalRemaining += Number(loan.remaining_principal ?? loan.principal_amount ?? 0);
+    customerMap[name].totalRemaining += Number(loan.remaining_principal ?? loan.principal_amount || 0);
   });
 
   const customersList = Object.values(customerMap);
