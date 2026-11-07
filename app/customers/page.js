@@ -72,7 +72,8 @@ export default function CustomersPage() {
     }
     customerMap[name].loans.push(loan);
     customerMap[name].totalBorrowed += Number(loan.principal_amount || 0);
-    customerMap[name].totalRemaining += Number(loan.remaining_principal ?? loan.principal_amount || 0);
+    // แก้ไขใส่เครื่องหมายวงเล็บครอบเพื่อป้องกัน Vercel Build Error
+    customerMap[name].totalRemaining += Number((loan.remaining_principal ?? loan.principal_amount) || 0);
   });
 
   const customersList = Object.values(customerMap);
