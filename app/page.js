@@ -757,7 +757,7 @@ export default function AdminDashboard() {
                 <span>ยอดค้างรอเคลียร์</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-teal-600 truncate">฿{totalPendingBalance.toLocaleString()}</div>
+              <div className="text-base sm:text-xl font-black font-mono text-rose-800 truncate"></div>
             </div>
 
             <div 
@@ -773,8 +773,7 @@ export default function AdminDashboard() {
                 <span>กำไรสะสม</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-purple-700 truncate">฿{totalInterestCollected.toLocaleString()}</div>
-            </div>
+              <div className="text-base sm:text-xl font-black font-mono text-pink-600 truncate"></div>
           </div>
         </div>
 
