@@ -279,7 +279,7 @@ export default function AdminDashboard() {
     .filter(l => (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก') && l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   const totalPendingBalance = loans
-    .filter(l => l.loan_type === 'ยอดค้างรอเคลียร์' && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์'))
+    .filter(l => l.loan_type === 'ยอดค้างรอเครียร์' && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์'))
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
   const totalInterestCollected = payments.reduce((sum, p) => {
@@ -462,13 +462,18 @@ export default function AdminDashboard() {
 
   const handleSavePayment = async (e) => {
     e.preventDefault();
-    if (!selectedPaymentLoan || !paymentAmount) return;
+    if (!selectedPaymentLoan) return;
+
+    const basePayVal = Number(paymentAmount || 0);
+    const fineVal = Number(fineAmount || 0);
+    const discountVal = Number(discountAmount || 0);
+
+    if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
+      alert('กรุณากรอกจำนวนเงินที่ชำระ หรือระบุค่าปรับอย่างน้อย 1 อย่าง');
+      return;
+    }
 
     try {
-      const basePayVal = Number(paymentAmount);
-      const fineVal = Number(fineAmount || 0);
-      const discountVal = Number(discountAmount || 0);
-
       const netPrincipalPay = Math.max(0, basePayVal - discountVal);
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
 
@@ -608,9 +613,10 @@ export default function AdminDashboard() {
   const customerInfo = customerLoans[0] || {};
   const totalCustomerBorrowed = customerLoans.reduce((sum, l) => sum + Number(l.principal_amount || 0), 0);
   const totalCustomerRemaining = customerLoans
-  .filter(l => l.status === 'อนุมัติแล้ว') // กรองเฉพาะบิลที่อนุมัติแล้วเท่านั้น
-  .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
+    .filter(l => l.status === 'อนุมัติแล้ว')
+    .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || p.interest_paid || 0) + Number(p.fine_amount || 0), 0);
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
       
@@ -1609,74 +1615,97 @@ export default function AdminDashboard() {
 
       {/* 5. Payment Modal */}
       {paymentModalOpen && selectedPaymentLoan && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 text-slate-800">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-sm">บันทึกรับชำระเงิน ({selectedPaymentLoan.bill_code})</h3>
-              <button onClick={() => setPaymentModalOpen(false)} className="font-bold cursor-pointer">✕</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header Modal */}
+            <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">💵</span>
+                <h3 className="text-sm sm:text-base font-black text-purple-900">
+                  บันทึกรับชำระ: <span className="font-mono text-purple-700">{selectedPaymentLoan.bill_code}</span>
+                </h3>
+              </div>
+              <button 
+                onClick={() => setPaymentModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleSavePayment} className="space-y-3 text-xs">
-              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 space-y-1">
-                <div>ลูกค้า: <span className="font-bold">{selectedPaymentLoan.full_name}</span></div>
-                <div>ประเภท: <span className="text-purple-700 font-bold">{selectedPaymentLoan.loan_type}</span></div>
-                <div>ยอดคงเหลือปัจจุบัน: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0).toLocaleString()}</span></div>
-                {selectedPaymentLoan.loan_type === 'ดอกลอย' && (
-                  <div>ดอกเบี้ยสะสมค้างชำระ: <span className="font-mono font-bold text-purple-600">฿{calculateAccruedInterest(selectedPaymentLoan).toLocaleString()}</span></div>
-                )}
-              </div>
+            {/* กล่องแสดงประเภท, ยอดคงเหลือ, และรายละเอียด */}
+            <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-1 text-xs font-medium text-slate-700">
+              <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
+              <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
+              <div>ยอดคงเหลือปัจจุบัน: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
+              <div>ดอกเบี้ย / รายละเอียด: <span className="font-mono font-bold text-slate-900">{selectedPaymentLoan.interest_amount ? `฿${Number(selectedPaymentLoan.interest_amount).toLocaleString()}` : (selectedPaymentLoan.note || '-')}</span></div>
+            </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-purple-900">จำนวนเงินที่รับชำระ (บาท)</label>
+            <form onSubmit={handleSavePayment} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-700 font-bold mb-1.5">ยอดเงินที่ชำระ (บาท)</label>
                 <input 
-                  type="number" placeholder="ระบุจำนวนเงิน..."
+                  type="number" 
+                  step="any"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full border rounded-lg p-2.5 text-sm font-mono font-bold outline-none focus:border-purple-500"
+                  placeholder="0 (หรือระบุยอดชำระ...)"
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="font-semibold text-rose-700">ค่าปรับ (+) บาท</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1.5">ค่าปรับ (ถ้ามี)</label>
                   <input 
-                    type="number" placeholder="0"
+                    type="number" 
+                    step="any"
                     value={fineAmount}
                     onChange={(e) => setFineAmount(e.target.value)}
-                    className="w-full border border-rose-300 rounded-lg p-2 text-xs font-mono font-bold text-rose-700 outline-none"
+                    placeholder="0"
+                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="font-semibold text-blue-700">ส่วนลด (-) บาท</label>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1.5">ส่วนลด (ถ้ามี)</label>
                   <input 
-                    type="number" placeholder="0"
+                    type="number" 
+                    step="any"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(e.target.value)}
-                    className="w-full border border-blue-300 rounded-lg p-2 text-xs font-mono font-bold text-blue-700 outline-none"
+                    placeholder="0"
+                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-2.5 rounded-lg border text-slate-600 font-semibold flex justify-between items-center">
-                <span>ยอดรับสุทธิเข้ากระเป๋า:</span>
-                <span className="font-mono text-purple-700 font-black text-base">
-                  ฿{((Number(paymentAmount || 0)) + (Number(fineAmount || 0)) - (Number(discountAmount || 0))).toLocaleString()}
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-700">หมายเหตุ / บันทึกเพิ่มเติม</label>
+              <div>
+                <label className="block text-slate-700 font-bold mb-1.5">หมายเหตุ</label>
                 <input 
-                  type="text" placeholder="ระบุหมายเหตุ (ถ้ามี)..."
+                  type="text" 
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
-                  className="w-full border rounded-lg p-2 text-xs outline-none"
+                  placeholder="เช่น ชำระงวดประจำวัน..."
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20"
                 />
               </div>
 
-              <button type="submit" className="w-full py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-xs cursor-pointer">
-                ยืนยันการรับชำระและตัดยอด
-              </button>
+              <div className="pt-3 border-t border-purple-100 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPaymentModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                >
+                  ยืนยันบันทึกรับชำระ
+                </button>
+              </div>
             </form>
           </div>
         </div>
