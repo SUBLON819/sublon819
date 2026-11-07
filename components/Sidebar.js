@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, onClose }) {
           icon: Users
         },
         // หน้าบ้านสมาชิก (คลิกแล้วไปหน้าปรับแต่งธีม)
-        { name: 'หน้าบ้านสมาชิก (apply.html)', href: '/apply', icon: Globe },
+        { name: 'หน้าบ้านสมาชิก (apply.html)', href: '/apply/admin', icon: Globe },
       ],
     },
     {
