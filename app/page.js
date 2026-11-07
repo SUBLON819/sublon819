@@ -54,7 +54,7 @@ function isTodayInSchedule(scheduleStr) {
 // 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
-  if (loan.loan_type !== 'ดอกลอย' && loan.loan_type !== 'ยอดค้างรอเครียร์') return 0;
+  if (loan.loan_type !== 'ดอกลอย' && loan.loan_type !== 'ยอดค้างรอเคลียร์') return 0;
   
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
   if (!startDateStr) return 0;
@@ -277,13 +277,15 @@ export default function AdminDashboard() {
   const totalActivePrincipal = loans
     .filter(l => (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก') && l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
+  
+  // 🟢 แก้ไขเงื่อนไขตรงนี้ให้รองรับการค้นหาคำว่า 'รอเคลียร์' หรือ 'ค้าง' ได้อย่างครอบคลุม
   const totalPendingBalance = loans
-    .filter(l => l.loan_type === 'ยอดค้างรอเครียร์' && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์'))
+    .filter(l => l.loan_type && (l.loan_type.includes('รอเคลียร์') || l.loan_type.includes('ค้าง')) && l.status !== 'ปฏิเสธคำขอ')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
   const totalInterestCollected = payments.reduce((sum, p) => {
     const targetLoan = loans.find(l => l.id === p.loan_id);
-    const extraProfit = (targetLoan && targetLoan.loan_type === 'ยอดค้างรอเคลียร์') ? Number(p.amount || 0) : 0;
+    const extraProfit = (targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์')) ? Number(p.amount || 0) : 0;
     return sum + extraProfit + Number(p.interest_paid || 0) + Number(p.fine_amount || 0);
   }, 0);
 
@@ -486,7 +488,6 @@ export default function AdminDashboard() {
     const fineVal = Number(fineAmount || 0);
     const discountVal = Number(discountAmount || 0);
 
-    // อนุญาตให้ผ่านได้ถ้ามีการกรอก ยอดชำระ, ค่าปรับ หรือส่วนลด อย่างน้อย 1 อย่าง
     if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
       alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
       return;
@@ -499,7 +500,7 @@ export default function AdminDashboard() {
       let principalPaid = 0;
       let newRemPrin = currentPrin;
 
-      if (selectedPaymentLoan.loan_type === 'ยอดค้างรอเคลียร์') {
+      if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
         interestPaid = basePayVal;   
         principalPaid = basePayVal;  
         newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal);
@@ -734,7 +735,7 @@ export default function AdminDashboard() {
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ยสะสมรอเก็บ (เรียลไทม์)');
-                const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว' && (l.loan_type === 'ดอกลอย' || l.loan_type === 'ยอดค้างรอเครียร์')).map(l => ({
+                const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว' && (l.loan_type === 'ดอกลอย' || (l.loan_type && l.loan_type.includes('รอเคลียร์')))).map(l => ({
                   ...l,
                   calculated_accrued: calculateAccruedInterest(l)
                 })).filter(l => l.calculated_accrued > 0);
@@ -755,7 +756,7 @@ export default function AdminDashboard() {
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ทุนใหม่รอเก็บ (เงินต้นคงเหลือ)');
-                const principalLoans = loans.filter(l => l.loan_type !== 'ยอดค้างรอเคลียร์' && l.status === 'อนุมัติแล้ว' && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
+                const principalLoans = loans.filter(l => (!l.loan_type || !l.loan_type.includes('รอเคลียร์')) && l.status === 'อนุมัติแล้ว' && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
                 setStatModalData(principalLoans);
                 setStatModalOpen(true);
               }}
@@ -771,7 +772,7 @@ export default function AdminDashboard() {
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดค้างรอเคลียร์');
-                const pendingLoans = loans.filter(l => l.loan_type === 'ยอดค้างรอเคลียร์' && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์') && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
+                const pendingLoans = loans.filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์') && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
                 setStatModalData(pendingLoans);
                 setStatModalOpen(true);
               }}
@@ -1597,7 +1598,7 @@ export default function AdminDashboard() {
                 >
                   <option value="ดอกลอย">ดอกลอย (ลดต้นลดดอก)</option>
                   <option value="จบต้นดอก">จบต้นดอก (ชำระเป็นงวด)</option>
-                  <option value="ยอดค้างรอเครียร์">ยอดค้างรอเคลียร์ (ยอดคงที่)</option>
+                  <option value="ยอดค้างรอเคลียร์">ยอดค้างรอเคลียร์ (ยอดคงที่)</option>
                 </select>
               </div>
 
