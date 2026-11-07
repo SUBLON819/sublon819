@@ -54,7 +54,7 @@ function isTodayInSchedule(scheduleStr) {
 // 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
-  if (loan.loan_type !== 'ดอกลอย' && loan.loan_type !== 'ยอดค้างรอเคลียร์') return 0;
+  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
   
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
   if (!startDateStr) return 0;
@@ -278,9 +278,8 @@ export default function AdminDashboard() {
     .filter(l => (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก') && l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
-  // 🟢 แก้ไขเงื่อนไขตรงนี้ให้รองรับการค้นหาคำว่า 'รอเคลียร์' หรือ 'ค้าง' ได้อย่างครอบคลุม
   const totalPendingBalance = loans
-    .filter(l => l.loan_type && (l.loan_type.includes('รอเคลียร์') || l.loan_type.includes('ค้าง')) && l.status !== 'ปฏิเสธคำขอ')
+    .filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && l.status !== 'ปฏิเสธคำขอ')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
   const totalInterestCollected = payments.reduce((sum, p) => {
@@ -461,7 +460,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🗑️ ฟังก์ชันลบรายการบิลออกจาก Supabase
+  // 🗑️ ฟังก์ชันลบรายการบิลออกจาก Supabase ทันทีแบบถาวร
   const handleDeleteLoan = async (loanId, billCode) => {
     if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
       return;
@@ -472,7 +471,7 @@ export default function AdminDashboard() {
       const { error } = await supabase.from('loans').delete().eq('id', loanId);
       if (error) throw error;
 
-      alert('ลบบิลรายการเรียบร้อยแล้ว!');
+      alert('ลบบิลรายการออกจากระบบเรียบร้อยแล้ว!');
       fetchData();
     } catch (err) {
       console.error('Error deleting loan:', err.message);
@@ -883,7 +882,6 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex gap-2 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
-                      {/* 🗑️ ปุ่มถังขยะสำหรับลบบิลรายการนี้ในหน้าแดชบอร์ด */}
                       <button
                         type="button"
                         onClick={() => handleDeleteLoan(loan.id, loan.bill_code)}
@@ -1992,15 +1990,16 @@ export default function AdminDashboard() {
                 <button 
                   type="button"
                   onClick={async () => {
-                    if (confirm(`คุณต้องการปฏิเสธคำขอกู้ของ ${selectedLoanForApproval.full_name} ใช่หรือไม่?`)) {
+                    if (confirm(`คุณต้องการปฏิเสธและลบคำขอกู้ของ ${selectedLoanForApproval.full_name} ออกจากระบบใช่หรือไม่?`)) {
                       try {
+                        await supabase.from('payments').delete().eq('loan_id', selectedLoanForApproval.id);
                         const { error } = await supabase
                           .from('loans')
-                          .update({ status: 'ปฏิเสธคำขอ' })
+                          .delete()
                           .eq('id', selectedLoanForApproval.id);
 
                         if (error) throw error;
-                        alert('ปฏิเสธคำขอเรียบร้อยแล้ว');
+                        alert('ลบคำขอกู้เรียบร้อยแล้ว');
                         setApprovalModalOpen(false);
                         if (typeof fetchData === 'function') fetchData();
                       } catch (err) {
