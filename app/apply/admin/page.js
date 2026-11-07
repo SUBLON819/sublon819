@@ -9,7 +9,6 @@ export default function ApplyAdminThemePage() {
   const [fetching, setFetching] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // State สำหรับเก็บค่าธีมและการตั้งค่าหน้าบ้านสมาชิก
   const [settings, setSettings] = useState({
     banner_title: 'สมัครขอสินเชื่อออนไลน์ SUBLON819',
     banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
@@ -18,7 +17,6 @@ export default function ApplyAdminThemePage() {
     is_frontend_open: true,
   });
 
-  // โหลดค่าการตั้งค่าจาก Supabase (ตาราง system_settings) เมื่อเข้าหน้าแอดมิน
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -48,7 +46,6 @@ export default function ApplyAdminThemePage() {
     }
   };
 
-  // ลิงก์สำหรับให้ลูกค้ากดสมัคร (ลิงก์หน้า /apply จริง)
   const applyUrl = typeof window !== 'undefined' ? `${window.location.origin}/apply` : '';
 
   const handleCopy = () => {
@@ -57,7 +54,6 @@ export default function ApplyAdminThemePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ฟังก์ชันบันทึกข้อมูลลงตาราง system_settings ใน Supabase (เคลียร์ปัญหา update is not defined เรียบร้อย)
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -88,7 +84,6 @@ export default function ApplyAdminThemePage() {
     }
   };
 
-  // ฟังก์ชันช่วยเปลี่ยนสีธีมของกล่องพรีวิวให้ตรงกับที่เลือก
   const getPreviewThemeClasses = (color) => {
     switch (color) {
       case 'indigo':
@@ -103,7 +98,7 @@ export default function ApplyAdminThemePage() {
           badge: 'bg-pink-600',
           button: 'bg-gradient-to-r from-pink-600 to-rose-600'
         };
-      default: // purple
+      default:
         return {
           bg: 'from-purple-900 to-indigo-950',
           badge: 'bg-purple-600',
@@ -129,7 +124,6 @@ export default function ApplyAdminThemePage() {
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-4 sm:p-6 font-sans text-slate-800">
       <div className="max-w-5xl mx-auto space-y-6">
         
-        {/* Header Banner */}
         <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4 text-white">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 border border-white/30 rounded-2xl flex items-center justify-center shrink-0">
@@ -162,10 +156,8 @@ export default function ApplyAdminThemePage() {
           </div>
         </div>
 
-        {/* Form & Preview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* ฟอร์มตั้งค่า (2 คอลัมน์) */}
           <div className="lg:col-span-2 bg-white/90 backdrop-blur-md border border-purple-200 rounded-3xl p-6 shadow-xl space-y-6">
             <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 border-b border-purple-100 pb-3">
               <Palette className="w-4 h-4 text-purple-700" />
@@ -243,7 +235,6 @@ export default function ApplyAdminThemePage() {
             </form>
           </div>
 
-          {/* พรีวิวหน้าเว็บ (1 คอลัมน์) - แสดงผลแบบเรียลไทม์ตาม State ปัจจุบัน */}
           <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-3xl p-6 shadow-xl space-y-4 flex flex-col">
             <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 border-b border-purple-100 pb-3">
               <Smartphone className="w-4 h-4 text-purple-700" />
