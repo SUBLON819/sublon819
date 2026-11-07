@@ -13,7 +13,7 @@ export default function ApplyAdminThemePage() {
     banner_title: 'สมัครขอสินเชื่อออนไลน์ SUBLON819',
     banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
     theme_color: 'purple',
-    line_contact: '@sublon819',
+    line_contact: '@682clwce',
     is_frontend_open: true,
   });
 
