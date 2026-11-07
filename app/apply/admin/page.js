@@ -57,7 +57,7 @@ export default function ApplyAdminThemePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ฟังก์ชันบันทึกข้อมูลลงตาราง system_settings ใน Supabase (แก้ไขให้สมบูรณ์แล้ว)
+  // ฟังก์ชันบันทึกข้อมูลลงตาราง system_settings ใน Supabase (เคลียร์ปัญหา update is not defined เรียบร้อย)
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -72,7 +72,6 @@ export default function ApplyAdminThemePage() {
       ];
 
       for (let item of updates) {
-        // ใช้ upsert เพื่อบันทึกหรืออัปเดตข้อมูลตามคีย์ key
         const { error } = await supabase
           .from('system_settings')
           .upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
