@@ -124,7 +124,7 @@ export default function CustomersPage() {
     }
   };
 
-  // ฟังก์ชันบันทึกรับชำระเงิน (ยอดเงินที่ชำระนำไปตัดต้น ส่วนค่าปรับแยกต่างหากไม่เกี่ยวกัน)
+  // ฟังก์ชันบันทึกรับชำระเงิน (ช่องรับเงินจริงนำไปตัดต้น ส่วนค่าปรับแยกเป็นกำไรไม่นำมาหักต้น)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -152,7 +152,7 @@ export default function CustomersPage() {
 
       if (paymentError) throw paymentError;
 
-      // 2. นำยอดเงินที่ชำระ (payAmount) มาหักออกจากยอดหนี้คงเหลือ (remaining_principal) โดยไม่เอาค่าปรับมาหักปะปน
+      // 2. นำเฉพาะยอดเงินที่ชำระจริง (payAmount) ไปหักออกจากยอดหนี้คงเหลือ โดยค่าปรับจะไม่ถูกนำมาหักต้น
       const currentRemaining = Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0);
       const newRemaining = Math.max(0, currentRemaining - payAmount);
       const newStatus = newRemaining === 0 ? 'ชำระแล้ว' : selectedPaymentLoan.status;
