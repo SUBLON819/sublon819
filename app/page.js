@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3, Trash2
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3, Trash2, ExternalLink
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -51,9 +51,15 @@ function isTodayInSchedule(scheduleStr) {
   }
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (รองรับทั้ง ดอกลอย และ จบต้นดอก)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
+  
+  // รองรับประเภท จบต้นดอก โดยให้แสดงดอกเบี้ยรวมตามที่ตั้งไว้หรือคงเหลือ
+  if (loan.loan_type === 'จบต้นดอก') {
+    return Number(loan.total_interest || 0);
+  }
+
   if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
   
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
@@ -103,7 +109,7 @@ export default function AdminDashboard() {
   const [endDate, setEndDate] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
-  // State สำหรับ Modal แก้ไขข้อมูลลูกค้าในหน้าประวัติ (แก้ไขให้ครบถ้วนถูกต้อง)
+  // State สำหรับ Modal แก้ไขข้อมูลลูกค้าในหน้าประวัติ
   const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -114,7 +120,7 @@ export default function AdminDashboard() {
   // Filter Tabs
   const [filterTab, setFilterTab] = useState('รออนุมัติ');
 
-  // Stat Modal States (สำหรับคลิกดูที่มาของยอด)
+  // Stat Modal States
   const [statModalOpen, setStatModalOpen] = useState(false);
   const [statModalTitle, setStatModalTitle] = useState('');
   const [statModalData, setStatModalData] = useState([]);
@@ -423,6 +429,7 @@ export default function AdminDashboard() {
         interest_start_date: interestStartDate,
         calc_next_day: newLoanData.calc_next_day,
         daily_interest: newLoanData.loan_type === 'ดอกลอย' ? Number(newLoanData.daily_interest || 0) : 0,
+        total_interest: newLoanData.loan_type === 'จบต้นดอก' ? Number(newLoanData.total_interest || 0) : 0,
         installment_amount: Number(newLoanData.installment_amount || 0),
         total_installments: Number(newLoanData.installment_count || 0),
         payment_schedule: scheduleStr,
@@ -438,7 +445,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า (รวมธนาคารและเลขบัญชีเรียบร้อย)
   const handleSaveCustomerInfo = async (e) => {
     e.preventDefault();
     try {
@@ -732,7 +738,7 @@ export default function AdminDashboard() {
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ยสะสมรอเก็บ (เรียลไทม์)');
-                const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว' && (l.loan_type === 'ดอกลอย' || (l.loan_type && l.loan_type.includes('รอเคลียร์')))).map(l => ({
+                const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว' && (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก' || (l.loan_type && l.loan_type.includes('รอเคลียร์')))).map(l => ({
                   ...l,
                   calculated_accrued: calculateAccruedInterest(l)
                 })).filter(l => l.calculated_accrued > 0);
@@ -1003,7 +1009,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 1. Daily Report Print Modal */}
+      {/* Daily Report Print Modal */}
       {dailyReportModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-2xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
@@ -1089,7 +1095,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 2. Notice Bill Modal */}
+      {/* Notice Bill Modal */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-rose-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
@@ -1285,7 +1291,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 3. Customer Profile Full Screen Modal */}
+      {/* Customer Profile Full Screen Modal */}
       {customerProfileModalOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
           <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
@@ -1328,20 +1334,33 @@ export default function AdminDashboard() {
             <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm">
               <div><span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span></div>
               <div><span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span></div>
-              <div className="sm:col-span-3 truncate">
-                <span className="text-slate-500 block text-[10px]">Facebook:</span>
+              <div className="sm:col-span-3 flex items-center gap-2">
+                <span className="text-slate-500 text-[10px]">Facebook:</span>
                 {customerInfo.facebook_link ? (
                   <a 
                     href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-purple-700 font-bold underline truncate hover:text-purple-900 inline-flex items-center gap-1"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
                   >
-                    {customerInfo.facebook_link} 🔗
+                    <span>🔗 ไปที่ Facebook ลูกค้า</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
                   <span className="text-slate-400">ไม่มีข้อมูล</span>
                 )}
+              </div>
+            </div>
+
+            {/* เพิ่มส่วนแสดง วันกู้ และ วันคืน ในหน้าข้อมูลลูกค้า */}
+            <div className="bg-white p-3.5 rounded-xl border border-purple-200 grid grid-cols-2 gap-3 shadow-sm text-xs font-mono">
+              <div>
+                <span className="text-slate-500 block text-[10px]">📅 วันที่ยื่นกู้ (Loan Date):</span>
+                <span className="font-bold text-slate-900">{customerInfo.loan_date || customerInfo.created_at?.split('T')[0] || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px]">📅 วันที่กำหนดคืน (Due Date):</span>
+                <span className="font-bold text-amber-700">{customerInfo.cycle_date || '-'}</span>
               </div>
             </div>
 
@@ -1380,6 +1399,7 @@ export default function AdminDashboard() {
                           <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
                           <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
                           <div className="text-[10px] text-slate-500 mt-0.5">รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span></div>
+                          <div className="text-[10px] text-amber-800 font-mono mt-0.5">วันกู้: {l.loan_date || '-'} | ครบกำหนด: {l.cycle_date || '-'}</div>
                         </div>
                         <div className="text-left sm:text-right font-mono w-full sm:w-auto">
                           <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
@@ -1445,7 +1465,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 4. New Loan Modal */}
+      {/* New Loan Modal */}
       {newLoanModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-2 z-50 overflow-y-auto">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-4 max-w-sm w-full space-y-2.5 text-slate-800 my-auto shadow-2xl max-h-[85vh] overflow-y-auto relative text-xs">
@@ -1691,7 +1711,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 5. Payment Modal */}
+      {/* Payment Modal */}
       {paymentModalOpen && selectedPaymentLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
@@ -1786,7 +1806,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= Edit Customer Modal (ปรับดีไซน์โทนฟ้าสดใส) ================= */}
+      {/* Edit Customer Modal */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
@@ -1889,7 +1909,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 6. Approval Modal */}
+      {/* Approval Modal */}
       {approvalModalOpen && selectedLoanForApproval && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl p-4 max-w-md w-full space-y-3 text-slate-900 relative shadow-2xl max-h-[85vh] overflow-y-auto text-xs">
@@ -1902,6 +1922,10 @@ export default function AdminDashboard() {
               <p>📱 เบอร์โทร: <span className="text-purple-700 font-mono font-bold">{selectedLoanForApproval.phone}</span></p>
               <p>💰 ยอดขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
               <p>🏦 ธนาคาร: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
+              <div className="grid grid-cols-2 gap-1 pt-1 border-t border-purple-200 font-mono text-[10px]">
+                <p>📅 วันกู้: <span className="font-bold text-slate-900">{selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || '-'}</span></p>
+                <p>📅 วันคืน: <span className="font-bold text-amber-700">{selectedLoanForApproval.cycle_date || '-'}</span></p>
+              </div>
             </div>
 
             <form onSubmit={async (e) => {
@@ -1917,11 +1941,11 @@ export default function AdminDashboard() {
                     status: 'อนุมัติแล้ว',
                     loan_type: approvalData.loan_type,
                     daily_interest: approvalData.daily_interest ? Number(approvalData.daily_interest) : 0,
-                    total_interest: approvalData.total_interest ? Number(approvalData.total_interest) : null,
+                    total_interest: approvalData.total_interest ? Number(approvalData.total_interest) : 0,
                     total_installments: approvalData.installment_count ? Number(approvalData.installment_count) : null,
                     payment_schedule: scheduleStr,
                     calc_next_day: approvalData.calc_next_day,
-                    loan_date: new Date().toISOString().split('T')[0],
+                    loan_date: selectedLoanForApproval.loan_date || new Date().toISOString().split('T')[0],
                     interest_start_date: new Date().toISOString().split('T')[0],
                   })
                   .eq('id', selectedLoanForApproval.id);
