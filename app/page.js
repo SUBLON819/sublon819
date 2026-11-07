@@ -1155,15 +1155,16 @@ export default function AdminDashboard() {
                           className="w-full border border-slate-300 rounded-lg p-1 font-bold text-xs bg-slate-50 outline-none text-slate-800"
                         >
                           <option value="">-- เลือกธนาคาร --</option>
+                          <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
                           <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
                           <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
                           <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
                           <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
                           <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                          <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
                           <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
                           <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
                           <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                          <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
                           <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
                         </select>
                       </div>
@@ -1779,10 +1780,10 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Edit Customer Modal */}
+      {/* ================= Edit Customer Modal (พร้อมตัวเลือกธนาคารและเลขบัญชี) ================= */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-bold text-purple-900 text-sm">✏️ แก้ไขข้อมูลลูกค้า</h3>
               <button onClick={() => setEditCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer">✕</button>
@@ -1818,6 +1819,41 @@ export default function AdminDashboard() {
                   onChange={(e) => setEditFacebook(e.target.value)}
                   placeholder="facebook.com/username"
                   className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900"
+                />
+              </div>
+
+              {/* 📌 เพิ่มตัวเลือกธนาคาร */}
+              <div>
+                <label className="block text-slate-600 font-semibold mb-1">ธนาคาร</label>
+                <select
+                  value={editBankName}
+                  onChange={(e) => setEditBankName(e.target.value)}
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900 bg-white font-bold"
+                >
+                  <option value="">-- เลือกธนาคาร --</option>
+                  <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                  <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                  <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                  <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                  <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                  <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                  <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                  <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                  <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                  <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                  <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                </select>
+              </div>
+
+              {/* 📌 เพิ่มช่องกรอกเลขบัญชี */}
+              <div>
+                <label className="block text-slate-600 font-semibold mb-1">เลขบัญชี / พร้อมเพย์</label>
+                <input 
+                  type="text" 
+                  value={editAccountNumber}
+                  onChange={(e) => setEditAccountNumber(e.target.value)}
+                  placeholder="เช่น 1234567890 หรือเบอร์โทรพร้อมเพย์"
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 font-mono text-slate-900"
                 />
               </div>
 
