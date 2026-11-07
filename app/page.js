@@ -144,8 +144,8 @@ export default function AdminDashboard() {
     payment_schedule: 'จ่ายทุกวัน',
     schedule_start: '',
     schedule_end: '',
-    loan_date: '',
-    cycle_date: '',
+    loan_date: '', // วันที่กู้
+    cycle_date: '', // วันที่คืน
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
     calc_next_day: false,
@@ -460,6 +460,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🗑️ ฟังก์ชันลบรายการบิลออกจาก Supabase ทันทีแบบถาวร
   const handleDeleteLoan = async (loanId, billCode) => {
     if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
       return;
@@ -636,42 +637,19 @@ export default function AdminDashboard() {
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   
+  // 🟢 คำนวณดอกเบี้ยสะสมเรียลไทม์รวมทุกบิลของลูกค้ารายนี้
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
+
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
       
-      {/* 🟢 CSS สำหรับ Custom Animation ซูมเข้า-ออกช้าๆ */}
-      <style jsx global>{`
-        @keyframes smoothZoom {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.035);
-          }
-        }
-        .animate-smooth-zoom {
-          animation: smoothZoom 2.5s ease-in-out infinite;
-        }
-      `}</style>
-
       <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-6">
 
         {/* Header Control Panel */}
         <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
-          
-          {/* 🟢 1. ปุ่มพิมพ์/Export รายงาน (ปรับให้เล็กลง และจัดไว้ที่มุมขวาบนในมือถือ ตามที่คุณวงไว้) */}
-          <button 
-            onClick={() => setDailyReportModalOpen(true)}
-            className="absolute top-3 right-3 sm:relative sm:top-auto sm:right-auto px-2.5 py-1.5 sm:px-4 sm:py-2.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl text-[10px] sm:text-xs font-bold shadow-md flex items-center justify-center gap-1 shrink-0 cursor-pointer transition-all"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>พิมพ์/Export รายงาน</span>
-          </button>
-
-          <div className="flex items-center gap-3 pr-24 sm:pr-0">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
@@ -684,6 +662,14 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
+            <button 
+              onClick={() => setDailyReportModalOpen(true)}
+              className="px-4 py-3 sm:py-2.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all"
+            >
+              <Printer className="w-4 h-4" />
+              <span>พิมพ์/Export รายงาน</span>
+            </button>
+
             <div className="relative flex-1 sm:w-64">
               <Search className="w-4 h-4 text-purple-200 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
               <input 
@@ -733,9 +719,23 @@ export default function AdminDashboard() {
 
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-full">
-            
-            {/* ดอกเบี้ยสะสม (ซูมเข้า-ออกช้าๆ) */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full">
+            <div 
+              onClick={() => {
+                setStatModalTitle('ที่มาของยอด: ยอดเก็บสดวันนี้');
+                setStatModalData(todayPayments);
+                setStatModalOpen(true);
+              }}
+              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+            >
+              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
+                <span>ยอดเก็บสดวันนี้</span>
+                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
+              </div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-emerald-600 truncate">฿{todayCollectedCash.toLocaleString()}</div>
+            </div>
+
+            {/* 🟢 กล่องดอกเบี้ยสะสม (หน้าแดชบอร์ด) พร้อมเอฟเฟกต์กระพริบ animate-pulse */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ยสะสมรอเก็บ (เรียลไทม์)');
@@ -746,16 +746,17 @@ export default function AdminDashboard() {
                 setStatModalData(activeLoansWithInterest);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border-2 border-pink-400 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-lg cursor-pointer hover:border-pink-600 hover:shadow-xl transition-all group animate-smooth-zoom z-10"
+              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group animate-pulse"
             >
-              <div className="text-slate-700 text-[11px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ดอกเบี้ยสะสม</span>
-                <span className="text-[10px] text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
+                <span>ดอกเบี้ยสะสมรอเก็บ</span>
+                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
               </div>
               <div className="text-lg sm:text-2xl font-black font-mono text-[color:#ff007f] truncate">฿{totalAccruedInterestAll.toLocaleString()}</div>
             </div>
+          </div>
 
-            {/* ยอดหนี้คงเหลือ */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 w-full">
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ทุนใหม่รอเก็บ (เงินต้นคงเหลือ)');
@@ -765,50 +766,44 @@ export default function AdminDashboard() {
               }}
               className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
             >
-              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
-                <span>ยอดหนี้คงเหลือ</span>
+              <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+                <span>ทุนใหม่รอเก็บ</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-amber-600 truncate">฿{totalActivePrincipal.toLocaleString()}</div>
+              <div className="text-base sm:text-xl font-black font-mono text-amber-600 truncate">฿{totalActivePrincipal.toLocaleString()}</div>
             </div>
 
-            {/* ยอดกู้ทั้งหมด */}
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: ยอดกู้ทั้งหมดในระบบ');
-                const allApprovedLoans = loans.filter(l => l.status === 'อนุมัติแล้ว');
-                setStatModalData(allApprovedLoans);
+                setStatModalTitle('ที่มาของยอด: ยอดค้างรอเคลียร์');
+                const pendingLoans = loans.filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์') && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
+                setStatModalData(pendingLoans);
                 setStatModalOpen(true);
               }}
               className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
             >
-              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
-                <span>ยอดกู้ทั้งหมด</span>
+              <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+                <span>ยอดค้างรอเคลียร์</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-purple-700 truncate">
-                ฿{loans.filter(l => l.status === 'อนุมัติแล้ว').reduce((sum, l) => sum + Number(l.principal_amount || 0), 0).toLocaleString()}
-              </div>
+              <div className="text-base sm:text-xl font-black font-mono text-rose-800 truncate">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
 
-            {/* ยอดชำระแล้วทั้งหมด */}
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: ประวัติการรับชำระทั้งหมด');
+                setStatModalTitle('ที่มาของยอด: ประวัติการเก็บดอกเบี้ยและค่าปรับทั้งหมด');
                 setStatModalData(payments);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
+              title="รวมดอกเบี้ยเก็บแล้ว + ค่าปรับ"
             >
-              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
-                <span>ยอดชำระแล้วทั้งหมด</span>
+              <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+                <span>กำไรสะสม</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-emerald-600 truncate">
-                ฿{payments.reduce((sum, p) => sum + Number(p.amount || p.payment_amount || 0), 0).toLocaleString()}
-              </div>
+              <div className="text-base sm:text-xl font-black font-mono text-pink-600 truncate">฿{totalInterestCollected.toLocaleString()}</div>
             </div>
-
           </div>
         </div>
 
@@ -920,7 +915,7 @@ export default function AdminDashboard() {
                               });
                               setApprovalModalOpen(true);
                             }}
-                            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer animate-smooth-zoom"
+                            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer animate-pulse"
                           >
                             🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
                           </button>
@@ -1299,12 +1294,10 @@ export default function AdminDashboard() {
       {/* 3. Customer Profile Full Screen Modal */}
       {customerProfileModalOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
-          
-          {/* 🟢 2. ปรับแถบหัวข้อและปุ่มปิดหน้าจอให้อยู่มุมขวาบนแบบกะทัดรัด */}
-          <div className="bg-purple-900 text-white px-3 sm:px-8 py-3 flex justify-between items-center gap-2 shadow-md shrink-0">
+          <div className="bg-purple-900 text-white px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-purple-300" />
+              <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-purple-300" />
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
@@ -1316,7 +1309,7 @@ export default function AdminDashboard() {
                       setEditFacebook(customerInfo.facebook_link || '');
                       setEditCustomerModalOpen(true);
                     }}
-                    className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[10px] sm:text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
+                    className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
                   >
                     <Edit3 className="w-3 h-3" />
                     <span>แก้ไขข้อมูล</span>
@@ -1325,11 +1318,9 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
               </div>
             </div>
-
-            {/* ปุ่มปิดหน้าจอขนาดเล็ก มุมขวาบน */}
             <button 
               onClick={() => setCustomerProfileModalOpen(false)}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0 shadow"
+              className="w-full sm:w-auto px-3.5 py-1.5 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
             >
               <span>✕ ปิดหน้าจอ</span>
             </button>
@@ -1356,32 +1347,35 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-center">
-              
-              {/* ดอกเบี้ยสะสม (ซูมเข้า-ออกช้าๆ) */}
-              <div className="bg-white p-3 rounded-xl border-2 border-pink-400 shadow-md animate-smooth-zoom z-10">
-                <div className="text-[10px] text-slate-700 font-bold">ดอกเบี้ยสะสม</div>
+            {/* 🟢 การจัดวางกล่องข้อมูล 4 ช่องตามลำดับใหม่: 
+                - Desktop: ดอกเบี้ยสะสม -> ยอดหนี้คงเหลือ -> ยอดกู้ทั้งหมด -> ยอดชำระแล้วทั้งหมด
+                - Mobile (2 กล่องคู่ 2 บรรทัดตามที่คุณกำหนด):
+                  บรรทัดที่ 1: [ ดอกเบี้ยสะสม (สีชมพูบานเย็น + กระพริบ) ]  [ ยอดหนี้คงเหลือ ]
+                  บรรทัดที่ 2: [ ยอดกู้ทั้งหมด ]  [ ยอดชำระแล้วทั้งหมด ] */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+              {/* ช่องที่ 1 (เดสก์ท็อป) / บรรทัดที่ 1 ช่องซ้าย (มือถือ): ดอกเบี้ยสะสม (สีชมพูบานเย็น + กระพริบ animate-pulse) */}
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm animate-pulse">
+                <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
                 <div className="font-mono font-bold text-[color:#ff007f] text-base sm:text-lg mt-0.5">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
               </div>
 
-              {/* ยอดหนี้คงเหลือ */}
+              {/* ช่องที่ 2 (เดสก์ท็อป) / บรรทัดที่ 1 ช่องขวา (มือถือ): ยอดหนี้คงเหลือ */}
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
                 <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
                 <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
               </div>
 
-              {/* ยอดกู้ทั้งหมด */}
+              {/* ช่องที่ 3 (เดสก์ท็อป) / บรรทัดที่ 2 ช่องซ้าย (มือถือ): ยอดกู้ทั้งหมด */}
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
                 <div className="text-[10px] text-slate-500">ยอดกู้ทั้งหมด</div>
                 <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
               </div>
 
-              {/* ยอดชำระแล้วทั้งหมด */}
+              {/* ช่องที่ 4 (เดสก์ท็อป) / บรรทัดที่ 2 ช่องขวา (มือถือ): ยอดชำระแล้วทั้งหมด */}
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
                 <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
                 <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
               </div>
-
             </div>
 
             <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
