@@ -96,7 +96,7 @@ export default function CustomersPage() {
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   
-  // 🟢 นำยอดเงินชำระหลัก + ค่าปรับมารวมกัน เพื่อแสดงยอดชำระแล้วทั้งหมดที่ถูกต้อง
+  // 🟢 รวมยอดเงินหลัก + ค่าปรับ เพื่อแสดงยอดชำระแล้วทั้งหมดที่ถูกต้องตรงกันทุกหน้า
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
   const customerInfo = customerLoans[0] || {};
 
@@ -125,7 +125,7 @@ export default function CustomersPage() {
     }
   };
 
-  // ฟังก์ชันบันทึกรับชำระเงิน (รองรับการกรอกเฉพาะค่าปรับ หรือยอดจ่ายหลัก โดยค่าปรับจะไม่นำไปตัดต้น)
+  // ฟังก์ชันบันทึกรับชำระเงิน (รองรับการกรอกเฉพาะค่าปรับ หรือยอดจ่ายหลัก โดยค่าปรับแยกเป็นกำไรไม่นำมาหักต้น)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -501,6 +501,14 @@ export default function CustomersPage() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* 🟢 เพิ่มกล่องแสดงประเภท, ยอดคงเหลือ, และดอกเบี้ยปัจจุบัน */}
+            <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-1 text-xs font-medium text-slate-700">
+              <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
+              <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
+              <div>ยอดคงเหลือปัจจุบัน: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
+              <div>ดอกเบี้ย / รายละเอียด: <span className="font-mono font-bold text-slate-900">{selectedPaymentLoan.interest_amount ? `฿${Number(selectedPaymentLoan.interest_amount).toLocaleString()}` : (selectedPaymentLoan.note || '-')}</span></div>
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-4 text-xs">
