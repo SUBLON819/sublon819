@@ -610,8 +610,7 @@ export default function AdminDashboard() {
   const totalCustomerRemaining = customerLoans
   .filter(l => l.status === 'อนุมัติแล้ว') // กรองเฉพาะบิลที่อนุมัติแล้วเท่านั้น
   .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
-  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || p.interest_paid || 0), 0);
-
+  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || p.interest_paid || 0) + Number(p.fine_amount || 0), 0);
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
       
