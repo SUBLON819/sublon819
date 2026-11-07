@@ -4,6 +4,52 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { FileText, Search, User, Edit3, Trash2 } from 'lucide-react';
 
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
+function getThaiTodayString() {
+  const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
+  const formatter = new Intl.DateTimeFormat('en-CA', options);
+  return formatter.format(new Date());
+}
+
+function calculateAccruedInterest(loan) {
+  if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
+  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
+  
+  const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
+  if (!startDateStr) return 0;
+
+  const cleanStartDate = startDateStr.split('T')[0];
+  const [startYear, startMonth, startDay] = cleanStartDate.split('-').map(Number);
+  const startDate = new Date(startYear, startMonth - 1, startDay);
+
+  const thaiTodayStr = getThaiTodayString();
+  const [todayYear, todayMonth, todayDay] = thaiTodayStr.split('-').map(Number);
+  const today = new Date(todayYear, todayMonth - 1, todayDay);
+  
+  const diffTime = today - startDate;
+  let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (!loan.calc_next_day) {
+    diffDays += 1;
+  }
+  
+  const days = Math.max(0, diffDays);
+  
+  const origPrin = Number(loan.principal_amount || 0);
+  const currentPrin = Number(loan.remaining_principal ?? origPrin);
+  let dailyRate = Number(loan.daily_interest || 0);
+
+  if (origPrin > 0 && loan.loan_type === 'ดอกลอย') {
+    const originalDailyInt = Number(loan.daily_interest || 0);
+    dailyRate = (originalDailyInt * currentPrin) / origPrin;
+  }
+
+  const newlyAccrued = days * dailyRate;
+  const oldRemainingInterest = Number(loan.remaining_interest || 0);
+
+  return newlyAccrued + oldRemainingInterest;
+}
+
 export default function CustomersPage() {
   const [loans, setLoans] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -27,6 +73,8 @@ export default function CustomersPage() {
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editFacebook, setEditFacebook] = useState('');
+  const [editBankName, setEditBankName] = useState('');
+  const [editAccountNumber, setEditAccountNumber] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -55,7 +103,6 @@ export default function CustomersPage() {
   loans.forEach((loan) => {
     const name = loan.full_name || 'ไม่ระบุชื่อ';
     
-    // 🛑 ข้ามบิลที่ถูกปฏิเสธคำขอทันที ไม่ให้นำมาจัดกลุ่มและไม่แสดงรายชื่อ
     if (loan.status === 'ปฏิเสธคำขอ') return;
 
     if (!customerMap[name]) {
@@ -77,7 +124,6 @@ export default function CustomersPage() {
 
   const customersList = Object.values(customerMap);
 
-  // กรองรายชื่อลูกค้าตามคำค้นหา
   const filteredCustomers = customersList.filter((cust) => {
     return (
       cust.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -85,7 +131,6 @@ export default function CustomersPage() {
     );
   });
 
-  // ข้อมูลสำหรับ Modal ประวัติลูกค้า
   const customerLoans = loans.filter(l => l.full_name === selectedCustomerName && l.status !== 'ปฏิเสธคำขอ');
   
   const customerLoanIds = customerLoans.map(l => l.id);
@@ -96,10 +141,11 @@ export default function CustomersPage() {
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   
+  const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
   const customerInfo = customerLoans[0] || {};
 
-  // ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า (อัปเดตทุกสัญญาที่มีชื่อเดิมนี้)
+  // 📌 ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า
   const handleSaveCustomerInfo = async (e) => {
     e.preventDefault();
     try {
@@ -108,7 +154,9 @@ export default function CustomersPage() {
         .update({
           full_name: editName.trim(),
           phone: String(editPhone || '').trim(),
-          facebook_link: editFacebook.trim()
+          facebook_link: editFacebook.trim(),
+          bank_name: editBankName,
+          account_number: String(editAccountNumber || '').trim()
         })
         .eq('full_name', selectedCustomerName);
 
@@ -124,24 +172,19 @@ export default function CustomersPage() {
     }
   };
 
-  // 🗑️ ฟังก์ชันลบรายการบิลออกจาก Supabase
   const handleDeleteLoan = async (loanId, billCode) => {
     if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
       return;
     }
 
     try {
-      // 1. ลบประวัติการชำระเงินที่ผูกกับบิลนี้ก่อน (ป้องกันติด Foreign Key ถ้ามี)
       await supabase.from('payments').delete().eq('loan_id', loanId);
-
-      // 2. ลบตัวบิลออกจากตาราง loans
       const { error } = await supabase.from('loans').delete().eq('id', loanId);
       if (error) throw error;
 
       alert('ลบบิลรายการเรียบร้อยแล้ว!');
       fetchData();
 
-      // ถ้าหากลบบิลสุดท้ายของลูกค้ารายนี้จนหมด ให้ปิด Modal ประวัติไปด้วย
       const remainingForThisCustomer = customerLoans.filter(l => l.id !== loanId);
       if (remainingForThisCustomer.length === 0) {
         setCustomerProfileModalOpen(false);
@@ -152,7 +195,6 @@ export default function CustomersPage() {
     }
   };
 
-  // ฟังก์ชันบันทึกรับชำระเงิน
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -173,10 +215,10 @@ export default function CustomersPage() {
       let principalPaid = 0;
       let newRemPrin = currentPrin;
 
-      if (selectedPaymentLoan.loan_type === 'ยอดค้างรอเคลียร์') {
+      if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
         interestPaid = basePayVal;   
         principalPaid = basePayVal;  
-        newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal);
+        newRemPrin = Math.max(0, currentPrin - basePayVal);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
@@ -187,17 +229,17 @@ export default function CustomersPage() {
         interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
         principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
         
-        newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
+        newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
         if (basePayVal >= accruedInterest) {
           interestPaid = accruedInterest; 
           principalPaid = basePayVal - accruedInterest; 
-          newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
+          newRemPrin = Math.max(0, currentPrin - principalPaid);
         } else {
           interestPaid = basePayVal; 
           principalPaid = 0;
-          newRemPrin = Math.max(0, currentPrin - discountVal);
+          newRemPrin = Math.max(0, currentPrin);
         }
       }
 
@@ -214,7 +256,7 @@ export default function CustomersPage() {
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
         amount: basePayVal + fineVal,
-        payment_amount: basePayVal + fineVal,
+        payment_amount: basePayVal,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
         fine_amount: fineVal,
@@ -255,35 +297,35 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-4 sm:p-6 font-sans text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-2 sm:p-4 lg:p-6 font-sans text-slate-800 text-base box-border overflow-x-hidden">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4 text-white">
+        <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 text-white">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 border border-white/30 rounded-2xl flex items-center justify-center shrink-0">
-              <User className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+              <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black">รายชื่อลูกหนี้ทั้งหมด (รายบุคคล)</h1>
-              <p className="text-xs text-purple-100">คลิกที่ชื่อลูกค้าเพื่อดูประวัติและรายละเอียดทั้งหมด</p>
+              <h1 className="text-base sm:text-2xl font-black text-white drop-shadow-sm">รายชื่อลูกหนี้ทั้งหมด (รายบุคคล)</h1>
+              <p className="text-[10px] sm:text-xs text-purple-100">คลิกที่ชื่อลูกค้าเพื่อดูประวัติและรายละเอียดทั้งหมด</p>
             </div>
           </div>
 
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full lg:w-72">
             <Search className="w-4 h-4 text-purple-200 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
             <input 
               type="text"
               placeholder="ค้นหาชื่อ, เบอร์โทร..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none focus:border-white placeholder:text-purple-200/70"
+              className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-base sm:text-sm text-white outline-none focus:border-white placeholder:text-purple-200/70"
             />
           </div>
         </div>
 
         {/* Content List */}
-        <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-3xl p-5 shadow-xl space-y-4">
+        <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4">
           <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 border-b border-purple-100 pb-3">
             <FileText className="w-4 h-4 text-purple-700" />
             <span>รายชื่อลูกค้าทั้งหมด ({filteredCustomers.length} คน)</span>
@@ -296,7 +338,7 @@ export default function CustomersPage() {
           ) : (
             <div className="space-y-3">
               {filteredCustomers.map((cust, idx) => (
-                <div key={idx} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-all">
+                <div key={idx} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-all">
                   
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -306,18 +348,18 @@ export default function CustomersPage() {
                           setSelectedCustomerName(cust.full_name);
                           setCustomerProfileModalOpen(true);
                         }}
-                        className="text-base font-black text-slate-900 hover:text-purple-700 underline cursor-pointer transition-colors"
+                        className="text-sm sm:text-base font-black text-slate-900 hover:text-purple-700 underline cursor-pointer transition-colors"
                         title="คลิกเพื่อดูประวัติ"
                       >
                         {cust.full_name} 🔍
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-[10px] sm:text-xs text-slate-500">
                       เบอร์โทร: <span className="font-mono font-bold text-slate-700">{cust.phone || '-'}</span> | ธนาคาร: {cust.bank_name || '-'} ({cust.account_number || '-'})
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 bg-white px-4 py-2.5 rounded-xl border border-purple-100 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="flex items-center gap-4 bg-white px-3 sm:px-4 py-2.5 rounded-xl border border-purple-100 w-full sm:w-auto justify-between sm:justify-end text-xs">
                     <div>
                       <span className="text-[10px] text-slate-400 block">ยอดกู้รวม:</span>
                       <span className="font-mono font-bold text-purple-700 text-sm">฿{cust.totalBorrowed.toLocaleString()}</span>
@@ -338,115 +380,123 @@ export default function CustomersPage() {
       {/* ================= MODAL ประวัติลูกค้าแบบเต็มจอ ================= */}
       {customerProfileModalOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
-          <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-center shadow-md shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-800 rounded-xl flex items-center justify-center">
-                <User className="w-6 h-6 text-purple-300" />
+          
+          <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-16 sm:pr-0">
+              <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-purple-300" />
               </div>
-              <div>
-                <h2 className="text-base sm:text-xl font-black flex flex-wrap items-center gap-3">
-                  <span>ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
+                  <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
                   <button
                     onClick={() => {
                       setEditName(selectedCustomerName);
                       setEditPhone(customerInfo.phone || '');
                       setEditFacebook(customerInfo.facebook_link || '');
+                      setEditBankName(customerInfo.bank_name || '');
+                      setEditAccountNumber(customerInfo.account_number || '');
                       setEditCustomerModalOpen(true);
                     }}
-                    className="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
+                    className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    <Edit3 className="w-3 h-3" />
                     <span>แก้ไขข้อมูล</span>
                   </button>
                 </h2>
-                <p className="text-xs text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
+                <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
               </div>
             </div>
+
             <button 
               onClick={() => setCustomerProfileModalOpen(false)}
-              className="px-4 py-2 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="absolute right-4 top-4 sm:static px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs flex flex-col items-center justify-center leading-tight shadow-lg transition-all cursor-pointer shrink-0 border border-purple-500/50"
             >
-              <span>✕ ปิดหน้าจอ</span>
+              <span className="text-sm font-black">✕ ปิด</span>
+              <span className="text-[9px] text-purple-200">หน้าจอ</span>
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 max-w-5xl mx-auto w-full box-border">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
             
-            {/* ข้อมูลการติดต่อ */}
-            <div className="bg-purple-50 p-4 sm:p-6 rounded-2xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm shadow-sm relative">
+            <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm">
               <div>
-                <span className="text-slate-500 block text-xs">เบอร์โทรศัพท์:</span> 
-                <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
+                <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
+                <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-xs">บัญชีธนาคาร:</span> 
-                <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
+                <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
+                <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
               </div>
               <div className="sm:col-span-3 truncate">
-                <span className="text-slate-500 block text-xs">Facebook:</span> 
+                <span className="text-slate-500 block text-[10px]">Facebook:</span> 
                 {customerInfo.facebook_link ? (
                   <a 
                     href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="text-purple-700 font-bold underline truncate hover:text-purple-900 inline-block text-sm"
+                    className="text-purple-700 font-bold underline truncate hover:text-purple-900 inline-flex items-center gap-1"
                   >
                     {customerInfo.facebook_link} 🔗
                   </a>
                 ) : (
-                  <span className="text-slate-400 text-xs">ไม่มีข้อมูล</span>
+                  <span className="text-slate-400">ไม่มีข้อมูล</span>
                 )}
               </div>
             </div>
 
-            {/* กล่องสรุปยอดรวม 3 ช่อง */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-              <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-                <div className="text-xs text-slate-500">ยอดกู้สะสมทั้งหมด</div>
-                <div className="font-mono font-bold text-purple-600 text-lg sm:text-xl mt-1">฿{totalCustomerBorrowed.toLocaleString()}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
+                <div className="font-mono font-bold text-[color:#ff007f] text-base sm:text-lg mt-0.5 animate-pulse">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-                <div className="text-xs text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
-                <div className="font-mono font-bold text-amber-600 text-lg sm:text-xl mt-1">฿{totalCustomerRemaining.toLocaleString()}</div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
+                <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-                <div className="text-xs text-slate-500">ยอดชำระแล้วทั้งหมด</div>
-                <div className="font-mono font-bold text-teal-600 text-lg sm:text-xl mt-1">฿{totalCustomerPaid.toLocaleString()}</div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดกู้ทั้งหมด</div>
+                <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
+                <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
               </div>
             </div>
 
-            {/* รายการสัญญา พร้อมปุ่มรับชำระ และ ปุ่มถังขยะลบบิล */}
-            <div className="space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-purple-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 border-b border-purple-100 pb-2">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
+            <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
+              <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
               {customerLoans.length === 0 ? (
-                <div className="text-xs text-slate-400 text-center py-6">ไม่พบประวัติสัญญา</div>
+                <div className="text-slate-400 text-center py-4 text-[11px]">ไม่พบประวัติสัญญา</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {customerLoans.map((l) => (
-                    <div key={l.id} className="bg-purple-50/40 p-4 rounded-xl border border-purple-100 space-y-3">
-                      <div className="flex justify-between items-center">
+                    <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
                         <div>
-                          <span className="font-mono font-bold text-purple-700 text-base">{l.bill_code}</span> 
-                          <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-semibold">{l.loan_type}</span>
-                          <div className="text-xs text-slate-500 mt-1">
+                          <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
+                          <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
                             รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span>
                           </div>
                         </div>
-                        <div className="text-right font-mono">
-                          <div className="font-bold text-slate-900 text-sm">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
-                          <div className="text-xs text-amber-600 mt-0.5">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</div>
+                        <div className="text-left sm:text-right font-mono w-full sm:w-auto">
+                          <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
+                          <div className="text-[10px] text-amber-600 mt-0.5">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</div>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-purple-200/60 flex justify-between items-center">
-                        {/* 🗑️ ปุ่มถังขยะสำหรับลบบิลรายการนี้ */}
+                      <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
                         <button
                           type="button"
                           onClick={() => handleDeleteLoan(l.id, l.bill_code)}
-                          className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
                           title="ลบรายการบิลนี้"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                           <span>ลบบิลนี้</span>
                         </button>
 
@@ -460,9 +510,9 @@ export default function CustomersPage() {
                             setPaymentNote('');
                             setPaymentModalOpen(true);
                           }}
-                          className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer flex items-center gap-1.5"
+                          className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors cursor-pointer flex items-center gap-1"
                         >
-                          <span>💵 บันทึกรับชำระบิลนี้</span>
+                          <span>💵 บันทึกรับชำระ</span>
                         </button>
                       </div>
                     </div>
@@ -471,22 +521,21 @@ export default function CustomersPage() {
               )}
             </div>
 
-            {/* ประวัติการชำระเงินย้อนหลัง */}
-            <div className="space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-purple-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 border-b border-purple-100 pb-2">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
+            <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
+              <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
               {customerPayments.length === 0 ? (
-                <div className="text-xs text-slate-400 text-center py-6">ยังไม่มีประวัติการชำระเงิน</div>
+                <div className="text-slate-400 text-center py-4 text-[11px]">ยังไม่มีประวัติการชำระเงิน</div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {customerPayments.map((p) => (
-                    <div key={p.id} className="bg-purple-50/20 p-3 rounded-xl border border-purple-100 flex justify-between items-center text-xs sm:text-sm">
+                    <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
                       <div>
-                        <span className="font-mono font-bold text-purple-800 text-base">฿{Number(p.amount || 0).toLocaleString()}</span>
-                        <span className="text-xs text-slate-600 ml-3 bg-purple-100 px-2 py-0.5 rounded">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
-                        {Number(p.fine_amount || 0) > 0 && <span className="text-xs text-rose-600 ml-2 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
-                        {Number(p.discount_amount || 0) > 0 && <span className="text-xs text-blue-600 ml-2 font-bold">(ส่วนลด -{p.discount_amount})</span>}
+                        <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? (p.amount - (p.fine_amount || 0))).toLocaleString()}</span>
+                        <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
+                        {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
+                        {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 ml-1 font-bold">(ส่วนลด -{p.discount_amount})</span>}
                       </div>
-                      <div className="text-xs text-slate-500 font-mono">
+                      <div className="text-[10px] text-slate-500 font-mono">
                         {new Date(p.created_at).toLocaleString('th-TH')}
                       </div>
                     </div>
@@ -499,23 +548,16 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* ================= MODAL แก้ไขข้อมูลลูกค้า ================= */}
+      {/* ================= MODAL แก้ไขข้อมูลลูกค้า (ขนาด text-base บนมือถือเพื่อป้องกันการซูม) ================= */}
       {editCustomerModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-purple-100 pb-3">
-              <h3 className="text-base font-bold text-purple-900">
-                ✏️ แก้ไขข้อมูลลูกค้า
-              </h3>
-              <button 
-                onClick={() => setEditCustomerModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold p-1"
-              >
-                ✕
-              </button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="font-bold text-purple-900 text-sm">✏️ แก้ไขข้อมูลลูกค้า</h3>
+              <button onClick={() => setEditCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer">✕</button>
             </div>
 
-            <form onSubmit={handleSaveCustomerInfo} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
               <div>
                 <label className="block text-slate-600 font-semibold mb-1">ชื่อ-นามสกุล *</label>
                 <input 
@@ -523,7 +565,7 @@ export default function CustomersPage() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600"
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900 font-bold"
                 />
               </div>
 
@@ -533,7 +575,7 @@ export default function CustomersPage() {
                   type="text" 
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 font-mono"
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 font-mono text-slate-900"
                 />
               </div>
 
@@ -543,24 +585,57 @@ export default function CustomersPage() {
                   type="text" 
                   value={editFacebook}
                   onChange={(e) => setEditFacebook(e.target.value)}
-                  placeholder="เช่น facebook.com/username"
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600"
+                  placeholder="facebook.com/username"
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900"
                 />
               </div>
 
-              <div className="pt-3 border-t border-purple-100 flex gap-2 justify-end">
+              <div>
+                <label className="block text-slate-600 font-semibold mb-1">ธนาคาร</label>
+                <select
+                  value={editBankName}
+                  onChange={(e) => setEditBankName(e.target.value)}
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900 bg-white font-bold"
+                >
+                  <option value="">-- เลือกธนาคาร --</option>
+                  <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                  <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                  <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                  <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                  <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                  <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                  <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                  <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                  <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                  <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                  <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-semibold mb-1">เลขบัญชี / พร้อมเพย์</label>
+                <input 
+                  type="text" 
+                  value={editAccountNumber}
+                  onChange={(e) => setEditAccountNumber(e.target.value)}
+                  placeholder="เช่น 1234567890 หรือเบอร์โทรพร้อมเพย์"
+                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 font-mono text-slate-900"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setEditCustomerModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  บันทึกการแก้ไข
+                  บันทึก
                 </button>
               </div>
             </form>
@@ -570,94 +645,92 @@ export default function CustomersPage() {
 
       {/* ================= MODAL บันทึกรับชำระเงิน ================= */}
       {paymentModalOpen && selectedPaymentLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
             
-            {/* Header Modal */}
-            <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-2">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">💵</span>
-                <h3 className="text-sm sm:text-base font-black text-purple-900">
+                <span className="w-7 h-7 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">💵</span>
+                <h3 className="font-black text-purple-900 text-xs sm:text-sm">
                   บันทึกรับชำระ: <span className="font-mono text-purple-700">{selectedPaymentLoan.bill_code}</span>
                 </h3>
               </div>
               <button 
                 onClick={() => setPaymentModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-1 text-xs font-medium text-slate-700">
+            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-0.5 font-medium text-slate-700 text-[11px]">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
-              <div>ยอดคงเหลือปัจจุบัน: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
-              <div>ดอกเบี้ย / รายละเอียด: <span className="font-mono font-bold text-slate-900">{selectedPaymentLoan.interest_amount ? `฿${Number(selectedPaymentLoan.interest_amount).toLocaleString()}` : (selectedPaymentLoan.note || '-')}</span></div>
+              <div>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
             </div>
 
-            <form onSubmit={handleSavePayment} className="space-y-4 text-xs">
+            <form onSubmit={handleSavePayment} className="space-y-3">
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">ยอดเงินที่ชำระ (บาท)</label>
+                <label className="block text-slate-700 font-bold mb-1">ยอดเงินที่ชำระ (บาท)</label>
                 <input 
                   type="number" 
                   step="any"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="0 (หรือระบุยอดชำระ...)"
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
+                  placeholder="0"
+                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">ค่าปรับ (ถ้ามี)</label>
+                  <label className="block text-slate-700 font-bold mb-1">ค่าปรับ</label>
                   <input 
                     type="number" 
                     step="any"
                     value={fineAmount}
                     onChange={(e) => setFineAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
+                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">ส่วนลด (ถ้ามี)</label>
+                  <label className="block text-slate-700 font-bold mb-1">ส่วนลด</label>
                   <input 
                     type="number" 
                     step="any"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
+                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">หมายเหตุ</label>
+                <label className="block text-slate-700 font-bold mb-1">หมายเหตุ</label>
                 <input 
                   type="text" 
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder="เช่น ชำระงวดประจำวัน..."
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20"
+                  placeholder="ชำระงวดประจำวัน..."
+                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20"
                 />
               </div>
 
-              <div className="pt-3 border-t border-purple-100 flex gap-2 justify-end">
+              <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setPaymentModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  ยืนยันบันทึกรับชำระ
+                  ยืนยันรับชำระ
                 </button>
               </div>
             </form>
