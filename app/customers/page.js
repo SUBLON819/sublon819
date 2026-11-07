@@ -82,7 +82,7 @@ export default function CustomersPage() {
   });
 
   // ข้อมูลสำหรับ Modal ประวัติลูกค้า
-  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName);
+  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName && l.status !== 'ปฏิเสธคำขอ');
   
   const customerLoanIds = customerLoans.map(l => l.id);
   const customerPayments = payments.filter(p => customerLoanIds.includes(p.loan_id));
