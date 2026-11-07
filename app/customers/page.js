@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { FileText, Search, User, Edit3 } from 'lucide-react';
+import { FileText, Search, User, Edit3, Trash2 } from 'lucide-react';
 
 export default function CustomersPage() {
   const [loans, setLoans] = useState([]);
@@ -96,7 +96,6 @@ export default function CustomersPage() {
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   
-  // 🟢 รวมยอดเงินหลัก + ค่าปรับ เพื่อแสดงยอดชำระแล้วทั้งหมดที่ถูกต้องตรงกันทุกหน้า
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
   const customerInfo = customerLoans[0] || {};
 
@@ -125,53 +124,129 @@ export default function CustomersPage() {
     }
   };
 
-  // ฟังก์ชันบันทึกรับชำระเงิน (รองรับการกรอกเฉพาะค่าปรับ หรือยอดจ่ายหลัก โดยค่าปรับแยกเป็นกำไรไม่นำมาหักต้น)
+  // 🗑️ ฟังก์ชันลบรายการบิลออกจาก Supabase
+  const handleDeleteLoan = async (loanId, billCode) => {
+    if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
+      return;
+    }
+
+    try {
+      // 1. ลบประวัติการชำระเงินที่ผูกกับบิลนี้ก่อน (ป้องกันติด Foreign Key ถ้ามี)
+      await supabase.from('payments').delete().eq('loan_id', loanId);
+
+      // 2. ลบตัวบิลออกจากตาราง loans
+      const { error } = await supabase.from('loans').delete().eq('id', loanId);
+      if (error) throw error;
+
+      alert('ลบบิลรายการเรียบร้อยแล้ว!');
+      fetchData();
+
+      // ถ้าหากลบบิลสุดท้ายของลูกค้ารายนี้จนหมด ให้ปิด Modal ประวัติไปด้วย
+      const remainingForThisCustomer = customerLoans.filter(l => l.id !== loanId);
+      if (remainingForThisCustomer.length === 0) {
+        setCustomerProfileModalOpen(false);
+      }
+    } catch (err) {
+      console.error('Error deleting loan:', err.message);
+      alert('เกิดข้อผิดพลาดในการลบบิล: ' + err.message);
+    }
+  };
+
+  // ฟังก์ชันบันทึกรับชำระเงิน
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
 
-    try {
-      const payAmount = Number(paymentAmount || 0);
-      const fine = Number(fineAmount || 0);
-      const discount = Number(discountAmount || 0);
+    const basePayVal = Number(paymentAmount || 0);
+    const fineVal = Number(fineAmount || 0);
+    const discountVal = Number(discountAmount || 0);
 
-      if (payAmount <= 0 && fine <= 0) {
-        alert('กรุณากรอกจำนวนเงินที่ชำระ หรือระบุค่าปรับอย่างน้อย 1 อย่าง');
-        return;
+    if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
+      alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
+      return;
+    }
+
+    try {
+      const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
+
+      let interestPaid = 0;
+      let principalPaid = 0;
+      let newRemPrin = currentPrin;
+
+      if (selectedPaymentLoan.loan_type === 'ยอดค้างรอเคลียร์') {
+        interestPaid = basePayVal;   
+        principalPaid = basePayVal;  
+        newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal);
+      } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
+        const totalInt = Number(selectedPaymentLoan.total_interest || 0);
+        const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
+        const totalPayable = origPrin + totalInt;
+        
+        const netPrincipalPay = Math.max(0, basePayVal);
+        const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
+        interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
+        principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
+        
+        newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
+      } else {
+        const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
+        if (basePayVal >= accruedInterest) {
+          interestPaid = accruedInterest; 
+          principalPaid = basePayVal - accruedInterest; 
+          newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal);
+        } else {
+          interestPaid = basePayVal; 
+          principalPaid = 0;
+          newRemPrin = Math.max(0, currentPrin - discountVal);
+        }
       }
 
-      // 1. บันทึกประวัติการชำระเงินลงตาราง payments พร้อมค่าปรับและส่วนลด
+      let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
+      const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
+      if (selectedPaymentLoan.loan_type === 'ดอกลอย' && origPrin > 0) {
+        const originalDailyInt = Number(selectedPaymentLoan.daily_interest || 0);
+        const ratio = originalDailyInt / origPrin;
+        newDailyInterest = newRemPrin * ratio;
+      }
+
       const { error: paymentError } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
-        amount: payAmount,
-        fine_amount: fine,
-        discount_amount: discount,
-        note: paymentNote || (payAmount > 0 ? 'รับชำระปกติ' : 'บันทึกค่าปรับ')
+        amount: basePayVal + fineVal,
+        payment_amount: basePayVal + fineVal,
+        interest_paid: interestPaid,
+        principal_paid: principalPaid,
+        fine_amount: fineVal,
+        discount_amount: discountVal,
+        note: paymentNote || (discountVal > 0 ? `ให้ส่วนลด -${discountVal}` : 'รับชำระปกติ'),
+        created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
       }]);
 
       if (paymentError) throw paymentError;
 
-      // 2. ถ้ายอดจ่ายหลัก (payAmount) มากกว่า 0 เท่านั้น ถึงจะนำไปตัดลดต้น ส่วนค่าปรับจะไม่นำมาหักต้น
-      if (payAmount > 0) {
-        const currentRemaining = Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0);
-        const newRemaining = Math.max(0, currentRemaining - payAmount);
-        const newStatus = newRemaining === 0 ? 'ชำระแล้ว' : selectedPaymentLoan.status;
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      const isPaidOff = newRemPrin === 0;
 
-        const { error: updateError } = await supabase
-          .from('loans')
-          .update({
-            remaining_principal: newRemaining,
-            status: newStatus
-          })
-          .eq('id', selectedPaymentLoan.id);
+      const { error: loanErr } = await supabase.from('loans').update({
+        remaining_principal: newRemPrin,
+        daily_interest: newDailyInterest,
+        remaining_interest: 0,
+        interest_start_date: tomorrowStr,
+        calc_next_day: true,
+        status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
+      }).eq('id', selectedPaymentLoan.id);
 
-        if (updateError) throw updateError;
-      }
+      if (loanErr) throw loanErr;
 
-      alert('บันทึกรับชำระเงินสำเร็จ!');
+      alert('บันทึกข้อมูลและตัดยอดเรียบร้อยแล้ว!');
       setPaymentModalOpen(false);
+      setPaymentAmount('');
+      setFineAmount('');
+      setDiscountAmount('');
+      setPaymentNote('');
       fetchData();
     } catch (err) {
       console.error('Error saving payment:', err.message);
@@ -340,7 +415,7 @@ export default function CustomersPage() {
               </div>
             </div>
 
-            {/* รายการสัญญา พร้อมปุ่มรับชำระ */}
+            {/* รายการสัญญา พร้อมปุ่มรับชำระ และ ปุ่มถังขยะลบบิล */}
             <div className="space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-purple-200 shadow-sm">
               <h4 className="text-sm font-bold text-slate-800 border-b border-purple-100 pb-2">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
               {customerLoans.length === 0 ? (
@@ -363,7 +438,18 @@ export default function CustomersPage() {
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-purple-200/60 flex justify-end">
+                      <div className="pt-2 border-t border-purple-200/60 flex justify-between items-center">
+                        {/* 🗑️ ปุ่มถังขยะสำหรับลบบิลรายการนี้ */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLoan(l.id, l.bill_code)}
+                          className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1"
+                          title="ลบรายการบิลนี้"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>ลบบิลนี้</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -503,7 +589,6 @@ export default function CustomersPage() {
               </button>
             </div>
 
-            {/* 🟢 เพิ่มกล่องแสดงประเภท, ยอดคงเหลือ, และดอกเบี้ยปัจจุบัน */}
             <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-1 text-xs font-medium text-slate-700">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
