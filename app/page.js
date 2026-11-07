@@ -539,7 +539,7 @@ export default function AdminDashboard() {
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
         amount: basePayVal + fineVal,
-        payment_amount: basePayVal + fineVal,
+        payment_amount: basePayVal, // บันทึกเฉพาะยอดชำระหลัก แยกจากค่าปรับ
         interest_paid: interestPaid,
         principal_paid: principalPaid,
         fine_amount: fineVal,
@@ -659,14 +659,6 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
-            <button 
-              onClick={() => setDailyReportModalOpen(true)}
-              className="px-4 py-3 sm:py-2.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all"
-            >
-              <Printer className="w-4 h-4" />
-              <span>พิมพ์/Export รายงาน</span>
-            </button>
-
             <div className="relative flex-1 sm:w-64">
               <Search className="w-4 h-4 text-purple-200 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
               <input 
@@ -748,7 +740,7 @@ export default function AdminDashboard() {
                 <span>ดอกเบี้ยสะสมรอเก็บ</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-[color:#ff007f] truncate">฿{totalAccruedInterestAll.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-[color:#ff007f] truncate animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
             </div>
           </div>
 
@@ -987,7 +979,7 @@ export default function AdminDashboard() {
                     <div className="text-right font-mono font-bold text-xs sm:text-sm text-purple-800">
                       {item.calculated_accrued !== undefined ? `฿${item.calculated_accrued.toLocaleString()}` :
                        item.remaining_principal !== undefined ? `฿${Number(item.remaining_principal || item.principal_amount || 0).toLocaleString()}` :
-                       `฿${Number(item.amount || item.payment_amount || 0).toLocaleString()}`}
+                       `฿${Number(item.payment_amount || item.amount || 0).toLocaleString()}`}
                     </div>
                   </div>
                 ))
@@ -1063,7 +1055,7 @@ export default function AdminDashboard() {
                         <tr key={idx} className="border-b">
                           <td className="p-1.5 border font-mono">{p.bill_code}</td>
                           <td className="p-1.5 border">{p.full_name}</td>
-                          <td className="p-1.5 border text-right font-mono font-bold text-emerald-700">฿{Number(p.amount || 0).toLocaleString()}</td>
+                          <td className="p-1.5 border text-right font-mono font-bold text-emerald-700">฿{Number(p.payment_amount || p.amount || 0).toLocaleString()}</td>
                           <td className="p-1.5 border text-right font-mono text-slate-600">฿{(Number(p.interest_paid || 0) + Number(p.fine_amount || 0)).toLocaleString()}</td>
                         </tr>
                       ))}
@@ -1426,7 +1418,8 @@ export default function AdminDashboard() {
                   {customerPayments.map((p) => (
                     <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
                       <div>
-                        <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.amount || 0).toLocaleString()}</span>
+                        {/* แสดงผลเฉพาะยอดชำระหลัก แยกจากค่าปรับอย่างถูกต้อง */}
+                        <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? (p.amount - (p.fine_amount || 0))).toLocaleString()}</span>
                         <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
                         {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
                         {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 ml-1 font-bold">(ส่วนลด -{p.discount_amount})</span>}
