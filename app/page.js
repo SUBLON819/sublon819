@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
