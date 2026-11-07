@@ -57,7 +57,7 @@ export default function ApplyAdminThemePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ฟังก์ชันบันทึกข้อมูลลงตาราง system_settings ใน Supabase
+  // ฟังก์ชันบันทึกข้อมูลลงตาราง system_settings ใน Supabase (แก้ไขให้สมบูรณ์แล้ว)
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -72,15 +72,12 @@ export default function ApplyAdminThemePage() {
       ];
 
       for (let item of updates) {
+        // ใช้ upsert เพื่อบันทึกหรืออัปเดตข้อมูลตามคีย์ key
         const { error } = await supabase
           .from('system_settings')
-          update({ value: item.value }) // กรณีใช้ upsert หรือ update ตามโครงสร้างตาราง
-          .eq('key', item.key);
-        
-        // หากระบบตารางใช้ upsert แนะนำให้ใช้แบบนี้แทน:
-        await supabase
-          .from('system_settings')
           .upsert({ key: item.key, value: item.value }, { onConflict: 'key' });
+
+        if (error) throw error;
       }
 
       alert('บันทึกการตั้งค่าหน้าบ้านสมาชิกสำเร็จ!');
