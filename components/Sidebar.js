@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -8,11 +9,25 @@ import {
   Users, 
   Globe, 
   TrendingUp, 
-  Settings 
+  Settings,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
+  const [copied, setCopied] = useState(false);
+
+  // สร้างลิงก์หน้าบ้านแบบอัตโนมัติจาก Origin ปัจจุบัน (หรือใส่ลิงก์ตรงๆ ได้ครับ)
+  const applyUrl = typeof window !== 'undefined' ? `${window.location.origin}/apply` : '/apply';
+
+  const handleCopyLink = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(applyUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const menuGroups = [
     {
@@ -29,6 +44,7 @@ export default function Sidebar({ isOpen, onClose }) {
           href: '/customers', 
           icon: Users
         },
+        // หน้าบ้านสมาชิก (คลิกแล้วไปหน้าปรับแต่งธีม)
         { name: 'หน้าบ้านสมาชิก (apply.html)', href: '/apply', icon: Globe },
       ],
     },
@@ -90,19 +106,44 @@ export default function Sidebar({ isOpen, onClose }) {
                     const isActive = pathname === item.href;
 
                     return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onClose} // กดเลือกเมนูแล้วให้ปิด Sidebar บนมือถืออัตโนมัติ
-                        className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                          isActive
-                            ? 'bg-purple-600 text-white font-semibold'
-                            : 'hover:bg-slate-800 hover:text-white text-slate-400'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5 shrink-0" />
-                        <span>{item.name}</span>
-                      </Link>
+                      <div key={item.name} className="space-y-1">
+                        <Link
+                          href={item.href}
+                          onClick={onClose}
+                          className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
+                              ? 'bg-purple-600 text-white font-semibold'
+                              : 'hover:bg-slate-800 hover:text-white text-slate-400'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5 shrink-0" />
+                          <span>{item.name}</span>
+                        </Link>
+
+                        {/* 🔗 เพิ่มปุ่มกดคัดลอกลิงก์ใต้เมนู หน้าบ้านสมาชิก (apply.html) */}
+                        {item.href === '/apply' && (
+                          <div className="pl-8 pr-2 py-1">
+                            <button
+                              onClick={handleCopyLink}
+                              className="w-full flex items-center justify-between bg-slate-800/80 hover:bg-slate-800 text-xs text-purple-300 px-2.5 py-1.5 rounded-md border border-slate-700/60 transition-all cursor-pointer group"
+                              title="คลิกเพื่อคัดลอกลิงก์"
+                            >
+                              <span className="truncate mr-1 font-mono text-[11px] opacity-80 group-hover:opacity-100">
+                                copy apply.html
+                              </span>
+                              {copied ? (
+                                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                                  <Check className="w-3.5 h-3.5" /> คัดลอกแล้ว
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-purple-400">
+                                  <Copy className="w-3.5 h-3.5" /> คัดลอกลิงก์
+                                </span>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
