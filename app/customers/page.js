@@ -124,7 +124,7 @@ export default function CustomersPage() {
     }
   };
 
-  // ฟังก์ชันบันทึกรับชำระเงิน
+  // ฟังก์ชันบันทึกรับชำระเงิน (เพิ่ม bill_code และ full_name เพื่อแก้ปัญหา Not-Null Constraint)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -142,6 +142,7 @@ export default function CustomersPage() {
       const { error: paymentError } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
+        full_name: selectedPaymentLoan.full_name, // 👈 เพิ่ม full_name ตรงนี้เพื่อแก้ Error
         amount: payAmount,
         fine_amount: fine,
         discount_amount: discount,
@@ -476,7 +477,7 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* ================= MODAL บันทึกรับชำระเงิน (ปรับเส้นคั่นและดีไซน์ใหม่) ================= */}
+      {/* ================= MODAL บันทึกรับชำระเงิน ================= */}
       {paymentModalOpen && selectedPaymentLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
