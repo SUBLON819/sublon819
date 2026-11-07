@@ -96,7 +96,8 @@ export default function CustomersPage() {
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   
-  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  // 🟢 นำยอดเงินชำระหลัก + ค่าปรับมารวมกัน เพื่อแสดงยอดชำระแล้วทั้งหมดที่ถูกต้อง
+  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
   const customerInfo = customerLoans[0] || {};
 
   // ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า (อัปเดตทุกสัญญาที่มีชื่อเดิมนี้)
@@ -152,7 +153,7 @@ export default function CustomersPage() {
 
       if (paymentError) throw paymentError;
 
-      // 2. ถ้ายอดจ่ายหลัก (payAmount) มากกว่า 0 นำไปตัดลดต้น ส่วนค่าปรับจะไม่นำมาหักต้น
+      // 2. ถ้ายอดจ่ายหลัก (payAmount) มากกว่า 0 เท่านั้น ถึงจะนำไปตัดลดต้น ส่วนค่าปรับจะไม่นำมาหักต้น
       if (payAmount > 0) {
         const currentRemaining = Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0);
         const newRemaining = Math.max(0, currentRemaining - payAmount);
