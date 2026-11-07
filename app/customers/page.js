@@ -72,7 +72,6 @@ export default function CustomersPage() {
     }
     customerMap[name].loans.push(loan);
     customerMap[name].totalBorrowed += Number(loan.principal_amount || 0);
-    // แก้ไขใส่เครื่องหมายวงเล็บครอบเพื่อป้องกัน Vercel Build Error
     customerMap[name].totalRemaining += Number((loan.remaining_principal ?? loan.principal_amount) || 0);
   });
 
@@ -142,6 +141,7 @@ export default function CustomersPage() {
 
       const { error: paymentError } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
+        bill_code: selectedPaymentLoan.bill_code,
         amount: payAmount,
         fine_amount: fine,
         discount_amount: discount,
@@ -265,7 +265,6 @@ export default function CustomersPage() {
               <div>
                 <h2 className="text-base sm:text-xl font-black flex flex-wrap items-center gap-3">
                   <span>ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
-                  {/* ✏️ ปุ่มแก้ไขข้อมูลลูกค้าสีชมพู */}
                   <button
                     onClick={() => {
                       setEditName(selectedCustomerName);
@@ -358,7 +357,6 @@ export default function CustomersPage() {
                         </div>
                       </div>
 
-                      {/* 💵 ปุ่มบันทึกรับชำระบิลนี้ */}
                       <div className="pt-2 border-t border-purple-200/60 flex justify-end">
                         <button
                           type="button"
@@ -411,15 +409,15 @@ export default function CustomersPage() {
 
       {/* ================= MODAL แก้ไขข้อมูลลูกค้า ================= */}
       {editCustomerModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="flex justify-between items-center border-b pb-3">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-3">
               <h3 className="text-base font-bold text-purple-900">
                 ✏️ แก้ไขข้อมูลลูกค้า
               </h3>
               <button 
                 onClick={() => setEditCustomerModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-slate-400 hover:text-slate-600 font-bold p-1"
               >
                 ✕
               </button>
@@ -433,7 +431,7 @@ export default function CustomersPage() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600"
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600"
                 />
               </div>
 
@@ -443,7 +441,7 @@ export default function CustomersPage() {
                   type="text" 
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 font-mono"
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 font-mono"
                 />
               </div>
 
@@ -454,21 +452,21 @@ export default function CustomersPage() {
                   value={editFacebook}
                   onChange={(e) => setEditFacebook(e.target.value)}
                   placeholder="เช่น facebook.com/username"
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600"
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600"
                 />
               </div>
 
-              <div className="pt-3 flex gap-2 justify-end">
+              <div className="pt-3 border-t border-purple-100 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setEditCustomerModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  className="px-5 py-2.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
                   บันทึกการแก้ไข
                 </button>
@@ -478,17 +476,22 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* ================= MODAL บันทึกรับชำระเงิน ================= */}
+      {/* ================= MODAL บันทึกรับชำระเงิน (ปรับเส้นคั่นและดีไซน์ใหม่) ================= */}
       {paymentModalOpen && selectedPaymentLoan && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-base font-bold text-purple-900">
-                💵 บันทึกรับชำระ: <span className="font-mono">{selectedPaymentLoan.bill_code}</span>
-              </h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header Modal */}
+            <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">💵</span>
+                <h3 className="text-sm sm:text-base font-black text-purple-900">
+                  บันทึกรับชำระ: <span className="font-mono text-purple-700">{selectedPaymentLoan.bill_code}</span>
+                </h3>
+              </div>
               <button 
                 onClick={() => setPaymentModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
               >
                 ✕
               </button>
@@ -496,7 +499,7 @@ export default function CustomersPage() {
 
             <form onSubmit={handleSavePayment} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">ยอดเงินที่ชำระ (บาท) *</label>
+                <label className="block text-slate-700 font-bold mb-1.5">ยอดเงินที่ชำระ (บาท) *</label>
                 <input 
                   type="number" 
                   step="any"
@@ -504,57 +507,57 @@ export default function CustomersPage() {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder="ระบุจำนวนเงิน..."
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 font-mono"
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">ค่าปรับ (ถ้ามี)</label>
+                  <label className="block text-slate-700 font-bold mb-1.5">ค่าปรับ (ถ้ามี)</label>
                   <input 
                     type="number" 
                     step="any"
                     value={fineAmount}
                     onChange={(e) => setFineAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 font-mono"
+                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">ส่วนลด (ถ้ามี)</label>
+                  <label className="block text-slate-700 font-bold mb-1.5">ส่วนลด (ถ้ามี)</label>
                   <input 
                     type="number" 
                     step="any"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 font-mono"
+                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">หมายเหตุ</label>
+                <label className="block text-slate-700 font-bold mb-1.5">หมายเหตุ</label>
                 <input 
                   type="text" 
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
                   placeholder="เช่น ชำระงวดประจำวัน..."
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600"
+                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20"
                 />
               </div>
 
-              <div className="pt-3 flex gap-2 justify-end">
+              <div className="pt-3 border-t border-purple-100 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setPaymentModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer transition-colors"
                 >
                   ยืนยันบันทึกรับชำระ
                 </button>
