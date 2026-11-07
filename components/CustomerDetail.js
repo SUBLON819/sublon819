@@ -3,7 +3,7 @@ import React from 'react';
 export default function CustomerDetail({ customer, onBack, onOpenEditLoan, onOpenReceivePayment }) {
   // ป้องกันกรณีที่ส่งข้อมูลลูกค้ามาเป็นค่าว่าง
   const customerData = customer || {
-    name: 'ไม่ระบุชื่อ',
+    name: 'ไม่ระบชื่อ',
     phone: '-',
     facebook: '-',
     totalLoan: 0,
