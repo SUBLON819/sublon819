@@ -144,11 +144,11 @@ export default function AdminDashboard() {
     payment_schedule: 'จ่ายทุกวัน',
     schedule_start: '',
     schedule_end: '',
-    cycle_date: '',
+    loan_date: '', // วันที่กู้
+    cycle_date: '', // วันที่คืน
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
     calc_next_day: false,
-    transaction_date: '',
   });
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -227,7 +227,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const todayStrThai = getThaiTodayString();
     setTodayStr(todayStrThai);
-    setNewLoanData(prev => ({ ...prev, transaction_date: todayStrThai, cycle_date: todayStrThai }));
+    setNewLoanData(prev => ({ ...prev, loan_date: todayStrThai, cycle_date: todayStrThai }));
     
     const savedBanks = localStorage.getItem('admin_saved_banks');
     if (savedBanks) {
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
   const handleSaveNewLoan = async (e) => {
     e.preventDefault();
     try {
-      const interestStartDate = calculateInterestStartDate(newLoanData.transaction_date, newLoanData.calc_next_day);
+      const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
       const principal = Number(newLoanData.principal_amount || 0);
       const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
         ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
@@ -416,7 +416,7 @@ export default function AdminDashboard() {
         status: 'อนุมัติแล้ว',
         bank_name: newLoanData.bank_name,
         account_number: newLoanData.account_number,
-        loan_date: newLoanData.transaction_date || todayStr,
+        loan_date: newLoanData.loan_date || todayStr,
         cycle_date: newLoanData.cycle_date || null,
         interest_start_date: interestStartDate,
         calc_next_day: newLoanData.calc_next_day,
@@ -641,7 +641,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
       
-      <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-6">
 
         {/* Header Control Panel */}
         <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
@@ -959,21 +959,21 @@ export default function AdminDashboard() {
 
       {/* Stat Detail Modal */}
       {statModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white border border-purple-200 rounded-3xl p-6 max-w-xl w-full space-y-4 shadow-2xl relative my-8 text-slate-800 max-h-[85vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-purple-100 pb-3 shrink-0">
-              <h3 className="text-sm sm:text-base font-black text-purple-900 flex items-center gap-2">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-white border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-2.5 shrink-0">
+              <h3 className="text-xs sm:text-sm font-black text-purple-900 flex items-center gap-2">
                 <span>📊 {statModalTitle}</span>
               </h3>
-              <button onClick={() => setStatModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
+              <button onClick={() => setStatModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-base font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 text-xs">
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
               {statModalData.length === 0 ? (
-                <div className="text-center py-10 text-slate-400">ไม่พบรายการข้อมูลในส่วนนี้</div>
+                <div className="text-center py-8 text-slate-400">ไม่พบรายการข้อมูลในส่วนนี้</div>
               ) : (
                 statModalData.map((item, idx) => (
-                  <div key={idx} className="bg-purple-50/50 border border-purple-100 p-3 rounded-xl flex justify-between items-center">
+                  <div key={idx} className="bg-purple-50/50 border border-purple-100 p-2.5 rounded-xl flex justify-between items-center">
                     <div>
                       <div className="font-bold text-slate-900 flex items-center gap-2">
                         <span className="font-mono text-purple-700">{item.bill_code}</span>
@@ -983,7 +983,7 @@ export default function AdminDashboard() {
                         {item.loan_type ? `ประเภท: ${item.loan_type}` : `หมายเหตุ: ${item.note || 'รับชำระปกติ'}`} | เบอร์: {item.phone || '-'}
                       </div>
                     </div>
-                    <div className="text-right font-mono font-bold text-sm text-purple-800">
+                    <div className="text-right font-mono font-bold text-xs sm:text-sm text-purple-800">
                       {item.calculated_accrued !== undefined ? `฿${item.calculated_accrued.toLocaleString()}` :
                        item.remaining_principal !== undefined ? `฿${Number(item.remaining_principal || item.principal_amount || 0).toLocaleString()}` :
                        `฿${Number(item.amount || item.payment_amount || 0).toLocaleString()}`}
@@ -996,7 +996,7 @@ export default function AdminDashboard() {
             <div className="shrink-0 pt-2 border-t border-purple-100">
               <button 
                 onClick={() => setStatModalOpen(false)}
-                className="w-full py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow"
+                className="w-full py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow"
               >
                 ปิดหน้าต่าง
               </button>
@@ -1007,63 +1007,63 @@ export default function AdminDashboard() {
 
       {/* 1. Daily Report Print Modal */}
       {dailyReportModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white border border-purple-200 rounded-3xl p-6 max-w-2xl w-full space-y-4 shadow-2xl relative my-8 text-slate-800 max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-purple-100 pb-3 shrink-0">
-              <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-                <Printer className="w-5 h-5 text-purple-700" />
-                <span>ตัวอย่างพิมพ์รายงานสรุปยอดประจำวัน</span>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-white border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-2xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-2.5 shrink-0">
+              <h3 className="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2">
+                <Printer className="w-4 h-4 text-purple-700" />
+                <span>รายงานสรุปยอดประจำวัน</span>
               </h3>
-              <button onClick={() => setDailyReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
+              <button onClick={() => setDailyReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-base font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4 text-xs" ref={reportRef}>
-              <div className="text-center border-b-2 border-purple-700 pb-3">
-                <h2 className="text-lg font-black text-purple-900">วังทองล้น (ระบบจัดการสินเชื่อ)</h2>
-                <p className="text-xs text-slate-600">รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บประจำวัน</p>
-                <p className="text-xs text-slate-500 mt-1 font-mono">วันที่ออกรายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <div className="flex-1 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-xs" ref={reportRef}>
+              <div className="text-center border-b-2 border-purple-700 pb-2.5">
+                <h2 className="text-sm sm:text-base font-black text-purple-900">วังทองล้น (ระบบจัดการสินเชื่อ)</h2>
+                <p className="text-[10px] sm:text-xs text-slate-600">รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บประจำวัน</p>
+                <p className="text-[10px] text-slate-500 mt-0.5 font-mono">วันที่ออกรายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
-                  <div className="text-slate-500">ยอดเก็บสดวันนี้:</div>
-                  <div className="font-mono font-bold text-emerald-600 text-base">฿{todayCollectedCash.toLocaleString()}</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 text-[10px]">ยอดเก็บสดวันนี้:</div>
+                  <div className="font-mono font-bold text-emerald-600 text-sm sm:text-base">฿{todayCollectedCash.toLocaleString()}</div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
-                  <div className="text-slate-500">ดอกเบี้ยเก็บแล้ว (+ค่าปรับ):</div>
-                  <div className="font-mono font-bold text-purple-700 text-base">฿{totalInterestCollected.toLocaleString()}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 text-[10px]">ดอกเบี้ยเก็บแล้ว (+ค่าปรับ):</div>
+                  <div className="font-mono font-bold text-purple-700 text-sm sm:text-base">฿{totalInterestCollected.toLocaleString()}</div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
-                  <div className="text-slate-500">ทุนใหม่รอเก็บ:</div>
-                  <div className="font-mono font-bold text-amber-600 text-base">฿{totalActivePrincipal.toLocaleString()}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 text-[10px]">ทุนใหม่รอเก็บ:</div>
+                  <div className="font-mono font-bold text-amber-600 text-sm sm:text-base">฿{totalActivePrincipal.toLocaleString()}</div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
-                  <div className="text-slate-500">ยอดค้างรอเคลียร์:</div>
-                  <div className="font-mono font-bold text-teal-600 text-base">฿{totalPendingBalance.toLocaleString()}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 text-[10px]">ยอดค้างรอเคลียร์:</div>
+                  <div className="font-mono font-bold text-teal-600 text-sm sm:text-base">฿{totalPendingBalance.toLocaleString()}</div>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-700 mb-2">รายการรับชำระเงินสดวันนี้ ({todayPayments.length} รายการ)</h4>
+                <h4 className="font-bold text-slate-700 mb-1.5 text-[11px]">รายการรับชำระเงินสดวันนี้ ({todayPayments.length} รายการ)</h4>
                 {todayPayments.length === 0 ? (
-                  <div className="text-slate-400 text-center py-4 bg-white rounded-lg border border-slate-200">ยังไม่มีรายการรับชำระในวันนี้</div>
+                  <div className="text-slate-400 text-center py-3 bg-white rounded-lg border border-slate-200 text-[11px]">ยังไม่มีรายการรับชำระในวันนี้</div>
                 ) : (
-                  <table className="w-full border-collapse bg-white text-xs">
+                  <table className="w-full border-collapse bg-white text-[11px]">
                     <thead>
                       <tr className="bg-purple-800 text-white">
-                        <th className="p-2 border">บิล</th>
-                        <th className="p-2 border">ลูกค้า</th>
-                        <th className="p-2 border text-right">ยอดรับ</th>
-                        <th className="p-2 border text-right">ดอกเบี้ย/ค่าปรับ</th>
+                        <th className="p-1.5 border">บิล</th>
+                        <th className="p-1.5 border">ลูกค้า</th>
+                        <th className="p-1.5 border text-right">ยอดรับ</th>
+                        <th className="p-1.5 border text-right">ดอกเบี้ย/ค่าปรับ</th>
                       </tr>
                     </thead>
                     <tbody>
                       {todayPayments.map((p, idx) => (
                         <tr key={idx} className="border-b">
-                          <td className="p-2 border font-mono">{p.bill_code}</td>
-                          <td className="p-2 border">{p.full_name}</td>
-                          <td className="p-2 border text-right font-mono font-bold text-emerald-700">฿{Number(p.amount || 0).toLocaleString()}</td>
-                          <td className="p-2 border text-right font-mono text-slate-600">฿{(Number(p.interest_paid || 0) + Number(p.fine_amount || 0)).toLocaleString()}</td>
+                          <td className="p-1.5 border font-mono">{p.bill_code}</td>
+                          <td className="p-1.5 border">{p.full_name}</td>
+                          <td className="p-1.5 border text-right font-mono font-bold text-emerald-700">฿{Number(p.amount || 0).toLocaleString()}</td>
+                          <td className="p-1.5 border text-right font-mono text-slate-600">฿{(Number(p.interest_paid || 0) + Number(p.fine_amount || 0)).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1072,17 +1072,17 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 pt-2">
+            <div className="flex gap-2 shrink-0 pt-1">
               <button 
                 onClick={handlePrintReport}
-                className="flex-1 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Printer className="w-4 h-4" />
-                <span>ยืนยันสั่งพิมพ์ / บันทึก PDF</span>
+                <Printer className="w-3.5 h-3.5" />
+                <span>พิมพ์ / บันทึก PDF</span>
               </button>
               <button 
                 onClick={() => setDailyReportModalOpen(false)}
-                className="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs cursor-pointer"
+                className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs cursor-pointer"
               >
                 ปิด
               </button>
@@ -1093,42 +1093,42 @@ export default function AdminDashboard() {
 
       {/* 2. Notice Bill Modal */}
       {noticeModalOpen && noticeLoan && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white border border-rose-200 rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl relative my-8 text-slate-800 max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-rose-100 pb-3 shrink-0">
-              <h3 className="text-sm sm:text-base font-black text-rose-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-rose-600" />
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-white border border-rose-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-rose-100 pb-2.5 shrink-0">
+              <h3 className="text-xs sm:text-sm font-black text-rose-900 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-rose-600" />
                 <span>ออกบิลแจ้งยอดค้างชำระ (NOTICE)</span>
               </h3>
-              <button onClick={() => setNoticeModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
+              <button onClick={() => setNoticeModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-base font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3 shadow-inner w-full max-w-[450px] mx-auto box-border" ref={noticePrintRef}>
-                <div className="text-center border-b border-rose-200 pb-2.5">
-                  <h2 className="text-base font-black text-rose-900">แจ้งยอดค้างชำระ (NOTICE)</h2>
-                  <p className="text-[10px] text-slate-500">ระบบบริหารจัดการสินเชื่อออนไลน์</p>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 space-y-2.5 shadow-inner w-full max-w-[420px] mx-auto box-border" ref={noticePrintRef}>
+                <div className="text-center border-b border-rose-200 pb-2">
+                  <h2 className="text-sm sm:text-base font-black text-rose-900">แจ้งยอดค้างชำระ (NOTICE)</h2>
+                  <p className="text-[9px] text-slate-500">ระบบบริหารจัดการสินเชื่อออนไลน์</p>
                 </div>
 
-                <div className="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3 space-y-1.5 text-xs">
+                <div className="bg-rose-50/70 border border-rose-200/80 rounded-xl p-2.5 space-y-1 text-xs">
                   <div className="flex justify-between"><span className="text-slate-500 font-semibold">รหัสบิล:</span> <span className="font-mono font-bold text-slate-900">{noticeLoan.bill_code}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500 font-semibold">ชื่อลูกค้า:</span> <span className="font-bold text-slate-900">{noticeLoan.full_name}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500 font-semibold">เบอร์โทร:</span> <span className="font-mono text-slate-900">{noticeLoan.phone || '-'}</span></div>
                   
-                  <div className="border-t border-rose-200 pt-1.5 flex justify-between items-center">
+                  <div className="border-t border-rose-200 pt-1 flex justify-between items-center">
                     <span className="text-slate-700 font-bold text-xs">ยอดค้างชำระคงเหลือ:</span>
                     <input 
                       type="number"
                       value={customNoticeAmount}
                       onChange={(e) => setCustomNoticeAmount(e.target.value)}
-                      className="w-32 text-right font-mono font-black text-rose-600 text-base bg-white border border-rose-300 rounded-lg p-1 outline-none focus:ring-2 focus:ring-rose-400"
+                      className="w-28 text-right font-mono font-black text-rose-600 text-sm sm:text-base bg-white border border-rose-300 rounded-lg p-1 outline-none"
                     />
                   </div>
                 </div>
 
                 {adminBankList.length > 0 && (
-                  <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
-                    <label className="text-[11px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินที่เคยกรอกไว้:</label>
+                  <div className="space-y-1 bg-purple-50 p-2 rounded-xl border border-purple-200">
+                    <label className="text-[10px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินที่เคยกรอกไว้:</label>
                     <select
                       onChange={(e) => {
                         const idx = e.target.value;
@@ -1136,7 +1136,7 @@ export default function AdminDashboard() {
                           setNoticeForm(adminBankList[idx]);
                         }
                       }}
-                      className="w-full border border-purple-300 rounded-lg p-2 text-xs bg-white font-semibold outline-none text-slate-800"
+                      className="w-full border border-purple-300 rounded-lg p-1.5 text-xs bg-white font-semibold outline-none text-slate-800"
                     >
                       <option value="">-- คลิกเพื่อเลือกบัญชีเดิม --</option>
                       {adminBankList.map((b, i) => (
@@ -1148,17 +1148,17 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                <div className="space-y-2 bg-white border border-slate-200 rounded-xl p-3">
-                  <div className="text-[11px] font-bold text-slate-700">ข้อมูลบัญชีสำหรับโอนชำระ / สแกนจ่าย</div>
+                <div className="space-y-1.5 bg-white border border-slate-200 rounded-xl p-2.5">
+                  <div className="text-[10px] font-bold text-slate-700">ข้อมูลบัญชีสำหรับโอนชำระ / สแกนจ่าย</div>
                   
-                  <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    <div className="flex-1 space-y-1.5 w-full text-xs">
+                  <div className="flex flex-col sm:flex-row gap-2.5 items-center">
+                    <div className="flex-1 space-y-1 w-full text-xs">
                       <div>
                         <label className="text-[9px] text-slate-500 font-semibold">ธนาคาร:</label>
                         <select
                           value={noticeForm.bank_name}
                           onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                          className="w-full border border-slate-300 rounded-lg p-1.5 font-bold text-xs bg-slate-50 outline-none text-slate-800"
+                          className="w-full border border-slate-300 rounded-lg p-1 font-bold text-xs bg-slate-50 outline-none text-slate-800"
                         >
                           <option value="">-- เลือกธนาคาร --</option>
                           <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
@@ -1179,7 +1179,7 @@ export default function AdminDashboard() {
                           type="text" placeholder="xxx-x-xxxxx-x"
                           value={noticeForm.account_number}
                           onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
-                          className="w-full border border-slate-300 rounded-lg p-1.5 font-mono font-bold text-xs bg-slate-50 outline-none"
+                          className="w-full border border-slate-300 rounded-lg p-1 font-mono font-bold text-xs bg-slate-50 outline-none"
                         />
                       </div>
                       <div>
@@ -1188,20 +1188,20 @@ export default function AdminDashboard() {
                           type="text" placeholder="ชื่อ-นามสกุลเจ้าของบัญชี"
                           value={noticeForm.account_name}
                           onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
-                          className="w-full border border-slate-300 rounded-lg p-1.5 font-bold text-xs bg-slate-50 outline-none"
+                          className="w-full border border-slate-300 rounded-lg p-1 font-bold text-xs bg-slate-50 outline-none"
                         />
                       </div>
                     </div>
 
                     <div className="flex flex-col items-center gap-1 shrink-0">
-                      <div className="w-24 h-24 border border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center relative">
+                      <div className="w-20 h-20 border border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center relative">
                         {noticeForm.qr_code_image ? (
                           <img src={noticeForm.qr_code_image} alt="QR Code" className="w-full h-full object-contain" />
                         ) : (
-                          <div className="text-center p-1 text-[9px] text-slate-400">อัปโหลด QR Code</div>
+                          <div className="text-center p-1 text-[8px] text-slate-400">อัปโหลด QR</div>
                         )}
                       </div>
-                      <label className="text-[10px] text-rose-700 font-bold hover:underline cursor-pointer">
+                      <label className="text-[9px] text-rose-700 font-bold hover:underline cursor-pointer">
                         เปลี่ยนไฟล์
                         <input 
                           type="file" accept="image/*" className="hidden"
@@ -1260,24 +1260,24 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 shrink-0 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0 pt-1">
               <button 
                 onClick={handleDownloadNoticeImage}
-                className="flex-1 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Download className="w-4 h-4" />
-                <span>📥 ดาวน์โหลดบิล</span>
+                <Download className="w-3.5 h-3.5" />
+                <span>📥 ดาวน์โหลด</span>
               </button>
               <button 
                 onClick={handleShareNoticeImage}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Share2 className="w-4 h-4" />
-                <span>📤 แชร์บิล</span>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>📤 แชร์</span>
               </button>
               <button 
                 onClick={() => setNoticeModalOpen(false)}
-                className="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs cursor-pointer"
+                className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs cursor-pointer"
               >
                 ปิด
               </button>
@@ -1289,13 +1289,13 @@ export default function AdminDashboard() {
       {/* 3. Customer Profile Full Screen Modal */}
       {customerProfileModalOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
-          <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-md shrink-0">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
-                <User className="w-6 h-6 text-purple-300" />
+          <div className="bg-purple-900 text-white px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-purple-300" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-sm sm:text-xl font-black flex flex-wrap items-center gap-2 sm:gap-3">
+                <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
                   <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
                   <button
                     onClick={() => {
@@ -1304,29 +1304,29 @@ export default function AdminDashboard() {
                       setEditFacebook(customerInfo.facebook_link || '');
                       setEditCustomerModalOpen(true);
                     }}
-                    className="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-colors shrink-0"
+                    className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    <Edit3 className="w-3 h-3" />
                     <span>แก้ไขข้อมูล</span>
                   </button>
                 </h2>
-                <p className="text-[11px] sm:text-xs text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
+                <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
               </div>
             </div>
             <button 
               onClick={() => setCustomerProfileModalOpen(false)}
-              className="w-full sm:w-auto px-4 py-2 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              className="w-full sm:w-auto px-3.5 py-1.5 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shrink-0"
             >
               <span>✕ ปิดหน้าจอ</span>
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 max-w-5xl mx-auto w-full box-border">
-            <div className="bg-purple-50 p-4 sm:p-6 rounded-2xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm shadow-sm">
-              <div><span className="text-slate-500 block text-xs">เบอร์โทรศัพท์:</span> <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.phone || 'ไม่มีข้อมูล'}</span></div>
-              <div><span className="text-slate-500 block text-xs">บัญชีธนาคาร:</span> <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span></div>
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
+            <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm">
+              <div><span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span></div>
+              <div><span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span></div>
               <div className="sm:col-span-3 truncate">
-                <span className="text-slate-500 block text-xs">Facebook:</span>
+                <span className="text-slate-500 block text-[10px]">Facebook:</span>
                 {customerInfo.facebook_link ? (
                   <a 
                     href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
@@ -1342,49 +1342,49 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-              <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-                <div className="text-xs text-slate-500">ยอดกู้สะสมทั้งหมด</div>
-                <div className="font-mono font-bold text-purple-600 text-lg sm:text-xl mt-1">฿{totalCustomerBorrowed.toLocaleString()}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดกู้สะสมทั้งหมด</div>
+                <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-                <div className="text-xs text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
-                <div className="font-mono font-bold text-amber-600 text-lg sm:text-xl mt-1">฿{totalCustomerRemaining.toLocaleString()}</div>
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
+                <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-                <div className="text-xs text-slate-500">ยอดชำระแล้วทั้งหมด</div>
-                <div className="font-mono font-bold text-teal-600 text-lg sm:text-xl mt-1">฿{totalCustomerPaid.toLocaleString()}</div>
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
+                <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
               </div>
             </div>
 
-            <div className="space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-purple-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 border-b border-purple-100 pb-2">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
+            <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
+              <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
               {customerLoans.length === 0 ? (
-                <div className="text-xs text-slate-400 text-center py-6">ไม่พบประวัติสัญญา</div>
+                <div className="text-slate-400 text-center py-4 text-[11px]">ไม่พบประวัติสัญญา</div>
               ) : (
                 <div className="space-y-2">
                   {customerLoans.map((l) => (
-                    <div key={l.id} className="bg-purple-50/40 p-4 rounded-xl border border-purple-100 space-y-3">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
                         <div>
-                          <span className="font-mono font-bold text-purple-700 text-base">{l.bill_code}</span> 
-                          <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-semibold">{l.loan_type}</span>
-                          <div className="text-xs text-slate-500 mt-1">รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span></div>
+                          <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
+                          <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
+                          <div className="text-[10px] text-slate-500 mt-0.5">รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span></div>
                         </div>
                         <div className="text-left sm:text-right font-mono w-full sm:w-auto">
-                          <div className="font-bold text-slate-900 text-sm">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
-                          <div className="text-xs text-amber-600 mt-0.5">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</div>
+                          <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
+                          <div className="text-[10px] text-amber-600 mt-0.5">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</div>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-purple-200/60 flex justify-between items-center">
+                      <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
                         <button
                           type="button"
                           onClick={() => handleDeleteLoan(l.id, l.bill_code)}
-                          className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
                           title="ลบรายการบิลนี้"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                           <span>ลบบิลนี้</span>
                         </button>
 
@@ -1398,9 +1398,9 @@ export default function AdminDashboard() {
                             setPaymentNote('');
                             setPaymentModalOpen(true);
                           }}
-                          className="w-full sm:w-auto px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors cursor-pointer flex items-center gap-1"
                         >
-                          <span>💵 บันทึกรับชำระบิลนี้</span>
+                          <span>💵 บันทึกรับชำระ</span>
                         </button>
                       </div>
                     </div>
@@ -1409,21 +1409,21 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <div className="space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-purple-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 border-b border-purple-100 pb-2">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
+            <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
+              <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
               {customerPayments.length === 0 ? (
-                <div className="text-xs text-slate-400 text-center py-6">ยังไม่มีประวัติการชำระเงิน</div>
+                <div className="text-slate-400 text-center py-4 text-[11px]">ยังไม่มีประวัติการชำระเงิน</div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {customerPayments.map((p) => (
-                    <div key={p.id} className="bg-purple-50/20 p-3 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs sm:text-sm">
+                    <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
                       <div>
-                        <span className="font-mono font-bold text-purple-800 text-base">฿{Number(p.amount || 0).toLocaleString()}</span>
-                        <span className="text-xs text-slate-600 sm:ml-3 block sm:inline bg-purple-100 px-2 py-0.5 rounded mt-1 sm:mt-0">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
-                        {Number(p.fine_amount || 0) > 0 && <span className="text-xs text-rose-600 ml-2 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
-                        {Number(p.discount_amount || 0) > 0 && <span className="text-xs text-blue-600 ml-2 font-bold">(ส่วนลด -{p.discount_amount})</span>}
+                        <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.amount || 0).toLocaleString()}</span>
+                        <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
+                        {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
+                        {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 ml-1 font-bold">(ส่วนลด -{p.discount_amount})</span>}
                       </div>
-                      <div className="text-xs text-slate-500 font-mono">
+                      <div className="text-[10px] text-slate-500 font-mono">
                         {new Date(p.created_at).toLocaleString('th-TH')}
                       </div>
                     </div>
@@ -1435,11 +1435,17 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 4. New Loan Modal */}
+      {/* 4. New Loan Modal (ปรับปรุงช่องวันที่กู้ + วันที่คืน และทำให้กระชับ) */}
       {newLoanModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-lg w-full space-y-4 text-slate-800 my-auto shadow-2xl max-h-[90vh] overflow-y-auto relative">
-            <form onSubmit={handleSaveNewLoan} className="space-y-3 text-xs">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl sm:rounded-3xl p-4 max-w-md w-full space-y-3 text-slate-800 my-auto shadow-2xl max-h-[85vh] overflow-y-auto relative text-xs">
+            
+            <div className="flex justify-between items-center border-b border-emerald-200 pb-2">
+              <h3 className="font-black text-emerald-900 text-sm">📝 บันทึกรายการปล่อยกู้ใหม่</h3>
+              <button type="button" onClick={() => setNewLoanModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold text-base cursor-pointer">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveNewLoan} className="space-y-2.5">
               <div className="relative">
                 <label className="font-semibold text-emerald-900">ชื่อ-นามสกุลลูกค้า</label>
                 <input 
@@ -1447,10 +1453,10 @@ export default function AdminDashboard() {
                   value={newLoanData.full_name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   onFocus={() => setShowSearchSuggestions(true)}
-                  className="w-full border border-emerald-300 rounded-lg p-2.5 mt-1 font-bold outline-none focus:border-emerald-500 bg-white"
+                  className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-bold outline-none bg-white text-xs"
                 />
                 {showSearchSuggestions && customerSuggestions.filter(c => c.full_name.toLowerCase().includes((newLoanData.full_name || '').toLowerCase())).length > 0 && newLoanData.full_name.trim() !== '' && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-emerald-300 rounded-xl shadow-lg z-50 max-h-40 overflow-y-auto">
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-emerald-300 rounded-xl shadow-lg z-50 max-h-36 overflow-y-auto">
                     {customerSuggestions
                       .filter(c => c.full_name.toLowerCase().includes(newLoanData.full_name.toLowerCase()))
                       .map((item, idx) => (
@@ -1467,7 +1473,7 @@ export default function AdminDashboard() {
                             }));
                             setShowSearchSuggestions(false);
                           }}
-                          className="px-3 py-2 hover:bg-emerald-50 cursor-pointer border-b border-slate-100 last:border-b-0 flex justify-between items-center"
+                          className="px-2.5 py-1.5 hover:bg-emerald-50 cursor-pointer border-b border-slate-100 last:border-b-0 flex justify-between items-center text-[11px]"
                         >
                           <span className="font-bold text-emerald-950">{item.full_name}</span>
                           <span className="text-[10px] text-slate-500 font-mono">{item.phone || 'ไม่มีเบอร์'}</span>
@@ -1477,14 +1483,14 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-semibold text-emerald-900">เบอร์โทร</label>
                   <input 
                     type="text" placeholder="08x-xxx-xxxx" 
                     value={newLoanData.phone} 
                     onChange={(e) => setNewLoanData({...newLoanData, phone: e.target.value})} 
-                    className="w-full border border-emerald-300 rounded-lg p-2 mt-1 font-mono bg-white" 
+                    className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-mono bg-white text-xs" 
                   />
                 </div>
                 <div>
@@ -1493,43 +1499,70 @@ export default function AdminDashboard() {
                     type="text" placeholder="ลิงก์เฟสบุ๊ค..." 
                     value={newLoanData.facebook_link} 
                     onChange={(e) => setNewLoanData({...newLoanData, facebook_link: e.target.value})} 
-                    className="w-full border border-emerald-300 rounded-lg p-2 mt-1 font-mono bg-white" 
+                    className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-mono bg-white text-xs" 
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white/70 p-3 rounded-xl border border-emerald-200">
-                <div className="space-y-1">
+              <div className="grid grid-cols-2 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+                <div className="space-y-0.5">
                   <label className="font-semibold text-emerald-900">ธนาคารรับเงิน</label>
                   <select
                     value={newLoanData.bank_name} 
                     onChange={(e) => setNewLoanData({...newLoanData, bank_name: e.target.value})}
-                    className="w-full border border-emerald-300 rounded-lg p-2 text-xs bg-white outline-none font-bold"
+                    className="w-full border border-emerald-300 rounded-lg p-1.5 text-[11px] bg-white outline-none font-bold"
                   >
-                    <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
-                    <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
-                    <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
-                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
-                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                    <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
-                    <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
-                    <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
-                    <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
-                    <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                    <option value="ธนาคารกสิกรไทย (KBANK)">KBANK</option>
+                    <option value="ธนาคารไทยพาณิชย์ (SCB)">SCB</option>
+                    <option value="ธนาคารกรุงไทย (KTB)">KTB</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">Krungsri</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">KKP</option>
+                    <option value="พร้อมเพย์ (PromptPay)">PromptPay</option>
+                    <option value="ธนาคารออมสิน (GSB)">GSB</option>
+                    <option value="ธ.ก.ส. (BAAC)">BAAC</option>
+                    <option value="ธนาคารกรุงเทพ (BBL)">BBL</option>
+                    <option value="วอเลต">Wallet</option>
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="font-semibold text-emerald-900">เลขบัญชี / เบอร์พร้อมเพย์</label>
+                <div className="space-y-0.5">
+                  <label className="font-semibold text-emerald-900">เลขบัญชี / พร้อมเพย์</label>
                   <input 
-                    type="text" placeholder="เลขบัญชี หรือเบอร์..."
+                    type="text" placeholder="เลขบัญชี..."
                     value={newLoanData.account_number} 
                     onChange={(e) => setNewLoanData({...newLoanData, account_number: e.target.value})}
-                    className="w-full border border-emerald-300 rounded-lg p-2 text-xs font-mono font-bold outline-none bg-white"
+                    className="w-full border border-emerald-300 rounded-lg p-1.5 text-[11px] font-mono font-bold outline-none bg-white"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2 bg-white/70 p-3 rounded-xl border border-emerald-200">
+              {/* 🟢 ส่วนเพิ่มช่องวันที่กู้ (สีเขียวอ่อน) คู่กับ วันที่คืน (สีส้มอ่อน) */}
+              <div className="grid grid-cols-2 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+                <div className="space-y-0.5">
+                  <label className="font-semibold text-emerald-800 flex items-center gap-1 text-[11px]">
+                    <Calendar className="w-3 h-3 text-emerald-600" /> วันที่กู้ / เริ่มสัญญา
+                  </label>
+                  <input 
+                    type="date" required
+                    value={newLoanData.loan_date}
+                    onChange={(e) => setNewLoanData({...newLoanData, loan_date: e.target.value})}
+                    className="w-full border border-emerald-400 bg-emerald-50/80 rounded-lg p-1.5 font-mono text-[11px] outline-none font-bold text-emerald-900"
+                  />
+                </div>
+
+                <div className="space-y-0.5">
+                  <label className="font-semibold text-amber-800 flex items-center gap-1 text-[11px]">
+                    <Calendar className="w-3 h-3 text-amber-600" /> วันที่คาดว่าจะคืน
+                  </label>
+                  <input 
+                    type="date" required
+                    value={newLoanData.cycle_date}
+                    onChange={(e) => setNewLoanData({...newLoanData, cycle_date: e.target.value})}
+                    className="w-full border border-amber-300 bg-amber-50/60 rounded-lg p-1.5 font-mono text-[11px] outline-none font-bold text-amber-900"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
                 <label className="font-semibold text-emerald-900 block">รอบการจ่าย / นัดเก็บเงิน</label>
                 <select
                   value={['จ่ายทุกวัน', 'จ่ายทุกสิ้นเดือน'].includes(newLoanData.payment_schedule) ? newLoanData.payment_schedule : 'กำหนดช่วงวัน'}
@@ -1541,7 +1574,7 @@ export default function AdminDashboard() {
                       setNewLoanData({...newLoanData, payment_schedule: val, schedule_start: '', schedule_end: ''});
                     }
                   }}
-                  className="w-full border border-emerald-300 rounded-lg p-2 text-xs bg-white outline-none font-bold"
+                  className="w-full border border-emerald-300 rounded-lg p-1.5 text-xs bg-white outline-none font-bold"
                 >
                   <option value="จ่ายทุกวัน">จ่ายทุกวัน</option>
                   <option value="กำหนดช่วงวัน">กำหนดช่วงวัน (เช่น วันที่ 1 ถึง 10)</option>
@@ -1549,119 +1582,96 @@ export default function AdminDashboard() {
                 </select>
 
                 {!['จ่ายทุกวัน', 'จ่ายทุกสิ้นเดือน'].includes(newLoanData.payment_schedule) && (
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1.5 pt-1">
                     <input 
-                      type="number" min="1" max="31" placeholder="เริ่มวันที่"
+                      type="number" min="1" max="31" placeholder="เริ่ม"
                       value={newLoanData.schedule_start || ''}
                       onChange={(e) => {
                         const start = e.target.value;
                         const end = newLoanData.schedule_end || '';
                         setNewLoanData({...newLoanData, schedule_start: start, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 border border-emerald-300 rounded-lg p-2 text-xs bg-white font-mono"
+                      className="w-1/2 border border-emerald-300 rounded-lg p-1.5 text-xs bg-white font-mono"
                     />
                     <span className="text-slate-500">ถึง</span>
                     <input 
-                      type="number" min="1" max="31" placeholder="ถึงวันที่"
+                      type="number" min="1" max="31" placeholder="ถึง"
                       value={newLoanData.schedule_end || ''}
                       onChange={(e) => {
                         const start = newLoanData.schedule_start || '';
                         const end = e.target.value;
                         setNewLoanData({...newLoanData, schedule_end: end, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 border border-emerald-300 rounded-lg p-2 text-xs bg-white font-mono"
+                      className="w-1/2 border border-emerald-300 rounded-lg p-1.5 text-xs bg-white font-mono"
                     />
                   </div>
                 )}
               </div>
 
-              <div>
-                <label className="font-semibold text-emerald-900 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-700" /> วันที่คาดว่าจะคืน / ครบกำหนด
-                </label>
-                <input 
-                  type="date" required
-                  value={newLoanData.cycle_date}
-                  onChange={(e) => setNewLoanData({...newLoanData, cycle_date: e.target.value})}
-                  className="w-full border border-emerald-300 rounded-lg p-2.5 mt-1 font-mono text-xs outline-none bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-emerald-900">ประเภทรายการ</label>
-                <select
-                  value={newLoanData.loan_type}
-                  onChange={(e) => setNewLoanData({...newLoanData, loan_type: e.target.value})}
-                  className="w-full border border-emerald-300 rounded-lg p-2.5 mt-1 font-bold bg-white"
-                >
-                  <option value="ดอกลอย">ดอกลอย (ลดต้นลดดอก)</option>
-                  <option value="จบต้นดอก">จบต้นดอก (ชำระเป็นงวด)</option>
-                  <option value="ยอดค้างรอเคลียร์">ยอดค้างรอเคลียร์ (ยอดคงที่)</option>
-                </select>
-              </div>
-
-              {newLoanData.loan_type === 'ดอกลอย' && (
-                <div className="bg-emerald-100/60 p-3 rounded-xl border border-emerald-200 flex items-center gap-2">
-                  <input 
-                    type="checkbox"
-                    id="calc_next_day_checkbox"
-                    checked={newLoanData.calc_next_day}
-                    onChange={(e) => setNewLoanData({...newLoanData, calc_next_day: e.target.checked})}
-                    className="w-4 h-4 text-emerald-600 rounded border-emerald-300 cursor-pointer shrink-0"
-                  />
-                  <label htmlFor="calc_next_day_checkbox" className="font-semibold text-emerald-950 cursor-pointer text-xs">
-                    เริ่มนับดอกเบี้ย <span className="text-emerald-800 font-bold">"วันพรุ่งนี้"</span> (ถ้าไม่ติ๊ก ระบบจะคิดดอกเบี้ยตั้งแต่วันนี้เลย)
-                  </label>
-                </div>
-              )}
-
-              {newLoanData.loan_type === 'ยอดค้างรอเคลียร์' ? (
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-teal-800">ยอดเงินค้าง (บาท)</label>
-                  <input 
-                    type="number" required placeholder="เช่น 1500" 
-                    value={newLoanData.principal_amount} 
-                    onChange={(e) => setNewLoanData({...newLoanData, principal_amount: e.target.value})} 
-                    className="w-full border border-teal-300 rounded-lg p-2.5 mt-1 font-mono font-bold text-teal-700 bg-teal-50/30" 
-                  />
+                  <label className="font-semibold text-emerald-900">ประเภทรายการ</label>
+                  <select
+                    value={newLoanData.loan_type}
+                    onChange={(e) => setNewLoanData({...newLoanData, loan_type: e.target.value})}
+                    className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-bold bg-white text-xs"
+                  >
+                    <option value="ดอกลอย">ดอกลอย</option>
+                    <option value="จบต้นดอก">จบต้นดอก</option>
+                    <option value="ยอดค้างรอเคลียร์">ยอดค้างรอเคลียร์</option>
+                  </select>
                 </div>
-              ) : (
+
                 <div>
-                  <label className="font-semibold text-emerald-900">ยอดเงินลงทุน / เงินต้น (บาท)</label>
+                  <label className="font-semibold text-emerald-900">ยอดเงินต้น (บาท)</label>
                   <input 
                     type="number" required placeholder="เช่น 1000" 
                     value={newLoanData.principal_amount} 
                     onChange={(e) => setNewLoanData({...newLoanData, principal_amount: e.target.value})} 
-                    className="w-full border border-emerald-300 rounded-lg p-2.5 mt-1 font-mono font-bold text-emerald-900 bg-white" 
+                    className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-xs" 
                   />
                 </div>
-              )}
+              </div>
 
               {newLoanData.loan_type === 'ดอกลอย' && (
-                <div>
-                  <label className="font-semibold text-emerald-900">ดอกเบี้ย (บาทต่อวัน)</label>
-                  <input type="number" step="0.01" placeholder="เช่น 40" value={newLoanData.daily_interest || ''} onChange={(e) => setNewLoanData({...newLoanData, daily_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2.5 mt-1 font-mono font-bold text-emerald-900 bg-white" />
+                <div className="space-y-1.5">
+                  <div>
+                    <label className="font-semibold text-emerald-900">ดอกเบี้ย (บาทต่อวัน)</label>
+                    <input type="number" step="0.01" placeholder="เช่น 40" value={newLoanData.daily_interest || ''} onChange={(e) => setNewLoanData({...newLoanData, daily_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-xs" />
+                  </div>
+                  <div className="bg-emerald-100/60 p-2 rounded-lg border border-emerald-200 flex items-center gap-2">
+                    <input 
+                      type="checkbox"
+                      id="calc_next_day_checkbox"
+                      checked={newLoanData.calc_next_day}
+                      onChange={(e) => setNewLoanData({...newLoanData, calc_next_day: e.target.checked})}
+                      className="w-3.5 h-3.5 text-emerald-600 rounded border-emerald-300 cursor-pointer shrink-0"
+                    />
+                    <label htmlFor="calc_next_day_checkbox" className="font-semibold text-emerald-950 cursor-pointer text-[11px]">
+                      เริ่มนับดอกเบี้ย <span className="text-emerald-800 font-bold">"วันพรุ่งนี้"</span>
+                    </label>
+                  </div>
                 </div>
               )}
 
               {newLoanData.loan_type === 'จบต้นดอก' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white/70 p-3 rounded-xl border border-emerald-200">
+                <div className="grid grid-cols-2 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
                   <div>
-                    <label className="font-semibold text-emerald-900">ดอกเบี้ยรวมทั้งหมด (บาท)</label>
-                    <input type="number" placeholder="ระบุดอกเบี้ยรวม..." value={newLoanData.total_interest} onChange={(e) => setNewLoanData({...newLoanData, total_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-1 font-mono font-bold text-emerald-900 bg-white" />
+                    <label className="font-semibold text-emerald-900">ดอกเบี้ยรวม (บาท)</label>
+                    <input type="number" placeholder="ดอกเบี้ยรวม..." value={newLoanData.total_interest} onChange={(e) => setNewLoanData({...newLoanData, total_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-xs" />
                   </div>
                   <div>
-                    <label className="font-semibold text-emerald-900">จำนวนงวดที่ผ่อน</label>
-                    <input type="number" placeholder="เช่น 10" value={newLoanData.installment_count} onChange={(e) => setNewLoanData({...newLoanData, installment_count: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-1 font-mono font-bold text-slate-700 bg-white" />
+                    <label className="font-semibold text-emerald-900">จำนวนงวด</label>
+                    <input type="number" placeholder="เช่น 10" value={newLoanData.installment_count} onChange={(e) => setNewLoanData({...newLoanData, installment_count: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-1.5 mt-0.5 font-mono font-bold text-slate-700 bg-white text-xs" />
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2 sticky bottom-0 bg-emerald-50 py-2">
-                <button type="submit" className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors">
+              <div className="flex gap-2 pt-2 sticky bottom-0 bg-emerald-50 py-1">
+                <button type="submit" className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors">
                   บันทึกข้อมูลเข้าสู่ระบบ
                 </button>
-                <button type="button" onClick={() => setNewLoanModalOpen(false)} className="px-5 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors">
+                <button type="button" onClick={() => setNewLoanModalOpen(false)} className="px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors">
                   ปิด
                 </button>
               </div>
@@ -1672,93 +1682,92 @@ export default function AdminDashboard() {
 
       {/* 5. Payment Modal */}
       {paymentModalOpen && selectedPaymentLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-[92%] max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
             
-            <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-2">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">💵</span>
-                <h3 className="text-sm sm:text-base font-black text-purple-900">
+                <span className="w-7 h-7 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">💵</span>
+                <h3 className="font-black text-purple-900 text-xs sm:text-sm">
                   บันทึกรับชำระ: <span className="font-mono text-purple-700">{selectedPaymentLoan.bill_code}</span>
                 </h3>
               </div>
               <button 
                 onClick={() => setPaymentModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-1 text-xs font-medium text-slate-700">
+            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-0.5 font-medium text-slate-700 text-[11px]">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
-              <div>ยอดคงเหลือปัจจุบัน: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
-              <div>ดอกเบี้ย / รายละเอียด: <span className="font-mono font-bold text-slate-900">{selectedPaymentLoan.interest_amount ? `฿${Number(selectedPaymentLoan.interest_amount).toLocaleString()}` : (selectedPaymentLoan.note || '-')}</span></div>
+              <div>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
             </div>
 
-            <form onSubmit={handleSavePayment} className="space-y-4 text-xs">
+            <form onSubmit={handleSavePayment} className="space-y-3">
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">ยอดเงินที่ชำระ (บาท)</label>
+                <label className="block text-slate-700 font-bold mb-1">ยอดเงินที่ชำระ (บาท)</label>
                 <input 
                   type="number" 
                   step="any"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="0 (หรือระบุยอดชำระ...)"
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
+                  placeholder="0"
+                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">ค่าปรับ (ถ้ามี)</label>
+                  <label className="block text-slate-700 font-bold mb-1">ค่าปรับ</label>
                   <input 
                     type="number" 
                     step="any"
                     value={fineAmount}
                     onChange={(e) => setFineAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
+                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1.5">ส่วนลด (ถ้ามี)</label>
+                  <label className="block text-slate-700 font-bold mb-1">ส่วนลด</label>
                   <input 
                     type="number" 
                     step="any"
                     value={discountAmount}
                     onChange={(e) => setDiscountAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
+                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">หมายเหตุ</label>
+                <label className="block text-slate-700 font-bold mb-1">หมายเหตุ</label>
                 <input 
                   type="text" 
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder="เช่น ชำระงวดประจำวัน..."
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20"
+                  placeholder="ชำระงวดประจำวัน..."
+                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 bg-purple-50/20"
                 />
               </div>
 
-              <div className="pt-3 border-t border-purple-100 flex gap-2 justify-end">
+              <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setPaymentModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  ยืนยันบันทึกรับชำระ
+                  ยืนยันรับชำระ
                 </button>
               </div>
             </form>
@@ -1768,21 +1777,14 @@ export default function AdminDashboard() {
 
       {/* Edit Customer Modal */}
       {editCustomerModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-base font-bold text-purple-900">
-                ✏️ แก้ไขข้อมูลลูกค้า
-              </h3>
-              <button 
-                onClick={() => setEditCustomerModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
-              >
-                ✕
-              </button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="font-bold text-purple-900 text-sm">✏️ แก้ไขข้อมูลลูกค้า</h3>
+              <button onClick={() => setEditCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer">✕</button>
             </div>
 
-            <form onSubmit={handleSaveCustomerInfo} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
               <div>
                 <label className="block text-slate-600 font-semibold mb-1">ชื่อ-นามสกุล *</label>
                 <input 
@@ -1790,7 +1792,7 @@ export default function AdminDashboard() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 text-slate-900"
+                  className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 text-slate-900 font-bold"
                 />
               </div>
 
@@ -1800,7 +1802,7 @@ export default function AdminDashboard() {
                   type="text" 
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 font-mono text-slate-900"
+                  className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 font-mono text-slate-900"
                 />
               </div>
 
@@ -1810,24 +1812,24 @@ export default function AdminDashboard() {
                   type="text" 
                   value={editFacebook}
                   onChange={(e) => setEditFacebook(e.target.value)}
-                  placeholder="เช่น facebook.com/username"
-                  className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-600 text-slate-900"
+                  placeholder="facebook.com/username"
+                  className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 text-slate-900"
                 />
               </div>
 
-              <div className="pt-3 flex gap-2 justify-end">
+              <div className="pt-2 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setEditCustomerModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  บันทึกการแก้ไข
+                  บันทึก
                 </button>
               </div>
             </form>
@@ -1837,18 +1839,17 @@ export default function AdminDashboard() {
 
       {/* 6. Approval Modal */}
       {approvalModalOpen && selectedLoanForApproval && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 text-slate-900 relative shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-sm text-purple-800">จัดการคำขอกู้จากลูกค้า: {selectedLoanForApproval.full_name}</h3>
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 max-w-md w-full space-y-3 text-slate-900 relative shadow-2xl max-h-[85vh] overflow-y-auto text-xs">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <h3 className="font-bold text-xs sm:text-sm text-purple-800 truncate">อนุมัติคำขอกู้: {selectedLoanForApproval.full_name}</h3>
               <button type="button" onClick={() => setApprovalModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="bg-purple-50 p-3 rounded-xl border border-purple-200 text-xs space-y-1.5 text-slate-800">
+            <div className="bg-purple-50 p-2.5 rounded-xl border border-purple-200 text-[11px] space-y-1 text-slate-800">
               <p>📱 เบอร์โทร: <span className="text-purple-700 font-mono font-bold">{selectedLoanForApproval.phone}</span></p>
-              <p>💰 ยอดที่ขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
-              <p>🏦 ธนาคารรับเงิน: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
-              <p>📅 วันที่คาดว่าจะคืน: <span className="text-amber-700 font-semibold">{selectedLoanForApproval.cycle_date || 'ไม่ได้ระบุ'}</span></p>
+              <p>💰 ยอดขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
+              <p>🏦 ธนาคาร: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
             </div>
 
             <form onSubmit={async (e) => {
@@ -1880,21 +1881,21 @@ export default function AdminDashboard() {
               } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
               }
-            }} className="space-y-3 text-xs">
+            }} className="space-y-2.5">
               
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">เลือกประเภทรายการ (แอดมินกำหนด)</label>
+                <label className="font-semibold text-slate-700 block mb-0.5">ประเภทรายการ</label>
                 <select
                   value={approvalData.loan_type}
                   onChange={(e) => setApprovalData({...approvalData, loan_type: e.target.value})}
-                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 font-bold text-slate-900 outline-none focus:border-purple-600"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2 font-bold text-slate-900 outline-none text-xs"
                 >
-                  <option value="ดอกลอย">ดอกลอย (ลดต้นลดดอก)</option>
-                  <option value="จบต้นดอก">จบต้นดอก (ชำระเป็นงวด)</option>
+                  <option value="ดอกลอย">ดอกลอย</option>
+                  <option value="จบต้นดอก">จบต้นดอก</option>
                 </select>
               </div>
 
-              <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                 <label className="font-semibold text-slate-700 block">รอบการจ่าย / นัดเก็บเงิน</label>
                 <select
                   value={['จ่ายทุกวัน', 'จ่ายทุกสิ้นเดือน'].includes(approvalData.payment_schedule) ? approvalData.payment_schedule : 'กำหนดช่วงวัน'}
@@ -1906,35 +1907,35 @@ export default function AdminDashboard() {
                       setApprovalData({...approvalData, payment_schedule: val, schedule_start: '', schedule_end: ''});
                     }
                   }}
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 outline-none font-bold"
+                  className="w-full bg-white border border-slate-300 rounded-lg p-1.5 text-xs text-slate-900 outline-none font-bold"
                 >
                   <option value="จ่ายทุกวัน">จ่ายทุกวัน</option>
-                  <option value="กำหนดช่วงวัน">กำหนดช่วงวัน (เช่น วันที่ 1 ถึง 10)</option>
+                  <option value="กำหนดช่วงวัน">กำหนดช่วงวัน (เช่น 1 ถึง 10)</option>
                   <option value="จ่ายทุกสิ้นเดือน">จ่ายทุกสิ้นเดือน</option>
                 </select>
 
                 {!['จ่ายทุกวัน', 'จ่ายทุกสิ้นเดือน'].includes(approvalData.payment_schedule) && (
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1.5 pt-1">
                     <input 
-                      type="number" min="1" max="31" placeholder="เริ่มวันที่"
+                      type="number" min="1" max="31" placeholder="เริ่ม"
                       value={approvalData.schedule_start || ''}
                       onChange={(e) => {
                         const start = e.target.value;
                         const end = approvalData.schedule_end || '';
                         setApprovalData({...approvalData, schedule_start: start, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-mono"
+                      className="w-1/2 bg-white border border-slate-300 rounded-lg p-1.5 text-xs text-slate-900 font-mono"
                     />
                     <span className="text-slate-500">ถึง</span>
                     <input 
-                      type="number" min="1" max="31" placeholder="ถึงวันที่"
+                      type="number" min="1" max="31" placeholder="ถึง"
                       value={approvalData.schedule_end || ''}
                       onChange={(e) => {
                         const start = approvalData.schedule_start || '';
                         const end = e.target.value;
                         setApprovalData({...approvalData, schedule_end: end, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-mono"
+                      className="w-1/2 bg-white border border-slate-300 rounded-lg p-1.5 text-xs text-slate-900 font-mono"
                     />
                   </div>
                 )}
@@ -1943,48 +1944,48 @@ export default function AdminDashboard() {
               {approvalData.loan_type === 'ดอกลอย' && (
                 <>
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">ดอกเบี้ย (บาทต่อวัน)</label>
+                    <label className="font-semibold text-slate-700 block mb-0.5">ดอกเบี้ย (บาทต่อวัน)</label>
                     <input 
                       type="number" step="0.01" required placeholder="เช่น 40" 
                       value={approvalData.daily_interest} 
                       onChange={(e) => setApprovalData({...approvalData, daily_interest: e.target.value})} 
-                      className="w-full bg-white border border-slate-300 rounded-xl p-2.5 font-mono font-bold text-purple-700 outline-none" 
+                      className="w-full bg-white border border-slate-300 rounded-xl p-2 font-mono font-bold text-purple-700 outline-none text-xs" 
                     />
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
                     <input 
                       type="checkbox"
                       id="admin_calc_next_day"
                       checked={approvalData.calc_next_day}
                       onChange={(e) => setApprovalData({...approvalData, calc_next_day: e.target.checked})}
-                      className="w-4 h-4 text-purple-600 rounded border-slate-300 cursor-pointer shrink-0"
+                      className="w-3.5 h-3.5 text-purple-600 rounded border-slate-300 cursor-pointer shrink-0"
                     />
-                    <label htmlFor="admin_calc_next_day" className="font-semibold text-slate-700 cursor-pointer text-xs">
-                      เริ่มนับดอกเบี้ย <span className="text-pink-600 font-bold">"วันพรุ่งนี้"</span> (ไม่ติ๊ก = คิดดอกเบี้ยวันนี้เลย)
+                    <label htmlFor="admin_calc_next_day" className="font-semibold text-slate-700 cursor-pointer text-[11px]">
+                      เริ่มนับดอกเบี้ย <span className="text-pink-600 font-bold">"วันพรุ่งนี้"</span>
                     </label>
                   </div>
                 </>
               )}
 
               {approvalData.loan_type === 'จบต้นดอก' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">ดอกเบี้ยรวมทั้งหมด (บาท)</label>
-                    <input type="number" placeholder="ระบุดอกเบี้ยรวม..." value={approvalData.total_interest} onChange={(e) => setApprovalData({...approvalData, total_interest: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-slate-900 outline-none" />
+                    <label className="font-semibold text-slate-700 block mb-0.5">ดอกเบี้ยรวม</label>
+                    <input type="number" placeholder="ดอกเบี้ยรวม..." value={approvalData.total_interest} onChange={(e) => setApprovalData({...approvalData, total_interest: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-mono text-slate-900 outline-none text-xs" />
                   </div>
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">จำนวนงวดที่ผ่อน</label>
-                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...approvalData, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-slate-900 outline-none" />
+                    <label className="font-semibold text-slate-700 block mb-0.5">จำนวนงวด</label>
+                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...approvalData, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-mono text-slate-900 outline-none text-xs" />
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-2 pt-3">
+              <div className="flex gap-2 pt-2">
                 <button 
                   type="submit" 
-                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-bold rounded-xl text-xs cursor-pointer shadow-lg"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md"
                 >
-                  ✅ ยืนยันอนุมัติ
+                  ✅ อนุมัติ
                 </button>
                 
                 <button 
@@ -2007,9 +2008,9 @@ export default function AdminDashboard() {
                       }
                     }
                   }}
-                  className="px-4 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-lg"
+                  className="px-3.5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md"
                 >
-                  ❌ ปฏิเสธคำขอ
+                  ❌ ปฏิเสธ
                 </button>
               </div>
             </form>
