@@ -1520,18 +1520,20 @@ export default function AdminDashboard() {
                   <select
                     value={newLoanData.bank_name} 
                     onChange={(e) => setNewLoanData({...newLoanData, bank_name: e.target.value})}
-                    className="w-full border border-emerald-300 rounded-lg p-2 text-base sm:text-xs bg-white outline-none font-bold"
+                    className="w-full border border-emerald-300 rounded-lg p-2 text-base sm:text-xs bg-white outline-none font-bold text-slate-900"
                   >
-                    <option value="ธนาคารกสิกรไทย (KBANK)">KBANK</option>
-                    <option value="ธนาคารไทยพาณิชย์ (SCB)">SCB</option>
-                    <option value="ธนาคารกรุงไทย (KTB)">KTB</option>
-                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">Krungsri</option>
-                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">KKP</option>
-                    <option value="พร้อมเพย์ (PromptPay)">PromptPay</option>
-                    <option value="ธนาคารออมสิน (GSB)">GSB</option>
-                    <option value="ธ.ก.ส. (BAAC)">BAAC</option>
-                    <option value="ธนาคารกรุงเทพ (BBL)">BBL</option>
-                    <option value="วอเลต">Wallet</option>
+                    <option value="">-- เลือกธนาคาร --</option>
+                    <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                    <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                    <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                    <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                    <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                    <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                    <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                    <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                    <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
                   </select>
                 </div>
                 <div className="space-y-0.5">
