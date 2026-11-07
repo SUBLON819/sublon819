@@ -1810,7 +1810,6 @@ export default function AdminDashboard() {
                 >
                   <option value="ดอกลอย">ดอกลอย (ลดต้นลดดอก)</option>
                   <option value="จบต้นดอก">จบต้นดอก (ชำระเป็นงวด)</option>
-                  <option value="ยอดค้างรอเครียร์">ยอดค้างรอเคลียร์ (ยอดคงที่)</option>
                 </select>
               </div>
 
