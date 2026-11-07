@@ -615,13 +615,11 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
       
-     
       <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
 
         {/* Header Control Panel */}
         <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
           <div className="flex items-center gap-3">
-           
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
@@ -757,7 +755,7 @@ export default function AdminDashboard() {
                 <span>ยอดค้างรอเคลียร์</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-rose-800 truncate"></div>
+              <div className="text-base sm:text-xl font-black font-mono text-rose-800 truncate">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
 
             <div 
@@ -773,7 +771,8 @@ export default function AdminDashboard() {
                 <span>กำไรสะสม</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-pink-600 truncate"></div>
+              <div className="text-base sm:text-xl font-black font-mono text-pink-600 truncate">฿{totalInterestCollected.toLocaleString()}</div>
+            </div>
           </div>
         </div>
 
@@ -1054,7 +1053,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 2. Notice Bill Modal (มีช่องเลือกธนาคารดรอปดาวน์ และดึงบัญชีแอดมินเดิมได้) */}
+      {/* 2. Notice Bill Modal */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-rose-200 rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl relative my-8 text-slate-800 max-h-[90vh] flex flex-col">
@@ -1089,7 +1088,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* เลือกบัญชีแอดมินเดิมที่เคยบันทึกไว้ */}
                 {adminBankList.length > 0 && (
                   <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
                     <label className="text-[11px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินที่เคยกรอกไว้:</label>
@@ -1685,7 +1683,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= MODAL แก้ไขข้อมูลลูกค้า ================= */}
+      {/* Edit Customer Modal */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800">
@@ -1754,7 +1752,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= 6. Approval Modal ================= */}
+      {/* 6. Approval Modal */}
       {approvalModalOpen && selectedLoanForApproval && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 text-slate-900 relative shadow-2xl">
