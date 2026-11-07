@@ -1629,7 +1629,7 @@ export default function AdminDashboard() {
               <div className="space-y-1">
                 <label className="font-semibold text-purple-900">จำนวนเงินที่รับชำระ (บาท)</label>
                 <input 
-                  type="number" required placeholder="ระบุจำนวนเงิน..."
+                  type="number" placeholder="ระบุจำนวนเงิน..."
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   className="w-full border rounded-lg p-2.5 text-sm font-mono font-bold outline-none focus:border-purple-500"
