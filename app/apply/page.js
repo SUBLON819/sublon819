@@ -246,7 +246,7 @@ export default function ApplyPage() {
           </p>
           <button 
             onClick={() => window.location.reload()}
-            className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+            className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-md"
           >
             รีเฟรชหน้าจอเพื่อตรวจสอบอีกครั้ง
           </button>
@@ -274,15 +274,15 @@ export default function ApplyPage() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${theme.bg} flex items-center justify-center p-3 sm:p-6 font-sans text-white relative overflow-x-hidden transition-all duration-500`}>
+    <div className={`min-h-screen bg-gradient-to-br ${theme.bg} flex items-center justify-center p-2 sm:p-6 font-sans text-white relative overflow-x-hidden transition-all duration-500`}>
       <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden">
         
         {/* ส่วนหัว Header ที่ดึงค่าหัวข้อและคำโปรยจากหลังบ้านแบบ Real-time */}
-        <div className={`${theme.headerBg} text-white p-6 text-center space-y-2 border-b border-white/10 transition-colors duration-300`}>
+        <div className={`${theme.headerBg} text-white p-5 sm:p-6 text-center space-y-1.5 border-b border-white/10 transition-colors duration-300`}>
           <div className="inline-block px-3 py-0.5 bg-white/20 text-white font-bold text-[10px] rounded-full">
             SUBLON819
           </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-wider leading-tight">
+          <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
             {siteConfig.banner_title}
           </h1>
           <p className="text-xs text-slate-200">
@@ -290,7 +290,8 @@ export default function ApplyPage() {
           </p>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-4 text-slate-200">
+        {/* ปรับแต่ง padding และ space ให้กระชับ สบายตา */}
+        <div className="p-3.5 sm:p-6 space-y-3 text-slate-200">
           {step === 'otp' && (
             <form onSubmit={handleRequestOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
@@ -303,17 +304,18 @@ export default function ApplyPage() {
                   <Phone className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                   <span>เบอร์โทรศัพท์มือถือ</span>
                 </label>
+                {/* 🔒 ป้องกัน iOS/Android ซูมจออัตโนมัติด้วย text-base (16px) */}
                 <input 
                   type="tel" required placeholder="08x-xxx-xxxx"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-slate-500 outline-none focus:border-purple-400 transition-all font-mono"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 outline-none focus:border-purple-400 transition-all font-mono"
                 />
               </div>
 
               <button 
                 type="submit" 
                 disabled={loading} 
-                className={`w-full py-3.5 ${theme.button} text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
+                className={`w-full py-3 ${theme.button} text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
               >
                 {loading ? (
                   <>
@@ -341,16 +343,17 @@ export default function ApplyPage() {
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>รหัส OTP 6 หลัก</span>
                 </label>
+                {/* 🔒 ป้องกันซูมด้วย text-base */}
                 <input 
                   type="text" required maxLength={6} placeholder="------"
                   value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-center text-lg tracking-widest text-white font-bold outline-none focus:border-purple-400"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-center text-base sm:text-lg tracking-widest text-white font-bold outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setStep('otp')} className="w-1/3 py-3 bg-white/10 text-slate-300 rounded-xl text-xs font-bold hover:bg-white/20 transition-all cursor-pointer">ย้อนกลับ</button>
-                <button type="submit" className="w-2/3 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                <button type="button" onClick={() => setStep('otp')} className="w-1/3 py-2.5 bg-white/10 text-slate-300 rounded-xl text-xs font-bold hover:bg-white/20 transition-all cursor-pointer">ย้อนกลับ</button>
+                <button type="submit" className="w-2/3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer">
                   <span>ยืนยันรหัส OTP</span>
                   <CheckCircle className="w-4 h-4" />
                 </button>
@@ -365,15 +368,15 @@ export default function ApplyPage() {
                 <span>ระบุพิกัดตำแหน่ง GPS ปัจจุบัน</span>
               </div>
 
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 text-center space-y-3">
-                <MapPin className="w-10 h-10 text-purple-400 mx-auto animate-pulse" />
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center space-y-3">
+                <MapPin className="w-8 h-8 text-purple-400 mx-auto animate-pulse" />
                 <p className="text-xs text-slate-300">ระบบต้องการเข้าถึงพิกัดตำแหน่งของคุณเพื่อใช้ประกอบการอนุมัติสินเชื่อ</p>
                 <p className="text-[11px] font-mono text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30">{location.status}</p>
                 <button 
                   type="button"
                   onClick={handleGetLocation}
                   disabled={loading}
-                  className={`w-full py-3.5 ${theme.button} text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
+                  className={`w-full py-3 ${theme.button} text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
                 >
                   {loading ? (
                     <>
@@ -392,7 +395,7 @@ export default function ApplyPage() {
           )}
 
           {step === 'form' && (
-            <form onSubmit={handleFinalSubmit} className="space-y-3">
+            <form onSubmit={handleFinalSubmit} className="space-y-2.5">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2 rounded-xl border border-white/10 text-center">
                 {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ไม่ต้องกรอก Facebook และไม่ต้องแนบภาพซ้ำ)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารบัตรประชาชน'}
               </div>
@@ -402,10 +405,11 @@ export default function ApplyPage() {
                   <User className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                   <span>ชื่อ-นามสกุลจริง <span className="text-red-400">*</span></span>
                 </label>
+                {/* 🔒 บังคับ text-base บนมือถือเพื่อป้องกันหน้าจอซูม */}
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400 font-bold"
                 />
               </div>
 
@@ -418,7 +422,7 @@ export default function ApplyPage() {
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
                   />
                 </div>
               )}
@@ -431,36 +435,38 @@ export default function ApplyPage() {
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-sm text-emerald-400 font-bold placeholder-slate-500 outline-none focus:border-purple-400"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-sm text-emerald-400 font-bold placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                  <span>วันที่กู้ <span className="text-red-400">*</span></span>
-                </label>
-                <input 
-                  type="date"
-                  required
-                  value={formData.loan_date}
-                  onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-purple-400"
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span>วันที่กู้ <span className="text-red-400">*</span></span>
+                  </label>
+                  <input 
+                    type="date"
+                    required
+                    value={formData.loan_date}
+                    onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                  <span>วันที่คาดว่าจะคืน <span className="text-red-400">*</span></span>
-                </label>
-                <input 
-                  type="date"
-                  required
-                  value={formData.cycle_date}
-                  onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-purple-400"
-                />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span>วันที่คาดว่าจะคืน <span className="text-red-400">*</span></span>
+                  </label>
+                  <input 
+                    type="date"
+                    required
+                    value={formData.cycle_date}
+                    onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-mono"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -471,19 +477,19 @@ export default function ApplyPage() {
                   </label>
                   <select
                     value={formData.bank_name} onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-purple-400"
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-bold"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
-                          <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
-                          <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
-                          <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
-                          <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
-                          <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                          <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
-                          <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
-                          <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
-                          <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
-                          <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                    <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                    <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                    <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                    <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                    <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                    <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                    <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                    <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -491,7 +497,7 @@ export default function ApplyPage() {
                   <input 
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-emerald-400 font-mono font-bold placeholder-slate-500 outline-none focus:border-purple-400"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-emerald-400 font-mono font-bold placeholder-slate-500 outline-none focus:border-purple-400"
                   />
                 </div>
               </div>
@@ -515,19 +521,19 @@ export default function ApplyPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-xl text-xs text-emerald-400 text-center font-bold">
+                <div className="bg-emerald-950/40 border border-emerald-500/30 p-2 rounded-xl text-xs text-emerald-400 text-center font-bold">
                   ✅ ลูกค้าเก่า: ใช้ข้อมูลเดิม ไม่ต้องแนบภาพซ้ำ
                 </div>
               )}
 
-              <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl text-[10px] text-slate-300 leading-relaxed">
+              <div className="bg-white/5 border border-white/10 p-2 rounded-xl text-[10px] text-slate-300 leading-relaxed">
                 💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน..."
               </div>
 
               <button 
                 type="submit" 
                 disabled={loading}
-                className={`w-full py-3.5 ${theme.button} text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
+                className={`w-full py-3 ${theme.button} text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
               >
                 {loading ? (
                   <>
@@ -545,7 +551,7 @@ export default function ApplyPage() {
           )}
 
           {/* ช่องทางติดต่อ LINE (ดึงข้อมูลมาจากหลังบ้านแบบ Real-time) */}
-          <div className="text-center text-xs text-slate-400 pt-3 border-t border-white/10 space-y-0.5">
+          <div className="text-center text-xs text-slate-400 pt-2 border-t border-white/10 space-y-0.5">
             <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
             <p>LINE: <span className="font-mono font-bold text-white">{siteConfig.line_contact}</span></p>
           </div>
