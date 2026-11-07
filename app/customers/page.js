@@ -124,7 +124,7 @@ export default function CustomersPage() {
     }
   };
 
-  // ฟังก์ชันบันทึกรับชำระเงิน (ช่องรับเงินจริงนำไปตัดต้น ส่วนค่าปรับแยกเป็นกำไรไม่นำมาหักต้น)
+  // ฟังก์ชันบันทึกรับชำระเงิน (รองรับการกรอกเฉพาะค่าปรับ หรือยอดจ่ายหลัก โดยค่าปรับจะไม่นำไปตัดต้น)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -134,8 +134,8 @@ export default function CustomersPage() {
       const fine = Number(fineAmount || 0);
       const discount = Number(discountAmount || 0);
 
-      if (payAmount <= 0) {
-        alert('กรุณากรอกจำนวนเงินที่ชำระ');
+      if (payAmount <= 0 && fine <= 0) {
+        alert('กรุณากรอกจำนวนเงินที่ชำระ หรือระบุค่าปรับอย่างน้อย 1 อย่าง');
         return;
       }
 
@@ -147,25 +147,27 @@ export default function CustomersPage() {
         amount: payAmount,
         fine_amount: fine,
         discount_amount: discount,
-        note: paymentNote || 'รับชำระปกติ'
+        note: paymentNote || (payAmount > 0 ? 'รับชำระปกติ' : 'บันทึกค่าปรับ')
       }]);
 
       if (paymentError) throw paymentError;
 
-      // 2. นำเฉพาะยอดเงินที่ชำระจริง (payAmount) ไปหักออกจากยอดหนี้คงเหลือ โดยค่าปรับจะไม่ถูกนำมาหักต้น
-      const currentRemaining = Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0);
-      const newRemaining = Math.max(0, currentRemaining - payAmount);
-      const newStatus = newRemaining === 0 ? 'ชำระแล้ว' : selectedPaymentLoan.status;
+      // 2. ถ้ายอดจ่ายหลัก (payAmount) มากกว่า 0 นำไปตัดลดต้น ส่วนค่าปรับจะไม่นำมาหักต้น
+      if (payAmount > 0) {
+        const currentRemaining = Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0);
+        const newRemaining = Math.max(0, currentRemaining - payAmount);
+        const newStatus = newRemaining === 0 ? 'ชำระแล้ว' : selectedPaymentLoan.status;
 
-      const { error: updateError } = await supabase
-        .from('loans')
-        .update({
-          remaining_principal: newRemaining,
-          status: newStatus
-        })
-        .eq('id', selectedPaymentLoan.id);
+        const { error: updateError } = await supabase
+          .from('loans')
+          .update({
+            remaining_principal: newRemaining,
+            status: newStatus
+          })
+          .eq('id', selectedPaymentLoan.id);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      }
 
       alert('บันทึกรับชำระเงินสำเร็จ!');
       setPaymentModalOpen(false);
@@ -502,14 +504,13 @@ export default function CustomersPage() {
 
             <form onSubmit={handleSavePayment} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">ยอดเงินที่ชำระ (บาท) *</label>
+                <label className="block text-slate-700 font-bold mb-1.5">ยอดเงินที่ชำระ (บาท)</label>
                 <input 
                   type="number" 
                   step="any"
-                  required
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="ระบุจำนวนเงิน..."
+                  placeholder="0 (หรือระบุยอดชำระ...)"
                   className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
               </div>
