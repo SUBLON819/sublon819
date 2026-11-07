@@ -103,11 +103,13 @@ export default function AdminDashboard() {
   const [endDate, setEndDate] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
-  // State สำหรับ Modal แก้ไขข้อมูลลูกค้าในหน้าประวัติ
+  // State สำหรับ Modal แก้ไขข้อมูลลูกค้าในหน้าประวัติ (แก้ไขให้ครบถ้วนถูกต้อง)
   const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editFacebook, setEditFacebook] = useState('');
+  const [editBankName, setEditBankName] = useState('');
+  const [editAccountNumber, setEditAccountNumber] = useState('');
 
   // Filter Tabs
   const [filterTab, setFilterTab] = useState('รออนุมัติ');
@@ -436,6 +438,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // 📌 ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า (รวมธนาคารและเลขบัญชีเรียบร้อย)
   const handleSaveCustomerInfo = async (e) => {
     e.preventDefault();
     try {
@@ -444,7 +447,9 @@ export default function AdminDashboard() {
         .update({
           full_name: editName.trim(),
           phone: String(editPhone || '').trim(),
-          facebook_link: editFacebook.trim()
+          facebook_link: editFacebook.trim(),
+          bank_name: editBankName,
+          account_number: String(editAccountNumber || '').trim()
         })
         .eq('full_name', selectedCustomerName);
 
@@ -501,7 +506,6 @@ export default function AdminDashboard() {
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
         interestPaid = basePayVal;   
         principalPaid = basePayVal;  
-        // 📌 ตัดยอดเฉพาะยอดชำระหลัก (basePayVal) เท่านั้น โดยไม่นำค่าปรับมาหักซ้ำซ้อนในเงินต้น
         newRemPrin = Math.max(0, currentPrin - basePayVal);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
@@ -540,7 +544,7 @@ export default function AdminDashboard() {
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
         amount: basePayVal + fineVal,
-        payment_amount: basePayVal, // บันทึกเฉพาะยอดชำระหลัก แยกจากค่าปรับ
+        payment_amount: basePayVal,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
         fine_amount: fineVal,
@@ -1284,7 +1288,6 @@ export default function AdminDashboard() {
       {/* 3. Customer Profile Full Screen Modal */}
       {customerProfileModalOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
-          {/* ปรับดีไซน์ Header ของหน้าประวัติลูกค้า ให้ปุ่มปิดอยู่ขวาบนตามที่คุณออกแบบ */}
           <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
             <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-16 sm:pr-0">
               <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
@@ -1298,6 +1301,8 @@ export default function AdminDashboard() {
                       setEditName(selectedCustomerName);
                       setEditPhone(customerInfo.phone || '');
                       setEditFacebook(customerInfo.facebook_link || '');
+                      setEditBankName(customerInfo.bank_name || '');
+                      setEditAccountNumber(customerInfo.account_number || '');
                       setEditCustomerModalOpen(true);
                     }}
                     className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
@@ -1423,7 +1428,6 @@ export default function AdminDashboard() {
                   {customerPayments.map((p) => (
                     <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
                       <div>
-                        {/* แสดงผลเฉพาะยอดชำระหลัก แยกจากค่าปรับอย่างถูกต้อง */}
                         <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? (p.amount - (p.fine_amount || 0))).toLocaleString()}</span>
                         <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
                         {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
@@ -1780,7 +1784,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= Edit Customer Modal (พร้อมตัวเลือกธนาคารและเลขบัญชี) ================= */}
+      {/* ================= Edit Customer Modal (แก้ไขข้อมูลลูกค้าสมบูรณ์) ================= */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
@@ -1822,7 +1826,6 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* 📌 เพิ่มตัวเลือกธนาคาร */}
               <div>
                 <label className="block text-slate-600 font-semibold mb-1">ธนาคาร</label>
                 <select
@@ -1845,7 +1848,6 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              {/* 📌 เพิ่มช่องกรอกเลขบัญชี */}
               <div>
                 <label className="block text-slate-600 font-semibold mb-1">เลขบัญชี / พร้อมเพย์</label>
                 <input 
