@@ -55,7 +55,6 @@ function isTodayInSchedule(scheduleStr) {
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
-  // รองรับประเภท จบต้นดอก โดยให้แสดงดอกเบี้ยรวมตามที่ตั้งไว้หรือคงเหลือ
   if (loan.loan_type === 'จบต้นดอก') {
     return Number(loan.total_interest || 0);
   }
@@ -853,8 +852,9 @@ export default function AdminDashboard() {
                             - {loan.full_name} 🔍
                           </span>
                         </div>
+                        {/* เอาเบอร์โทรออกจากการ์ดบิลรายการแล้ว */}
                         <p className="text-[10px] text-slate-500 mt-0.5 truncate">
-                          ประเภท: {loan.loan_type} | รอบจ่าย: <span className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</span> | ครบกำหนด: <span className="text-amber-700 font-mono">{loan.cycle_date || '-'}</span> | เบอร์โทร: {loan.phone || '-'}
+                          ประเภท: {loan.loan_type} | รอบจ่าย: <span className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</span> | ครบกำหนด: <span className="text-amber-700 font-mono">{loan.cycle_date || '-'}</span>
                         </p>
                       </div>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
@@ -1352,17 +1352,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* เพิ่มส่วนแสดง วันกู้ และ วันคืน ในหน้าข้อมูลลูกค้า */}
-            <div className="bg-white p-3.5 rounded-xl border border-purple-200 grid grid-cols-2 gap-3 shadow-sm text-xs font-mono">
-              <div>
-                <span className="text-slate-500 block text-[10px]">📅 วันที่ยื่นกู้ (Loan Date):</span>
-                <span className="font-bold text-slate-900">{customerInfo.loan_date || customerInfo.created_at?.split('T')[0] || '-'}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">📅 วันที่กำหนดคืน (Due Date):</span>
-                <span className="font-bold text-amber-700">{customerInfo.cycle_date || '-'}</span>
-              </div>
-            </div>
+            {/* นำแถวแสดง วันกู้ / วันคืน ออกจากหน้าประวัติข้อมูลลูกค้าแล้ว */}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
@@ -1918,8 +1908,26 @@ export default function AdminDashboard() {
               <button type="button" onClick={() => setApprovalModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="bg-purple-50 p-2.5 rounded-xl border border-purple-200 text-[11px] space-y-1 text-slate-800">
-              <p>📱 เบอร์โทร: <span className="text-purple-700 font-mono font-bold">{selectedLoanForApproval.phone}</span></p>
+            <div className="bg-purple-50 p-2.5 rounded-xl border border-purple-200 text-[11px] space-y-1.5 text-slate-800">
+              <p>📱 เบอร์โทร: <span className="text-purple-700 font-mono font-bold">{selectedLoanForApproval.phone || '-'}</span></p>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Facebook:</span>
+                {selectedLoanForApproval.facebook_link ? (
+                  <a 
+                    href={selectedLoanForApproval.facebook_link.startsWith('http') ? selectedLoanForApproval.facebook_link : `https://${selectedLoanForApproval.facebook_link}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-[10px] inline-flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                  >
+                    <span>🔗 ไปที่ Facebook ลูกค้า</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <span className="text-slate-400">ไม่มีข้อมูล</span>
+                )}
+              </div>
+
               <p>💰 ยอดขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
               <p>🏦 ธนาคาร: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
               <div className="grid grid-cols-2 gap-1 pt-1 border-t border-purple-200 font-mono text-[10px]">
