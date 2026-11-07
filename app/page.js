@@ -469,7 +469,7 @@ export default function AdminDashboard() {
     const discountVal = Number(discountAmount || 0);
 
     if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
-      alert('กรุณากรอกจำนวนเงินที่ชำระ หรือระบุค่าปรับอย่างน้อย 1 อย่าง');
+      alert('กรุณากรอกจำนวนเงินที่ชำระ หรือระบุค่าปรับ/ส่วนลดอย่างน้อย 1 อย่าง');
       return;
     }
 
@@ -482,9 +482,9 @@ export default function AdminDashboard() {
       let newRemPrin = currentPrin;
 
       if (selectedPaymentLoan.loan_type === 'ยอดค้างรอเคลียร์') {
-        interestPaid = netPrincipalPay;   
-        principalPaid = netPrincipalPay;  
-        newRemPrin = Math.max(0, currentPrin - netPrincipalPay);
+        interestPaid = basePayVal;   
+        principalPaid = basePayVal;  
+        newRemPrin = Math.max(0, currentPrin - basePayVal - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือ
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
@@ -493,16 +493,17 @@ export default function AdminDashboard() {
         const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
         interestPaid = netPrincipalPay * interestRatio; 
         principalPaid = netPrincipalPay - interestPaid; 
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
+        newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือ
       } else {
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
-        if (netPrincipalPay >= accruedInterest) {
+        if (basePayVal >= accruedInterest) {
           interestPaid = accruedInterest; 
-          principalPaid = netPrincipalPay - accruedInterest; 
-          newRemPrin = Math.max(0, currentPrin - principalPaid);
+          principalPaid = basePayVal - accruedInterest; 
+          newRemPrin = Math.max(0, currentPrin - principalPaid - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือ
         } else {
-          interestPaid = netPrincipalPay; 
+          interestPaid = basePayVal; 
           principalPaid = 0;
+          newRemPrin = Math.max(0, currentPrin - discountVal); // 👈 หักส่วนลดออกจากยอดคงเหลือโดยตรง
         }
       }
 
@@ -1292,7 +1293,21 @@ export default function AdminDashboard() {
             <div className="bg-purple-50 p-4 sm:p-6 rounded-2xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm shadow-sm">
               <div><span className="text-slate-500 block text-xs">เบอร์โทรศัพท์:</span> <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.phone || 'ไม่มีข้อมูล'}</span></div>
               <div><span className="text-slate-500 block text-xs">บัญชีธนาคาร:</span> <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span></div>
-              <div className="sm:col-span-3 truncate"><span className="text-slate-500 block text-xs">Facebook:</span> <span className="text-purple-700 underline truncate">{customerInfo.facebook_link || 'ไม่มีข้อมูล'}</span></div>
+              <div className="sm:col-span-3 truncate">
+                <span className="text-slate-500 block text-xs">Facebook:</span>
+                {customerInfo.facebook_link ? (
+                  <a 
+                    href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-purple-700 font-bold underline truncate hover:text-purple-900 inline-flex items-center gap-1"
+                  >
+                    {customerInfo.facebook_link} 🔗
+                  </a>
+                ) : (
+                  <span className="text-slate-400">ไม่มีข้อมูล</span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
