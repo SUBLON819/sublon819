@@ -548,54 +548,63 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* ================= MODAL แก้ไขข้อมูลลูกค้า (ขนาด text-base บนมือถือเพื่อป้องกันการซูม) ================= */}
+      {/* ================= MODAL แก้ไขข้อมูลลูกค้า (ปรับดีไซน์โทนฟ้าอ่อน-กรอบฟ้าเข้มสดใส ไม่มีเส้นขีด) ================= */}
       {editCustomerModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-purple-900 text-sm">✏️ แก้ไขข้อมูลลูกค้า</h3>
-              <button onClick={() => setEditCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer">✕</button>
+        <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center pb-1">
+              <h3 className="font-black text-sky-900 text-sm flex items-center gap-1.5">
+                <span>✏️</span> แก้ไขข้อมูลลูกค้า
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setEditCustomerModalOpen(false)} 
+                className="w-7 h-7 rounded-full bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">ชื่อ-นามสกุล *</label>
+                <label className="block text-sky-900 font-bold mb-1">ชื่อ-นามสกุล *</label>
                 <input 
                   type="text" 
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900 font-bold"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">เบอร์โทรศัพท์</label>
+                <label className="block text-sky-900 font-bold mb-1">เบอร์โทรศัพท์</label>
                 <input 
                   type="text" 
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 font-mono text-slate-900"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">ลิงก์ Facebook</label>
+                <label className="block text-sky-900 font-bold mb-1">ลิงก์ Facebook</label>
                 <input 
                   type="text" 
                   value={editFacebook}
                   onChange={(e) => setEditFacebook(e.target.value)}
                   placeholder="facebook.com/username"
-                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 shadow-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">ธนาคาร</label>
+                <label className="block text-sky-900 font-bold mb-1">ธนาคาร</label>
                 <select
                   value={editBankName}
                   onChange={(e) => setEditBankName(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 text-slate-900 bg-white font-bold"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
                 >
                   <option value="">-- เลือกธนาคาร --</option>
                   <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -613,13 +622,13 @@ export default function CustomersPage() {
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">เลขบัญชี / พร้อมเพย์</label>
+                <label className="block text-sky-900 font-bold mb-1">เลขบัญชี / พร้อมเพย์</label>
                 <input 
                   type="text" 
                   value={editAccountNumber}
                   onChange={(e) => setEditAccountNumber(e.target.value)}
                   placeholder="เช่น 1234567890 หรือเบอร์โทรพร้อมเพย์"
-                  className="w-full border rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 font-mono text-slate-900"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
                 />
               </div>
 
@@ -627,13 +636,13 @@ export default function CustomersPage() {
                 <button
                   type="button"
                   onClick={() => setEditCustomerModalOpen(false)}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-xs"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl shadow-md cursor-pointer"
+                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-md transition-colors cursor-pointer text-xs"
                 >
                   บันทึก
                 </button>
