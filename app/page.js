@@ -636,6 +636,10 @@ export default function AdminDashboard() {
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
+  
+  // 🟢 คำนวณดอกเบี้ยสะสมเรียลไทม์รวมทุกบิลของลูกค้ารายนี้
+  const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
+
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
 
   return (
@@ -731,6 +735,7 @@ export default function AdminDashboard() {
               <div className="text-lg sm:text-2xl font-black font-mono text-emerald-600 truncate">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
+            {/* 🟢 กล่องดอกเบี้ยสะสม (หน้าแดชบอร์ด) พร้อมเอฟเฟกต์กระพริบ animate-pulse */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ยสะสมรอเก็บ (เรียลไทม์)');
@@ -741,13 +746,13 @@ export default function AdminDashboard() {
                 setStatModalData(activeLoansWithInterest);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group animate-pulse"
             >
               <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>ดอกเบี้ยสะสมรอเก็บ</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-purple-600 truncate">฿{totalAccruedInterestAll.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-[color:#ff007f] truncate">฿{totalAccruedInterestAll.toLocaleString()}</div>
             </div>
           </div>
 
@@ -1342,15 +1347,31 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
-              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
-                <div className="text-[10px] text-slate-500">ยอดกู้สะสมทั้งหมด</div>
-                <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
+            {/* 🟢 การจัดวางกล่องข้อมูล 4 ช่องตามลำดับใหม่: 
+                - Desktop: ดอกเบี้ยสะสม -> ยอดหนี้คงเหลือ -> ยอดกู้ทั้งหมด -> ยอดชำระแล้วทั้งหมด
+                - Mobile (2 กล่องคู่ 2 บรรทัดตามที่คุณกำหนด):
+                  บรรทัดที่ 1: [ ดอกเบี้ยสะสม (สีชมพูบานเย็น + กระพริบ) ]  [ ยอดหนี้คงเหลือ ]
+                  บรรทัดที่ 2: [ ยอดกู้ทั้งหมด ]  [ ยอดชำระแล้วทั้งหมด ] */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+              {/* ช่องที่ 1 (เดสก์ท็อป) / บรรทัดที่ 1 ช่องซ้าย (มือถือ): ดอกเบี้ยสะสม (สีชมพูบานเย็น + กระพริบ animate-pulse) */}
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm animate-pulse">
+                <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
+                <div className="font-mono font-bold text-[color:#ff007f] text-base sm:text-lg mt-0.5">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
               </div>
+
+              {/* ช่องที่ 2 (เดสก์ท็อป) / บรรทัดที่ 1 ช่องขวา (มือถือ): ยอดหนี้คงเหลือ */}
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
                 <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
                 <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
               </div>
+
+              {/* ช่องที่ 3 (เดสก์ท็อป) / บรรทัดที่ 2 ช่องซ้าย (มือถือ): ยอดกู้ทั้งหมด */}
+              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+                <div className="text-[10px] text-slate-500">ยอดกู้ทั้งหมด</div>
+                <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
+              </div>
+
+              {/* ช่องที่ 4 (เดสก์ท็อป) / บรรทัดที่ 2 ช่องขวา (มือถือ): ยอดชำระแล้วทั้งหมด */}
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
                 <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
                 <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
@@ -1435,7 +1456,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 4. New Loan Modal (ปรับปรุงขนาดกล่อง Modal ให้กะทัดรัด และขนาดฟอนต์ input >= 16px ป้องกันหน้าจอซูม) */}
+      {/* 4. New Loan Modal */}
       {newLoanModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-2 z-50 overflow-y-auto">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-4 max-w-sm w-full space-y-2.5 text-slate-800 my-auto shadow-2xl max-h-[85vh] overflow-y-auto relative text-xs">
@@ -1535,7 +1556,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 🟢 วันที่กู้ (สีเขียวอ่อน) คู่กับ วันที่คืน (สีส้มอ่อน) */}
               <div className="grid grid-cols-2 gap-1.5 bg-white/70 p-2 rounded-xl border border-emerald-200">
                 <div className="space-y-0.5">
                   <label className="font-semibold text-emerald-800 flex items-center gap-1 text-[11px]">
