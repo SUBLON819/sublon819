@@ -96,7 +96,8 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [todayStr, setTodayStr] = useState('');
-
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
   // Header Actions State
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -612,12 +613,15 @@ export default function AdminDashboard() {
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || p.interest_paid || 0), 0);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-2 sm:p-4 lg:p-6 font-sans text-slate-800 text-base box-border overflow-x-hidden">
-      <div className="w-full max-w-full mx-auto space-y-4 sm:space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
+      
+     
+      <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
 
         {/* Header Control Panel */}
         <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
           <div className="flex items-center gap-3">
+           
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
@@ -687,7 +691,7 @@ export default function AdminDashboard() {
 
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 w-full">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full">
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดเก็บสดวันนี้');
@@ -723,7 +727,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 w-full">
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ทุนใหม่รอเก็บ (เงินต้นคงเหลือ)');
@@ -762,11 +766,11 @@ export default function AdminDashboard() {
                 setStatModalData(payments);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
               title="รวมดอกเบี้ยเก็บแล้ว + ค่าปรับ"
             >
               <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
-                <span>เบี้ยเก็บแล้ว(+ค่าปรับ)</span>
+                <span>กำไรสะสม</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-purple-700 truncate">฿{totalInterestCollected.toLocaleString()}</div>
@@ -1051,7 +1055,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 2. Notice Bill Modal */}
+      {/* 2. Notice Bill Modal (มีช่องเลือกธนาคารดรอปดาวน์ และดึงบัญชีแอดมินเดิมได้) */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-rose-200 rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl relative my-8 text-slate-800 max-h-[90vh] flex flex-col">
@@ -1086,6 +1090,29 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* เลือกบัญชีแอดมินเดิมที่เคยบันทึกไว้ */}
+                {adminBankList.length > 0 && (
+                  <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
+                    <label className="text-[11px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินที่เคยกรอกไว้:</label>
+                    <select
+                      onChange={(e) => {
+                        const idx = e.target.value;
+                        if (idx !== '') {
+                          setNoticeForm(adminBankList[idx]);
+                        }
+                      }}
+                      className="w-full border border-purple-300 rounded-lg p-2 text-xs bg-white font-semibold outline-none text-slate-800"
+                    >
+                      <option value="">-- คลิกเพื่อเลือกบัญชีเดิม --</option>
+                      {adminBankList.map((b, i) => (
+                        <option key={i} value={i}>
+                          {b.bank_name} ({b.account_number}) - {b.account_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-2 bg-white border border-slate-200 rounded-xl p-3">
                   <div className="text-[11px] font-bold text-slate-700">ข้อมูลบัญชีสำหรับโอนชำระ / สแกนจ่าย</div>
                   
@@ -1093,12 +1120,23 @@ export default function AdminDashboard() {
                     <div className="flex-1 space-y-1.5 w-full text-xs">
                       <div>
                         <label className="text-[9px] text-slate-500 font-semibold">ธนาคาร:</label>
-                        <input 
-                          type="text" placeholder="เช่น ธนาคารกรุงเทพ (BBL)"
+                        <select
                           value={noticeForm.bank_name}
                           onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                          className="w-full border border-slate-300 rounded-lg p-1.5 font-bold text-xs bg-slate-50 outline-none"
-                        />
+                          className="w-full border border-slate-300 rounded-lg p-1.5 font-bold text-xs bg-slate-50 outline-none text-slate-800"
+                        >
+                          <option value="">-- เลือกธนาคาร --</option>
+                          <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                          <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                          <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                          <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                          <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                          <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                          <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                          <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                          <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                          <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                        </select>
                       </div>
                       <div>
                         <label className="text-[9px] text-slate-500 font-semibold">เลขบัญชี:</label>
@@ -1147,28 +1185,6 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {adminBankList.length > 0 && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-500 font-semibold">เลือกบัญชีแอดมินที่เคยกรอกไว้:</label>
-                    <select
-                      onChange={(e) => {
-                        const idx = e.target.value;
-                        if (idx !== '') {
-                          setNoticeForm(adminBankList[idx]);
-                        }
-                      }}
-                      className="w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white font-semibold outline-none"
-                    >
-                      <option value="">-- เลือกบัญชีที่บันทึกไว้ --</option>
-                      {adminBankList.map((b, i) => (
-                        <option key={i} value={i}>
-                          {b.bank_name} ({b.account_number}) - {b.account_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1215,7 +1231,7 @@ export default function AdminDashboard() {
                 className="flex-1 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>📥 ดาวน์โหลดรูปบิล</span>
+                <span>📥 ดาวน์โหลดบิล</span>
               </button>
               <button 
                 onClick={handleShareNoticeImage}
@@ -1360,7 +1376,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 4. New Loan Modal (ปรับปรุง: พื้นหลังเขียวพาสเทล, ไม่มีหัวข้อ/กากบาทรกๆ, ปุ่มปิดสีแดง, เลื่อนมือถือลื่นไหล) */}
+      {/* 4. New Loan Modal */}
       {newLoanModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-lg w-full space-y-4 text-slate-800 my-auto shadow-2xl max-h-[90vh] overflow-y-auto relative">
@@ -1739,7 +1755,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ================= 6. Approval Modal (ปรับเป็นธีมสีขาวสะอาดตา ตัวหนังสือสีเข้ม) ================= */}
+      {/* ================= 6. Approval Modal ================= */}
       {approvalModalOpen && selectedLoanForApproval && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 text-slate-900 relative shadow-2xl">
