@@ -11,6 +11,21 @@ function getThaiTodayString() {
   return formatter.format(new Date());
 }
 
+// 📌 ฟังก์ชันดึงวันที่และเวลาปัจจุบันแบบ ISO / เรียลไทม์ตามเวลาประเทศไทย สำหรับบันทึกส่งเข้าหลังบ้าน
+function getThaiCurrentTimestamp() {
+  const now = new Date();
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(now).replace(' ', 'T');
+}
+
 export default function ApplyPage() {
   const [step, setStep] = useState('otp'); // 'otp', 'verify_otp', 'gps', 'form'
   const [phone, setPhone] = useState('');
@@ -80,7 +95,7 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร
+  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (รองรับครบทุกธีม พร้อมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง)
   const getThemeClasses = (color) => {
     switch (color) {
       case 'purple': // 💜 ธีมไทยพาณิชย์
@@ -277,6 +292,7 @@ export default function ApplyPage() {
         fileUrl = publicUrlData.publicUrl;
       }
 
+      // 📌 บันทึกข้อมูลพร้อมส่งเวลาจริงตามเวลาประเทศไทย (getThaiCurrentTimestamp)
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -294,6 +310,7 @@ export default function ApplyPage() {
         loan_date: formData.loan_date || null,
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
+        created_at: getThaiCurrentTimestamp(), // 🕒 ส่งเวลาปัจจุบันของประเทศไทยไปหลังบ้าน
       }]);
 
       if (error) throw error;
@@ -524,7 +541,7 @@ export default function ApplyPage() {
           {step === 'form' && (
             <form onSubmit={handleFinalSubmit} className="space-y-2.5">
               <div className="text-[11px] font-bold px-3 py-2 rounded-xl border border-black/10 bg-black/5 text-center">
-                {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ไม่ต้องกรอก Facebook และไม่ต้องแนบภาพซ้ำ)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารสำคัญ'}
+                {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ดึงข้อมูลเดิมให้ สามารถเปลี่ยนธนาคารและแก้ไขเลขบัญชีได้ทันที)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารสำคัญ'}
               </div>
 
               <div className="space-y-1">
@@ -598,15 +615,17 @@ export default function ApplyPage() {
                 </div>
               </div>
 
+              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี (เปิดให้ลูกค้าเก่าแก้ไข/เปลี่ยนธนาคารได้อย่างอิสระ) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
                     <CreditCard className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span>ธนาคารรับเงิน</span>
+                    <span>ธนาคารรับเงิน (เปลี่ยนได้)</span>
                   </label>
                   <select
-                    value={formData.bank_name} onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-black/10 border border-black/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold"
+                    value={formData.bank_name} 
+                    onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
+                    className="w-full bg-black/10 border border-black/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
                     <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
@@ -625,7 +644,8 @@ export default function ApplyPage() {
                   <label className="text-xs font-semibold opacity-80">เลขบัญชี / พร้อมเพย์ <span className="text-red-500">*</span></label>
                   <input 
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
-                    value={formData.account_number} onChange={(e) => setFormData({...formData, account_number: e.target.value})}
+                    value={formData.account_number} 
+                    onChange={(e) => setFormData({...formData, account_number: e.target.value})}
                     className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-mono font-bold outline-none`}
                   />
                 </div>
@@ -663,7 +683,7 @@ export default function ApplyPage() {
                 </div>
               ) : (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 text-center font-bold">
-                  ✅ ลูกค้าเก่า: ใช้ข้อมูลเดิม ไม่ต้องแนบภาพซ้ำ
+                  ✅ ลูกค้าเก่า: ดึงข้อมูลเดิมมาแสดง แต่ท่านสามารถเลือกเปลี่ยนธนาคารและแก้ไขเลขบัญชีใหม่ได้ทันที
                 </div>
               )}
 
