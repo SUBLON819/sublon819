@@ -80,32 +80,46 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสีเขียวมรกต
+  // 🎨 ฟังก์ชันจับคู่ธีมสีใหม่ 4 สไตล์ธนาคาร (ไทยพาณิชย์, กสิกรไทย, ออมสิน, กรุงศรีอยุธยา)
   const getThemeClasses = (color) => {
     switch (color) {
-      case 'indigo':
+      case 'purple': // 💜 ธีมไทยพาณิชย์ (ม่วง / ขาว / เหลืองทอง)
         return {
-          bg: 'from-indigo-950 via-slate-900 to-indigo-900',
-          badge: 'bg-indigo-600',
-          button: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500',
-          headerBg: 'bg-[#1E1B4B]',
-        };
-      case 'pink':
-        return {
-          bg: 'from-rose-950 via-slate-900 to-pink-900',
-          badge: 'bg-pink-600',
-          button: 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500',
-          headerBg: 'bg-[#581C87]',
+          bg: 'from-purple-950 via-slate-900 to-indigo-950',
+          badge: 'bg-amber-500 text-purple-950 font-black',
+          button: 'bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500',
+          headerBg: 'bg-[#4B1979]', // สีม่วง SCB
         };
       case 'emerald':
       case 'green':
-      case 'pastel green':
+      case 'pastel green': // 💚 ธีมกสิกรไทย (เขียวมรกต / ขาว)
+        return {
+          bg: 'from-emerald-950 via-slate-900 to-teal-950',
+          badge: 'bg-emerald-600',
+          button: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500',
+          headerBg: 'bg-[#006435]', // สีเขียว KBank
+        };
+      case 'pink': // 💗 ธีมสีชมพู (ออมสิน)
+        return {
+          bg: 'from-pink-950 via-slate-900 to-rose-950',
+          badge: 'bg-pink-600',
+          button: 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500',
+          headerBg: 'bg-[#EB1C24]', // โทนชมพูแดงออมสิน
+        };
+      case 'yellow':
+      case 'krungsri': // 💛 ธีมเหลืองน้ำตาล (กรุงศรีอยุธยา)
+        return {
+          bg: 'from-amber-950 via-slate-900 to-yellow-950',
+          badge: 'bg-amber-500 text-slate-950 font-bold',
+          button: 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-bold',
+          headerBg: 'bg-[#F3E500] text-slate-900', // สีเหลืองกรุงศรี
+        };
       default:
         return {
           bg: 'from-emerald-950 via-slate-900 to-teal-950',
           badge: 'bg-emerald-600',
           button: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500',
-          headerBg: 'bg-[#064E3B]',
+          headerBg: 'bg-[#006435]',
         };
     }
   };
@@ -337,23 +351,23 @@ export default function ApplyPage() {
     <div className={`min-h-screen bg-gradient-to-br ${theme.bg} flex items-center justify-center p-2 sm:p-6 font-sans text-white relative overflow-x-hidden transition-all duration-500`}>
       <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden">
         
-        {/* Header */}
-        <div className={`${theme.headerBg} text-white p-5 sm:p-6 text-center space-y-1.5 border-b border-white/10 transition-colors duration-300`}>
+        {/* Header (เปลี่ยนสีตามธีมธนาคารอัตโนมัติ) */}
+        <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-white/10 transition-colors duration-300`}>
           <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
             {siteConfig.banner_title}
           </h1>
-          <p className="text-xs text-slate-200">
+          <p className="text-xs opacity-90">
             {siteConfig.banner_subtitle}
           </p>
         </div>
 
         <div className="p-3.5 sm:p-6 space-y-3 text-slate-200">
           
-          {/* STEP 1: OTP (ไม่มีข้อความ LINE รบกวนหน้าแรก) */}
+          {/* STEP 1: OTP */}
           {step === 'otp' && (
             <form onSubmit={handleRequestOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
-                <span className={`w-4 h-4 ${theme.badge} text-white rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>1</span>
+                <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>1</span>
                 <span>ยืนยันเบอร์โทรศัพท์ (ระบบตรวจสอบลูกค้าเก่าอัตโนมัติ)</span>
               </div>
 
@@ -389,7 +403,7 @@ export default function ApplyPage() {
             </form>
           )}
 
-          {/* STEP 2: Verify OTP (แสดงผลติดต่อ LINE เมื่อเข้าสู่ขั้นตอนหลังกรอกเบอร์แล้ว) */}
+          {/* STEP 2: Verify OTP */}
           {step === 'verify_otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10">
@@ -409,14 +423,13 @@ export default function ApplyPage() {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setStep('otp')} className="w-1/3 py-2.5 bg-white/10 text-slate-300 rounded-xl text-xs font-bold hover:bg-white/20 transition-all cursor-pointer">ย้อนกลับ</button>
-                <button type="submit" className="w-2/3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                <button type="button" onClick={() => setStep('otp')} className="w-1/3 py-2.5 bg-white/10 text-slate-300 rounded-xl text-xs font-bold hover:bg-white/25 transition-all cursor-pointer">ย้อนกลับ</button>
+                <button type="submit" className={`w-2/3 py-2.5 ${theme.button} text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer`}>
                   <span>ยืนยันรหัส OTP</span>
                   <CheckCircle className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* 🟢 แสดงผลติดต่อ LINE เมื่อกรอกเบอร์และขอ OTP เรียบร้อยแล้ว */}
               <div className="text-center text-xs text-slate-400 pt-2 border-t border-white/10 space-y-0.5">
                 <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
                 <p>
@@ -438,7 +451,7 @@ export default function ApplyPage() {
           {step === 'gps' && (
             <div className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
-                <span className={`w-4 h-4 ${theme.badge} text-white rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>2</span>
+                <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>2</span>
                 <span>ระบุพิกัดตำแหน่ง GPS ปัจจุบัน</span>
               </div>
 
@@ -646,7 +659,7 @@ export default function ApplyPage() {
               )}
 
               <div className="bg-white/5 border border-white/10 p-2 rounded-xl text-[10px] text-slate-300 leading-relaxed">
-                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน..."
+                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน ข้าพเจ้าได้ไตร่ตรองอย่างถี่ถ้วนแล้วว่า มีความสามารถในการชำระคืนได้ตรงเวลาโดยไม่กระทบต่อการดำรงชีวิตประจำวัน"
               </div>
 
               <button 

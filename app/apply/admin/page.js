@@ -12,7 +12,7 @@ export default function ApplyAdminThemePage() {
   const [settings, setSettings] = useState({
     banner_title: 'สมัครขอสินเชื่อออนไลน์ SUBLON819',
     banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
-    theme_color: 'purple',
+    theme_color: 'emerald',
     line_contact: '@682clwce',
     is_frontend_open: true,
   });
@@ -35,7 +35,9 @@ export default function ApplyAdminThemePage() {
           if (item.key === 'banner_subtitle') loadedConfig.banner_subtitle = item.value;
           if (item.key === 'theme_color') loadedConfig.theme_color = item.value;
           if (item.key === 'line_contact') loadedConfig.line_contact = item.value;
-          if (item.key === 'is_frontend_open') loadedConfig.is_frontend_open = item.value !== 'false';
+          if (item.key === 'is_frontend_open') {
+            loadedConfig.is_frontend_open = item.value === 'true';
+          }
         });
         setSettings(prev => ({ ...prev, ...loadedConfig }));
       }
@@ -64,7 +66,8 @@ export default function ApplyAdminThemePage() {
         { key: 'banner_subtitle', value: settings.banner_subtitle },
         { key: 'theme_color', value: settings.theme_color },
         { key: 'line_contact', value: settings.line_contact },
-        { key: 'is_frontend_open', value: String(settings.is_frontend_open) },
+        // แปลงสถานะบูลีนเป็น string 'true' / 'false' ให้ตรงกับคอลัมน์ value (text) ใน Supabase
+        { key: 'is_frontend_open', value: settings.is_frontend_open ? 'true' : 'false' },
       ];
 
       for (let item of updates) {
@@ -84,32 +87,33 @@ export default function ApplyAdminThemePage() {
     }
   };
 
-  // 📌 เพิ่มการแมปสไตล์สำหรับ ธีมเขียวพาสเทล (Pastel Green)
+  // 📌 แมปสไตล์และชื่อธีมสีตามแบงก์ต่างๆ สำหรับหน้าจอ Preview
   const getPreviewThemeClasses = (color) => {
     switch (color) {
-      case 'indigo':
+      case 'purple': // 💜 ธีมไทยพาณิชย์
         return {
-          bg: 'from-indigo-900 to-slate-900',
-          badge: 'bg-indigo-600',
-          button: 'bg-gradient-to-r from-indigo-600 to-blue-600'
+          bg: 'from-purple-950 via-slate-900 to-indigo-950',
+          badge: 'bg-amber-500 text-purple-950 font-black',
+          button: 'bg-gradient-to-r from-purple-700 to-indigo-600'
         };
-      case 'pink':
+      case 'pink': // 💗 ธีมชมพูออมสิน
         return {
-          bg: 'from-pink-700 to-rose-900',
+          bg: 'from-pink-950 via-slate-900 to-rose-950',
           badge: 'bg-pink-600',
           button: 'bg-gradient-to-r from-pink-600 to-rose-600'
         };
-      case 'emerald':
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา
         return {
-          bg: 'from-emerald-800 via-teal-800 to-green-950',
+          bg: 'from-amber-950 via-slate-900 to-yellow-950',
+          badge: 'bg-amber-500 text-slate-950 font-bold',
+          button: 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-bold'
+        };
+      case 'emerald':
+      default: // 💚 ธีมกสิกรไทย
+        return {
+          bg: 'from-emerald-950 via-slate-900 to-teal-950',
           badge: 'bg-emerald-600',
           button: 'bg-gradient-to-r from-emerald-600 to-teal-600'
-        };
-      default:
-        return {
-          bg: 'from-purple-900 to-indigo-950',
-          badge: 'bg-purple-600',
-          button: 'bg-gradient-to-r from-purple-600 to-pink-600'
         };
     }
   };
@@ -200,11 +204,10 @@ export default function ApplyAdminThemePage() {
                     onChange={(e) => setSettings({...settings, theme_color: e.target.value})}
                     className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-purple-600 bg-purple-50/30 font-semibold"
                   >
-                    <option value="purple">ม่วงพาสเทล (Glamorous Purple)</option>
-                    <option value="indigo">ครามเข้ม (Deep Indigo)</option>
-                    <option value="pink">ชมพูบานเย็น (Rose Pink)</option>
-                    {/* 📌 เพิ่มตัวเลือกธีมเขียวพาสเทลใน Dropdown */}
-                    <option value="emerald">เขียวพาสเทล (Pastel Green)</option>
+                    <option value="emerald">ธีมกสิกรไทย (เขียวมรกต)</option>
+                    <option value="purple">ธีมไทยพาณิชย์ (ม่วง-ขาว-เหลืองทอง)</option>
+                    <option value="pink">ธีมชมพู (ออมสิน)</option>
+                    <option value="yellow">ธีมกรุงศรีอยุธยา (เหลือง-น้ำตาล)</option>
                   </select>
                 </div>
 
@@ -225,7 +228,7 @@ export default function ApplyAdminThemePage() {
                     type="checkbox"
                     checked={settings.is_frontend_open}
                     onChange={(e) => setSettings({...settings, is_frontend_open: e.target.checked})}
-                    className="w-4 h-4 accent-purple-600 rounded"
+                    className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
                   />
                   <span>เปิดฟอร์มรับสมัครออนไลน์ (สถานะเปิดใช้งาน)</span>
                 </label>
@@ -252,7 +255,7 @@ export default function ApplyAdminThemePage() {
 
             <div className={`flex-1 bg-gradient-to-br ${themeClasses.bg} rounded-2xl p-4 text-white flex flex-col justify-between border-4 border-slate-800 shadow-inner min-h-[260px] transition-all duration-300`}>
               <div className="space-y-3">
-                <div className={`inline-block px-2.5 py-0.5 ${themeClasses.badge} text-white font-bold text-[10px] rounded-full`}>
+                <div className={`inline-block px-2.5 py-0.5 ${themeClasses.badge} text-[10px] rounded-full`}>
                   SUBLON819
                 </div>
                 <h4 className="text-sm font-bold leading-snug text-white">
