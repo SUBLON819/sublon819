@@ -3,9 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Edit3, Trash2, ExternalLink
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
+
+// 📌 นำเข้า Component กลางสำหรับแสดงประวัติลูกค้า
+import CustomerDetail from '@/components/CustomerDetail';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
 function getThaiTodayString() {
@@ -108,7 +111,7 @@ export default function AdminDashboard() {
   const [endDate, setEndDate] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
-  // State สำหรับ Modal แก้ไขข้อมูลลูกค้า (ใช้แก้ไขเป็นรายสัญญา ปลอดภัยกว่าการแก้แบบเหมาชื่อ)
+  // State สำหรับ Modal แก้ไขข้อมูลลูกค้า
   const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
   const [editingLoanId, setEditingLoanId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -290,7 +293,6 @@ export default function AdminDashboard() {
     .filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && l.status !== 'ปฏิเสธคำขอ')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
-  // 🛠️ คำนวณกำไรสะสมจากข้อมูลจริงในตาราง payments โดยแยกประเภทบิลรอเคลียร์และบิลปกติอย่างแม่นยำ
   const totalInterestCollected = payments.reduce((sum, p) => {
     const targetLoan = loans.find(l => l.id === p.loan_id);
     const isPendingClear = targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์');
@@ -464,7 +466,7 @@ export default function AdminDashboard() {
           bank_name: editBankName,
           account_number: String(editAccountNumber || '').trim()
         })
-        .eq('id', editingLoanId); // อัปเดตผ่าน id สัญญาฉบับนั้นๆ เพื่อความปลอดภัยสูงสุด
+        .eq('id', editingLoanId);
 
       if (error) throw error;
 
@@ -1299,168 +1301,32 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Customer Profile Full Screen Modal */}
+      {/* 📌 เรียกใช้งาน Component กลาง CustomerDetail แทนมอดัลแบบเดิม */}
       {customerProfileModalOpen && (
-        <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200">
-          <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-16 sm:pr-0">
-              <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-purple-300" />
-              </div>
-              <div className="min-w-0 flex-1">
-                {/* 📌 ปุ่มแก้ไขข้อมูลของลูกค้า อยู่ข้างชื่อด้านบนตามภาพ */}
-                <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
-                  <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
-                  <button
-                    onClick={() => {
-                      setEditName(selectedCustomerName);
-                      setEditPhone(customerInfo.phone || '');
-                      setEditFacebook(customerInfo.facebook_link || '');
-                      setEditBankName(customerInfo.bank_name || '');
-                      setEditAccountNumber(customerInfo.account_number || '');
-                      setEditCustomerModalOpen(true);
-                    }}
-                    className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>แก้ไขข้อมูล</span>
-                  </button>
-                </h2>
-                <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setCustomerProfileModalOpen(false)}
-              className="absolute right-4 top-4 sm:static px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs flex flex-col items-center justify-center leading-tight shadow-lg transition-all cursor-pointer shrink-0 border border-purple-500/50"
-            >
-              <span className="text-sm font-black">✕ ปิด</span>
-              <span className="text-[9px] text-purple-200">หน้าจอ</span>
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
-            <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm">
-              <div><span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span></div>
-              <div><span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span></div>
-              <div className="sm:col-span-3 flex items-center gap-2">
-                <span className="text-slate-500 text-[10px]">Facebook:</span>
-                {customerInfo.facebook_link ? (
-                  <a 
-                    href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                  >
-                    <span>🔗 ไปที่ Facebook ลูกค้า</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : (
-                  <span className="text-slate-400">ไม่มีข้อมูล</span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
-                <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
-                <div className="font-mono font-bold text-[color:#ff007f] text-base sm:text-lg mt-0.5">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
-              </div>
-
-              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
-                <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
-                <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
-              </div>
-
-              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
-                <div className="text-[10px] text-slate-500">ยอดกู้ทั้งหมด</div>
-                <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
-              </div>
-
-              <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
-                <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
-                <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
-              <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
-              {customerLoans.length === 0 ? (
-                <div className="text-slate-400 text-center py-4 text-[11px]">ไม่พบประวัติสัญญา</div>
-              ) : (
-                <div className="space-y-2">
-                  {customerLoans.map((l) => (
-                    <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
-                        <div>
-                          <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
-                          <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
-                          <div className="text-[10px] text-slate-500 mt-0.5">รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span></div>
-                          <div className="text-[10px] text-amber-800 font-mono mt-0.5">วันกู้: {l.loan_date || '-'} | ครบกำหนด: {l.cycle_date || '-'}</div>
-                        </div>
-                        <div className="text-left sm:text-right font-mono w-full sm:w-auto">
-                          <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
-                          <div className="text-[10px] text-amber-600 mt-0.5">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</div>
-                        </div>
-                      </div>
-
-                      {/* 📌 ส่วนล่างการ์ดสัญญา: มีเฉพาะปุ่มลบบิลนี้ (ซ้าย) และปุ่มบันทึกรับชำระ (ขวา) */}
-                      <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteLoan(l.id, l.bill_code)}
-                          className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
-                          title="ลบรายการบิลนี้"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>ลบบิลนี้</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedPaymentLoan(l);
-                            setPaymentAmount('');
-                            setFineAmount('');
-                            setDiscountAmount('');
-                            setPaymentNote('');
-                            setPaymentModalOpen(true);
-                          }}
-                          className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors cursor-pointer flex items-center gap-1"
-                        >
-                          <span>💵 บันทึกรับชำระ</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
-              <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
-              {customerPayments.length === 0 ? (
-                <div className="text-slate-400 text-center py-4 text-[11px]">ยังไม่มีประวัติการชำระเงิน</div>
-              ) : (
-                <div className="space-y-1.5">
-                  {customerPayments.map((p) => (
-                    <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
-                      <div>
-                        <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? (p.amount - (p.fine_amount || 0))).toLocaleString()}</span>
-                        <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
-                        {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
-                        {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 ml-1 font-bold">(ส่วนลด -{p.discount_amount})</span>}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {new Date(p.created_at).toLocaleString('th-TH')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <CustomerDetail
+          selectedCustomerName={selectedCustomerName}
+          customerLoans={customerLoans}
+          customerPayments={customerPayments}
+          customerInfo={customerInfo}
+          onClose={() => setCustomerProfileModalOpen(false)}
+          onOpenEditModal={() => {
+            setEditName(selectedCustomerName);
+            setEditPhone(customerInfo.phone || '');
+            setEditFacebook(customerInfo.facebook_link || '');
+            setEditBankName(customerInfo.bank_name || '');
+            setEditAccountNumber(customerInfo.account_number || '');
+            setEditCustomerModalOpen(true);
+          }}
+          onDeleteLoan={(loanId, billCode) => handleDeleteLoan(loanId, billCode)}
+          onOpenPaymentModal={(l) => {
+            setSelectedPaymentLoan(l);
+            setPaymentAmount('');
+            setFineAmount('');
+            setDiscountAmount('');
+            setPaymentNote('');
+            setPaymentModalOpen(true);
+          }}
+        />
       )}
 
       {/* New Loan Modal */}
@@ -1729,7 +1595,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* 📌 ส่วนที่เพิ่ม: แสดงยอดคงเหลือและดอกเบี้ยสะสมเรียลไทม์ในกล่องสรุป */}
             <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-1 font-medium text-slate-700 text-[11px]">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
@@ -1808,7 +1673,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Edit Customer Modal (แก้ไขข้อมูลเฉพาะบิล/สัญญา เพื่อความปลอดภัย) */}
+      {/* Edit Customer Modal */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
