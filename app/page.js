@@ -1729,10 +1729,14 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-0.5 font-medium text-slate-700 text-[11px]">
+            {/* 📌 ส่วนที่เพิ่ม: แสดงยอดคงเหลือและดอกเบี้ยสะสมเรียลไทม์ในกล่องสรุป */}
+            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-1 font-medium text-slate-700 text-[11px]">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
-              <div>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
+              <div className="flex justify-between items-center border-t border-purple-200/60 pt-1 mt-1">
+                <span>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></span>
+                <span>ดอกเบี้ยสะสม: <span className="font-mono font-bold text-[color:#ff007f]">฿{calculateAccruedInterest(selectedPaymentLoan).toLocaleString()}</span></span>
+              </div>
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-3">
