@@ -305,7 +305,6 @@ export default function AdminDashboard() {
     return sum + profitFromThisPayment;
   }, 0);
 
-  // คำนวณจำนวนบิลที่รออนุมัติเพื่อแสดง badge แจ้งเตือน
   const pendingApprovalCount = loans.filter(l => l.status === 'รออนุมัติ' || l.status === 'รอตรวจสอบ').length;
 
   const handlePrintReport = () => {
@@ -606,7 +605,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ลอจิกการกรองข้อมูลตามลำดับแท็บใหม่: บิลรอเก็บ -> ตัดยอดแล้ว -> อนุมัติวันนี้ -> รออนุมัติ -> ทั้งหมด
+  // 📌 ปรับปรุงลอจิกการกรองและการเรียงลำดับใหม่ทั้งหมดตรงนี้
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -627,7 +626,7 @@ export default function AdminDashboard() {
     } 
     
     if (filterTab === 'ตัดยอดแล้ว') {
-      // 📌 เช็คให้แน่ใจว่าบิลนี้มีการบันทึกรับชำระเงิน (payments) ใน "วันนี้" จริงๆ เท่านั้น
+      // 📌 บังคับให้ตรวจสอบว่ามีการชำระเงินใน "วันนี้" จริงๆ เท่านั้นถึงจะแสดง
       const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
       return hasPaidToday;
     }
@@ -647,6 +646,15 @@ export default function AdminDashboard() {
 
     return true;
   }).sort((a, b) => {
+    // 📌 จัดเรียงลำดับรายการล่าสุดให้อยู่ด้านบนสุดเสมอ (Newest First)
+    if (filterTab === 'ตัดยอดแล้ว') {
+      const payA = payments.find(p => String(p.loan_id) === String(a.id) && formatThaiDate(p.created_at) === todayStr);
+      const payB = payments.find(p => String(p.loan_id) === String(b.id) && formatThaiDate(p.created_at) === todayStr);
+      const timeA = new Date(payA?.created_at || a.created_at || 0).getTime();
+      const timeB = new Date(payB?.created_at || b.created_at || 0).getTime();
+      return timeB - timeA;
+    }
+
     const timeA = new Date(a.created_at || 0).getTime();
     const timeB = new Date(b.created_at || 0).getTime();
     return timeB - timeA;
@@ -828,7 +836,6 @@ export default function AdminDashboard() {
               <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
             </h3>
 
-            {/* 📌 ลำดับแท็บใหม่: บิลรอเก็บ -> ตัดยอดแล้ว -> อนุมัติวันนี้ -> รออนุมัติ -> ทั้งหมด พร้อมเอฟเฟกต์แจ้งเตือนที่แท็บ 'รออนุมัติ' */}
             <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
               {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด'].map((tab) => (
                 <button
@@ -1124,7 +1131,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Notice Bill Modal - ดีไซน์กระชับเท่าหน้าบันทึกรับชำระ */}
+      {/* Notice Bill Modal */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
@@ -1252,7 +1259,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Hidden Element สำหรับแปลงภาพบนมือถือและคอมพิวเตอร์ */}
             <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
               <div ref={hiddenCaptureRef} style={{ width: '400px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #f43f5e', paddingBottom: '12px', marginBottom: '16px' }}>
@@ -1318,7 +1324,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 📌 เรียกใช้งาน Component กลาง CustomerDetail */}
+      {/* CustomerDetail Modal */}
       {customerProfileModalOpen && (
         <CustomerDetail
           selectedCustomerName={selectedCustomerName}
