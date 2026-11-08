@@ -86,7 +86,7 @@ export default function ApplyAdminThemePage() {
     }
   };
 
-  // 📌 แมปสไตล์และสีจริงของแต่ละธนาคาร สำหรับแสดงผล Preview ตรงตามหน้าเว็บจริง 100%
+  // 📌 แมปสไตล์และสีจริงของแต่ละธนาคาร สำหรับแสดงผล Preview ให้ตรงกับหน้าเว็บจริง (รวมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง)
   const getPreviewThemeClasses = (color) => {
     switch (color) {
       case 'purple': // 💜 ธีมไทยพาณิชย์
@@ -96,21 +96,21 @@ export default function ApplyAdminThemePage() {
           button: 'bg-gradient-to-r from-purple-700 to-indigo-600 text-white',
           headerBg: 'bg-[#4B1979] text-white'
         };
-      case 'pink': // 💗 ธีมชมพูออมสิน (การ์ดขาว หัวชมพู)
+      case 'pink': // 💗 ธีมชมพูออมสิน
         return {
           bg: 'bg-white text-slate-800 border-pink-200 shadow-xl',
           badge: 'bg-pink-600 text-white font-bold',
           button: 'bg-gradient-to-r from-pink-600 to-rose-500 text-white shadow-md',
           headerBg: 'bg-[#E03E82] text-white'
         };
-      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (การ์ดขาว หัวน้ำตาล ปุ่มน้ำตาล)
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดเหลืองทอง #FFCC00)
         return {
-          bg: 'bg-white text-slate-900 border-amber-200 shadow-xl',
-          badge: 'bg-[#5C3D2E] text-white font-bold',
-          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] text-white font-bold shadow-md',
-          headerBg: 'bg-[#5C3D2E] text-white'
+          bg: 'bg-white text-slate-900 border-[#FFCC00]/60 shadow-xl',
+          badge: 'bg-[#FFCC00] text-[#5C3D2E] font-black',
+          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] text-[#FFCC00] font-black shadow-md border border-[#FFCC00]/40',
+          headerBg: 'bg-[#5C3D2E] text-[#FFCC00]'
         };
-      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงิน BBL)[cite: 6]
+      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงิน BBL)
         return {
           bg: 'bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950 text-white',
           badge: 'bg-blue-600 text-white font-bold',
