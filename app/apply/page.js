@@ -19,6 +19,7 @@ export default function ApplyPage() {
   
   const [isOldCustomer, setIsOldCustomer] = useState(false);
   const [location, setLocation] = useState({ lat: null, lng: null, status: 'ยังไม่ได้ระบุพิกัด' });
+  const [locationError, setLocationError] = useState(false); // State ตรวจสอบว่าติดบล็อกพิกัดหรือไม่
 
   // 🔒 State สำหรับจัดการข้อมูลธีมและสถานะจากหลังบ้าน (Supabase)
   const [isSystemOpen, setIsSystemOpen] = useState(true);
@@ -41,18 +42,16 @@ export default function ApplyPage() {
   });
 
   useEffect(() => {
-    // 📌 ดึงวันที่ปัจจุบันตามเวลาประเทศไทยแบบเรียลไทม์ ตั้งค่าให้ทั้งวันกู้และวันคืนเป็น "วันที่ปัจจุบัน"
     const todayThai = getThaiTodayString();
-
     setFormData(prev => ({ 
       ...prev, 
       loan_date: todayThai, 
-      cycle_date: todayThai // กำหนดคืนเป็นวันที่ปัจจุบัน เพื่อบังคับให้ลูกค้าต้องเลือก/กรอกเอง
+      cycle_date: todayThai 
     }));
-    fetchSiteSettings(); // ดึงการตั้งค่าทั้งหมดจาก Supabase ตอนโหลดหน้า
+    fetchSiteSettings();
   }, []);
 
-  // 🔍 ฟังก์ชันดึงการตั้งค่า (ธีมสี, ข้อความ, สถานะเปิด-ปิด) จาก Supabase
+  // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
   const fetchSiteSettings = async () => {
     setCheckingSystem(true);
     try {
@@ -81,7 +80,7 @@ export default function ApplyPage() {
     }
   };
 
-  // ฟังก์ชันจับคู่ธีมสีกับ Tailwind CSS Classes ตามที่เลือกในหลังบ้าน
+  // ฟังก์ชันจับคู่ธีมสี
   const getThemeClasses = (color) => {
     switch (color) {
       case 'indigo':
@@ -98,7 +97,7 @@ export default function ApplyPage() {
           button: 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500',
           headerBg: 'bg-[#581C87]',
         };
-      default: // purple (ค่าเริ่มต้น)
+      default:
         return {
           bg: 'from-purple-950 via-slate-900 to-indigo-950',
           badge: 'bg-purple-600',
@@ -178,12 +177,21 @@ export default function ApplyPage() {
     setStep('gps');
   };
 
+  // 📍 ฟังก์ชันดึงพิกัด GPS พร้อมตั้งค่า High Accuracy และดักจับ Error
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       alert('เบราว์เซอร์ของคุณไม่รองรับการระบุพิกัด GPS');
       return;
     }
     setLoading(true);
+    setLocationError(false);
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocation({
@@ -197,23 +205,25 @@ export default function ApplyPage() {
       },
       (error) => {
         setLoading(false);
-        alert('ไม่สามารถดึงพิกัด GPS ได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง: ' + error.message);
-      }
+        if (error.code === 1) {
+          setLocationError(true); // บล็อกสิทธิ์
+        } else {
+          alert('ไม่สามารถดึงพิกัดได้ (สัญญาณอาจอ่อนเกินไป) กรุณาลองใหม่อีกครั้งหรือใช้ภาพถ่ายแทน');
+        }
+      },
+      options
     );
   };
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
-
     const todayThai = getThaiTodayString();
 
-    // 🔒 1. ตรวจสอบว่าวันที่กู้ห้ามเป็นวันย้อนหลัง
     if (formData.loan_date < todayThai) {
       alert('ไม่อนุญาตให้เลือกวันที่กู้ย้อนหลังได้ กรุณาเลือกวันที่ปัจจุบัน');
       return;
     }
 
-    // 🔒 2. บังคับตรวจสอบว่าลูกค้ากรอกวันคืนหรือยัง และวันคืนต้องมากกว่าวันกู้
     if (!formData.cycle_date) {
       alert('กรุณากรอกวันที่กำหนดคืน (วันคืน) ก่อนกดส่งคำขอครับ');
       return;
@@ -236,8 +246,8 @@ export default function ApplyPage() {
         remaining_principal: Number(formData.principal_amount),
         installment_amount: Number(formData.principal_amount) * 0.1,
         status: 'รออนุมัติ',
-        latitude: location.lat,
-        longitude: location.lng,
+        latitude: location.lat, // เป็นค่า null ได้ หากลูกค้าใช้ภาพถ่ายแทน
+        longitude: location.lng, // เป็นค่า null ได้ หากลูกค้าใช้ภาพถ่ายแทน
         bank_name: formData.bank_name,
         account_number: formData.account_number,
         loan_date: formData.loan_date || null,
@@ -253,7 +263,6 @@ export default function ApplyPage() {
     }
   };
 
-  // 🛑 แสดงหน้าจอกำลังตรวจสอบ
   if (checkingSystem) {
     return (
       <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
@@ -265,7 +274,6 @@ export default function ApplyPage() {
     );
   }
 
-  // 🛑 หากแอดมินกดปิดระบบจากหลังบ้าน จะแสดงหน้าจอนี้
   if (!isSystemOpen) {
     return (
       <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
@@ -275,7 +283,7 @@ export default function ApplyPage() {
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ปิดปรับปรุงชั่วคราว</h2>
           <p className="text-xs sm:text-sm text-slate-600">
-            ขณะนี้ระบบปิดรับสมัครคำขอกู้ยืมชั่วคราวโดยผู้ดูแลระบบ กรุณาติดต่อแอดมินผ่าน LINE: <span className="font-bold">{siteConfig.line_contact}</span> หรือกลับมาใหม่อีกครั้งในภายหลัง
+            ขณะนี้ระบบปิดรับสมัครคำขอกู้ยืมชั่วคราวโดยผู้ดูแลระบบ กรุณาติดต่อแอดมินผ่าน LINE: <span className="font-bold">{siteConfig.line_contact}</span>
           </p>
           <button 
             onClick={() => window.location.reload()}
@@ -293,7 +301,7 @@ export default function ApplyPage() {
       <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
         <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
           <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
-          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้สำเร็จครบทั้ง 4 ขั้นตอน!</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้สำเร็จครบทุกขั้นตอน!</h2>
           <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลเข้าสู่ฐานข้อมูลเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
           <button 
             onClick={() => { setSuccess(false); setStep('otp'); setPhone(''); setOtpCode(''); setLocation({ lat: null, lng: null, status: '' }); }}
@@ -310,7 +318,7 @@ export default function ApplyPage() {
     <div className={`min-h-screen bg-gradient-to-br ${theme.bg} flex items-center justify-center p-2 sm:p-6 font-sans text-white relative overflow-x-hidden transition-all duration-500`}>
       <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden">
         
-        {/* ส่วนหัว Header ที่ดึงค่าหัวข้อและคำโปรยจากหลังบ้านแบบ Real-time */}
+        {/* Header */}
         <div className={`${theme.headerBg} text-white p-5 sm:p-6 text-center space-y-1.5 border-b border-white/10 transition-colors duration-300`}>
           <div className="inline-block px-3 py-0.5 bg-white/20 text-white font-bold text-[10px] rounded-full">
             SUBLON819
@@ -324,6 +332,8 @@ export default function ApplyPage() {
         </div>
 
         <div className="p-3.5 sm:p-6 space-y-3 text-slate-200">
+          
+          {/* STEP 1: ขอ OTP */}
           {step === 'otp' && (
             <form onSubmit={handleRequestOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
@@ -363,6 +373,7 @@ export default function ApplyPage() {
             </form>
           )}
 
+          {/* STEP 2: ยืนยัน OTP */}
           {step === 'verify_otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10">
@@ -391,6 +402,7 @@ export default function ApplyPage() {
             </form>
           )}
 
+          {/* STEP 3: ระบุพิกัด GPS (พร้อมระบบช่วยเหลือกรณีติดบล็อก) */}
           {step === 'gps' && (
             <div className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
@@ -401,7 +413,15 @@ export default function ApplyPage() {
               <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center space-y-3">
                 <MapPin className="w-8 h-8 text-purple-400 mx-auto animate-pulse" />
                 <p className="text-xs text-slate-300">ระบบต้องการเข้าถึงพิกัดตำแหน่งของคุณเพื่อใช้ประกอบการอนุมัติสินเชื่อ</p>
-                <p className="text-[11px] font-mono text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30">{location.status}</p>
+                
+                {locationError && (
+                  <div className="bg-red-500/20 border border-red-500/50 p-2.5 rounded-xl text-left space-y-1 text-[11px] text-red-200">
+                    <p className="font-bold">⚠️ ตรวจพบการบล็อกสิทธิ์ตำแหน่ง:</p>
+                    <p>• ให้กดที่รูป <b>แม่กุญแจ 🔒</b> บนแถบ URL ด้านบน แล้วเปลี่ยนสิทธิ์ <b>"ตำแหน่ง"</b> เป็น <b>"อนุญาต"</b></p>
+                    <p>• หรือกดเปิดเว็บนี้ใน Google Chrome / Safari โดยตรง</p>
+                  </div>
+                )}
+
                 <button 
                   type="button"
                   onClick={handleGetLocation}
@@ -420,14 +440,31 @@ export default function ApplyPage() {
                     </>
                   )}
                 </button>
+
+                {/* 🛠️ ปุ่มทางเลือกกรณีระบุพิกัดไม่ได้ ให้ใช้ภาพถ่ายแทน */}
+                <div className="pt-2 border-t border-white/10 space-y-2">
+                  <p className="text-[11px] text-amber-300">หากระบุพิกัดบนเว็บไม่ได้ สามารถใช้ภาพถ่ายหน้าบ้านแทนได้</p>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setLocation({ lat: null, lng: null, status: 'ลูกค้าใช้ภาพถ่ายหน้าบ้านแทนพิกัด GPS' });
+                      setStep('form');
+                    }}
+                    className="w-full py-2.5 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>ข้ามพิกัด GPS และไปแนบภาพถ่ายหน้าบ้านแทน</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
+          {/* STEP 4: กรอกข้อมูลและแนบเอกสาร */}
           {step === 'form' && (
             <form onSubmit={handleFinalSubmit} className="space-y-2.5">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2 rounded-xl border border-white/10 text-center">
-                {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ไม่ต้องกรอก Facebook และไม่ต้องแนบภาพซ้ำ)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารบัตรประชาชน'}
+                {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ไม่ต้องกรอก Facebook และไม่ต้องแนบภาพซ้ำ)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารสำคัญ'}
               </div>
 
               <div className="space-y-1">
@@ -468,7 +505,7 @@ export default function ApplyPage() {
                 />
               </div>
 
-              {/* 🛠️ ช่องวันที่กู้ (ล็อกไม่ให้เลือกย้อนหลัง) และ ช่องกำหนดคืน (ตั้งต้นเป็นวันปัจจุบัน บังคับให้ลูกค้าต้องเลือกวันคืนเอง) */}
+              {/* วันที่กู้ & วันกำหนดคืน */}
               <div className="space-y-2.5 pt-1">
                 <div className="bg-white/5 p-2 rounded-xl border border-white/10 space-y-1">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -488,7 +525,7 @@ export default function ApplyPage() {
                 <div className="bg-red-500/10 p-2 rounded-xl border-2 border-red-500 shadow-sm space-y-1">
                   <label className="text-xs font-semibold text-red-200 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    <span>กำหนดคืน <span className="text-red-400">*</span> <span className="text-[10px] text-red-300 font-normal">(บังคับเลือกวันคืนที่ต้องมากกว่าวันกู้)</span></span>
+                    <span>กำหนดคืน <span className="text-red-400">*</span> <span className="text-[10px] text-red-300 font-normal">(บังคับกรอก)</span></span>
                   </label>
                   <input 
                     type="date"
@@ -534,17 +571,29 @@ export default function ApplyPage() {
                 </div>
               </div>
 
+              {/* ส่วนแนบเอกสาร + คำแนะนำกรณีใช้ภาพถ่ายหน้าบ้านแทนพิกัด */}
               {!isOldCustomer ? (
-                <div className="space-y-1 pt-1 border-t border-white/10">
+                <div className="space-y-1.5 pt-1 border-t border-white/10">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <Upload className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>ขั้นตอนที่ 4: แนบเอกสารบัตรประชาชน <span className="text-red-400">*</span></span>
+                    <span>แนบเอกสาร (บัตรประชาชน / ภาพถ่ายพิกัดหน้าบ้าน) <span className="text-red-400">*</span></span>
                   </label>
+                  
+                  {location.lat === null && (
+                    <div className="bg-purple-500/10 border border-purple-500/30 p-2.5 rounded-xl text-[11px] text-purple-200 space-y-1">
+                      <p className="font-bold">📍 คำแนะนำกรณีข้ามพิกัด GPS:</p>
+                      <p className="text-slate-300">
+                        แนะนำให้ใช้แอปพลิเคชันถ่ายภาพที่มีพิกัด/เวลา (เช่น <b>GPS Map Camera</b>) ถ่ายรูปหน้าบ้านแล้วนำภาพที่มีพิกัด/เวลามาแนบในช่องนี้แทนครับ
+                      </p>
+                    </div>
+                  )}
+
                   <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center justify-between gap-2">
                     <label className={`px-3 py-1.5 ${theme.badge} text-white rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
                       <input 
                         type="file" required
+                        accept="image/*"
                         onChange={(e) => setFile(e.target.files[0])}
                         className="hidden" 
                       />
@@ -582,7 +631,7 @@ export default function ApplyPage() {
             </form>
           )}
 
-          {/* ช่องทางติดต่อ LINE (ดึงข้อมูลมาจากหลังบ้านแบบ Real-time) */}
+          {/* ช่องทางติดต่อ LINE */}
           <div className="text-center text-xs text-slate-400 pt-2 border-t border-white/10 space-y-0.5">
             <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
             <p>LINE: <span className="font-mono font-bold text-white">{siteConfig.line_contact}</span></p>
