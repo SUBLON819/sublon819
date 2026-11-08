@@ -21,6 +21,7 @@ export default function ApplyPage() {
   const [location, setLocation] = useState({ lat: null, lng: null, status: 'ยังไม่ได้ระบุพิกัด' });
   const [locationError, setLocationError] = useState(false);
 
+  // 🔒 State สำหรับจัดการข้อมูลธีมและสถานะจากหลังบ้าน (Supabase)
   const [isSystemOpen, setIsSystemOpen] = useState(true);
   const [checkingSystem, setCheckingSystem] = useState(true);
   const [siteConfig, setSiteConfig] = useState({
@@ -50,6 +51,7 @@ export default function ApplyPage() {
     fetchSiteSettings();
   }, []);
 
+  // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
   const fetchSiteSettings = async () => {
     setCheckingSystem(true);
     try {
@@ -78,6 +80,7 @@ export default function ApplyPage() {
     }
   };
 
+  // ฟังก์ชันจับคู่ธีมสี
   const getThemeClasses = (color) => {
     switch (color) {
       case 'indigo':
@@ -228,6 +231,29 @@ export default function ApplyPage() {
 
     setLoading(true);
     try {
+      let fileUrl = null;
+
+      // ถ้าไม่ใช่ลูกค้าเก่าและมีการเลือกไฟล์ ให้ทำการอัปโหลดไฟล์ไปที่ Supabase Storage (Bucket ชื่อ 'documents' หรือปรับตามที่คุณตั้งค่า)
+      if (!isOldCustomer && file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${phone}-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('documents') // 📌 หมายเหตุ: ตรวจสอบชื่อ Bucket ใน Supabase ของคุณว่าชื่อนี้หรือไม่
+          .upload(fileName, file);
+
+        if (uploadError) {
+          throw new Error('อัปโหลดไฟล์ไม่สำเร็จ: ' + uploadError.message);
+        }
+
+        // ดึง Public URL ของไฟล์
+        const { data: publicUrlData } = supabase.storage
+          .from('documents')
+          .getPublicUrl(fileName);
+
+        fileUrl = publicUrlData.publicUrl;
+      }
+
+      // บันทึกลงตาราง loans
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -244,6 +270,7 @@ export default function ApplyPage() {
         account_number: formData.account_number,
         loan_date: formData.loan_date || null,
         cycle_date: formData.cycle_date || null,
+        id_card_url: fileUrl, // 📌 บันทึกลิงก์รูปภาพลงฐานข้อมูล (ตรวจสอบชื่อคอลัมน์ใน Supabase ของคุณด้วยว่าชื่อ id_card_url หรือไม่)
       }]);
 
       if (error) throw error;
@@ -310,7 +337,7 @@ export default function ApplyPage() {
     <div className={`min-h-screen bg-gradient-to-br ${theme.bg} flex items-center justify-center p-2 sm:p-6 font-sans text-white relative overflow-x-hidden transition-all duration-500`}>
       <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden">
         
-        {/* Header (ลบอันที่ซ้ำออกแล้ว เหลือหัวข้อใหญ่เด่นชัด) */}
+        {/* Header */}
         <div className={`${theme.headerBg} text-white p-5 sm:p-6 text-center space-y-1.5 border-b border-white/10 transition-colors duration-300`}>
           <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
             {siteConfig.banner_title}
@@ -354,7 +381,7 @@ export default function ApplyPage() {
                   </>
                 ) : (
                   <>
-                    <span>ขอรหัส OTP ผ่าน Telegram แอดมิน</span>
+                    <span>ขอรหัส OTP ผ่านแอดมิน</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -457,7 +484,7 @@ export default function ApplyPage() {
             </div>
           )}
 
-          {/* STEP 4: กรอกข้อมูลฟอร์มหลัก (ปรับ text-base ป้องกันซูมและหน้าเลื่อน) */}
+          {/* STEP 4: กรอกข้อมูลฟอร์มหลัก (ป้องกันซูมด้วย text-base และแก้ JSX Syntax ที่ขาดหาย) */}
           {step === 'form' && (
             <form onSubmit={handleFinalSubmit} className="space-y-2.5">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2 rounded-xl border border-white/10 text-center">
@@ -628,10 +655,20 @@ export default function ApplyPage() {
             </form>
           )}
 
-          {/* ช่องทางติดต่อ LINE */}
+          {/* ช่องทางติดต่อ LINE (กดแล้วเด้งเข้าแอปแอดไลน์อัตโนมัติ) */}
           <div className="text-center text-xs text-slate-400 pt-2 border-t border-white/10 space-y-0.5">
             <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
-            <p>LINE: <span className="font-mono font-bold text-white">{siteConfig.line_contact}</span></p>
+            <p>
+              LINE: {' '}
+              <a 
+                href="https://line.me/R/ti/p/@682clwce" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-mono font-bold text-purple-300 hover:text-white underline transition-colors"
+              >
+                {siteConfig.line_contact}
+              </a>
+            </p>
           </div>
         </div>
       </div>
