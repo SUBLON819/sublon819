@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { User, Edit3, Trash2, ExternalLink } from 'lucide-react';
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (ชุดเดิมของคุณ)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function getThaiTodayString() {
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   const formatter = new Intl.DateTimeFormat('en-CA', options);
@@ -59,7 +59,6 @@ export default function CustomerDetail({
   onDeleteLoan,
   onOpenPaymentModal
 }) {
-  const totalCustomerBorrowed = customerLoans.reduce((sum, l) => sum + Number(l.principal_amount || 0), 0);
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
@@ -68,7 +67,7 @@ export default function CustomerDetail({
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800 touch-pan-y">
       
       {/* Header ของ Modal ประวัติลูกค้า */}
       <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
@@ -132,27 +131,24 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข (ปรับเปลี่ยนเป็นทรงกลม rounded-full ทั้ง 4 ช่อง พร้อมเอฟเฟกต์ซูมเข้า-ออกช้าๆ) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-items-center py-2">
-          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
+        {/* ยอดสรุปตัวเลข 3 ช่อง (ทรงกลม ขอบทึบ มั่นคงไม่ขยับ) */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 justify-items-center py-2">
+          
+          <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white border-2 border-purple-400 shadow-md rounded-full flex flex-col items-center justify-center text-center p-2">
             <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
-            <div className="font-mono font-bold text-[color:#ff007f] text-base sm:text-lg mt-0.5 animate-pulse">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
+            <div className="font-mono font-bold text-[color:#ff007f] text-sm sm:text-lg mt-0.5 animate-pulse">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
           </div>
 
-          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
-            <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
-            <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
+          <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white border-2 border-purple-400 shadow-md rounded-full flex flex-col items-center justify-center text-center p-2">
+            <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือ</div>
+            <div className="font-mono font-bold text-amber-600 text-sm sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
           </div>
 
-          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
-            <div className="text-[10px] text-slate-500">ยอดกู้ทั้งหมด</div>
-            <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
+          <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white border-2 border-purple-400 shadow-md rounded-full flex flex-col items-center justify-center text-center p-2">
+            <div className="text-[10px] text-slate-500">ยอดชำระแล้ว</div>
+            <div className="font-mono font-bold text-teal-600 text-sm sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
           </div>
 
-          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
-            <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
-            <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
-          </div>
         </div>
 
         {/* รายการสัญญาของลูกค้า */}
@@ -178,9 +174,11 @@ export default function CustomerDetail({
                     <div className="text-left sm:text-right font-mono w-full sm:w-auto">
                       <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
                       <div className="flex items-center sm:justify-end gap-2 mt-0.5">
-                        <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
-                          ค่าปรับ: ฿{Number(l.fine_amount || 0).toLocaleString()}
-                        </span>
+                        {Number(l.fine_amount || 0) > 0 && (
+                          <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
+                            ค่าปรับ: ฿{Number(l.fine_amount).toLocaleString()}
+                          </span>
+                        )}
                         <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</span>
                       </div>
                     </div>
