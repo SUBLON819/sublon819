@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -120,8 +120,8 @@ export default function AdminDashboard() {
   const [editBankName, setEditBankName] = useState('');
   const [editAccountNumber, setEditAccountNumber] = useState('');
 
-  // Filter Tabs
-  const [filterTab, setFilterTab] = useState('รออนุมัติ');
+  // 📌 ปรับค่าเริ่มต้นแท็บเป็น 'ทั้งหมด' เพื่อให้เห็นข้อมูลทันทีเมื่อโหลดหน้า
+  const [filterTab, setFilterTab] = useState('ทั้งหมด');
 
   // Stat Modal States
   const [statModalOpen, setStatModalOpen] = useState(false);
@@ -610,6 +610,7 @@ export default function AdminDashboard() {
     return true;
   };
 
+  // 📌 ปรับปรุงฟังก์ชันกรองข้อมูลให้รองรับแท็บ 'ทั้งหมด' และป้องกันรายการหาย
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -619,6 +620,9 @@ export default function AdminDashboard() {
 
     const status = loan.status || 'รออนุมัติ';
 
+    if (filterTab === 'ทั้งหมด') {
+      return status !== 'ปฏิเสธคำขอ';
+    }
     if (filterTab === 'รออนุมัติ') {
       return status === 'รออนุมัติ' || status === 'รอตรวจสอบ';
     } 
@@ -814,7 +818,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Loan List Section (4 Tabs) */}
+        {/* Loan List Section (Tabs) */}
         <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4 w-full box-border">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-purple-100 pb-3">
             <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
@@ -822,8 +826,9 @@ export default function AdminDashboard() {
               <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
             </h3>
 
+            {/* 📌 เพิ่มแท็บ 'ทั้งหมด' เข้าไปเพื่อให้เลือกดูข้อมูลง่ายขึ้น */}
             <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
-              {['รออนุมัติ', 'อนุมัติวันนี้', 'บิลที่ต้องเก็บวันนี้', 'ตัดยอดวันนี้'].map((tab) => (
+              {['ทั้งหมด', 'รออนุมัติ', 'อนุมัติวันนี้', 'บิลที่ต้องเก็บวันนี้', 'ตัดยอดวันนี้'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilterTab(tab)}
@@ -1301,7 +1306,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 📌 เรียกใช้งาน Component กลาง CustomerDetail แทนมอดัลแบบเดิม */}
+      {/* 📌 เรียกใช้งาน Component กลาง CustomerDetail */}
       {customerProfileModalOpen && (
         <CustomerDetail
           selectedCustomerName={selectedCustomerName}
