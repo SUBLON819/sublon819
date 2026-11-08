@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
   const [editBankName, setEditBankName] = useState('');
   const [editAccountNumber, setEditAccountNumber] = useState('');
 
-  // 📌 จัดเรียงลำดับแท็บใหม่ตามที่กำหนด
+  // 📌 ตั้งค่าเริ่มต้นแท็บเป็น 'บิลรอเก็บ' ตามลำดับใหม่
   const [filterTab, setFilterTab] = useState('บิลรอเก็บ');
 
   const [statModalOpen, setStatModalOpen] = useState(false);
@@ -304,6 +304,9 @@ export default function AdminDashboard() {
 
     return sum + profitFromThisPayment;
   }, 0);
+
+  // คำนวณจำนวนบิลที่รออนุมัติเพื่อแสดง badge แจ้งเตือน
+  const pendingApprovalCount = loans.filter(l => l.status === 'รออนุมัติ' || l.status === 'รอตรวจสอบ').length;
 
   const handlePrintReport = () => {
     const printContent = reportRef.current;
@@ -611,7 +614,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ลอจิกการกรองข้อมูลและจัดเรียงตามเงื่อนไขใหม่
+  // 📌 ลอจิกการกรองข้อมูลตามลำดับแท็บใหม่: บิลรอเก็บ -> ตัดยอดแล้ว -> อนุมัติวันนี้ -> รออนุมัติ -> ทั้งหมด
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -627,34 +630,30 @@ export default function AdminDashboard() {
       const isDueToday = schedule === 'จ่ายทุกวัน' || isTodayInSchedule(schedule);
       if (!isDueToday) return false;
 
-      // ตรวจสอบว่าวันนี้ชำระเงินไปแล้วหรือยัง (ถ้าชำระแล้วให้ตัดออก)
       const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
       return !paidToday;
     } 
     
+    if (filterTab === 'ตัดยอดแล้ว') {
+      const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
+      return hasPaidToday;
+    }
+
+    if (filterTab === 'อนุมัติวันนี้') {
+      return status === 'อนุมัติแล้ว' && loan.created_at && formatThaiDate(loan.created_at) === todayStr;
+    } 
+
     if (filterTab === 'รออนุมัติ') {
       return status === 'รออนุมัติ' || status === 'รอตรวจสอบ';
     } 
     
-    if (filterTab === 'อนุมัติวันนี้') {
-      return status === 'อนุมัติแล้ว' && loan.created_at && formatThaiDate(loan.created_at) === todayStr;
-    } 
-    
-    if (filterTab === 'ตัดยอดแล้ว') {
-      // แสดงเฉพาะบิลที่มีการบันทึกรับชำระแล้วของวันนี้เท่านั้น
-      const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
-      return hasPaidToday || status === 'ชำระแล้ว';
-    }
-
     if (filterTab === 'ทั้งหมด') {
-      // เฉพาะรายการที่ทำธุรกรรมหรือสร้างในวันนี้เท่านั้น (เทียบจาก created_at)
       if (status === 'ปฏิเสธคำขอ') return false;
       return loan.created_at && formatThaiDate(loan.created_at) === todayStr;
     }
 
     return true;
   }).sort((a, b) => {
-    // หากอยู่แท็บทั้งหมด หรือแท็บทั่วไป ให้เรียงจากล่าสุด (เวลาใหม่สุด) ไว้บนสุด
     const timeA = new Date(a.created_at || 0).getTime();
     const timeB = new Date(b.created_at || 0).getTime();
     return timeB - timeA;
@@ -828,7 +827,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Loan List Section (Tabs Reordered) */}
+        {/* Loan List Section */}
         <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4 w-full box-border">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-purple-100 pb-3">
             <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
@@ -836,17 +835,23 @@ export default function AdminDashboard() {
               <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
             </h3>
 
-            {/* 📌 จัดเรียงลำดับแท็บใหม่ตามที่กำหนด: บิลรอเก็บ - รออนุมัติ - อนุมัติวันนี้ - ตัดยอดแล้ว - ทั้งหมด */}
+            {/* 📌 ลำดับแท็บใหม่: บิลรอเก็บ -> ตัดยอดแล้ว -> อนุมัติวันนี้ -> รออนุมัติ -> ทั้งหมด พร้อมเอฟเฟกต์แจ้งเตือนที่แท็บ 'รออนุมัติ' */}
             <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
-              {['บิลรอเก็บ', 'รออนุมัติ', 'อนุมัติวันนี้', 'ตัดยอดแล้ว', 'ทั้งหมด'].map((tab) => (
+              {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilterTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs shrink-0 relative flex items-center gap-1.5 ${
                     filterTab === tab ? 'bg-purple-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  {tab}
+                  <span>{tab}</span>
+                  {tab === 'รออนุมัติ' && pendingApprovalCount > 0 && (
+                    <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-black bg-rose-600 text-white rounded-full animate-bounce shadow-md">
+                      <Bell className="w-2.5 h-2.5 mr-0.5 animate-pulse" />
+                      {pendingApprovalCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -945,7 +950,7 @@ export default function AdminDashboard() {
                               });
                               setApprovalModalOpen(true);
                             }}
-                            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer animate-pulse"
                           >
                             🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
                           </button>
