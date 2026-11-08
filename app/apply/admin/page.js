@@ -84,6 +84,7 @@ export default function ApplyAdminThemePage() {
     }
   };
 
+  // 📌 เพิ่มการแมปสไตล์สำหรับ ธีมเขียวพาสเทล (Pastel Green)
   const getPreviewThemeClasses = (color) => {
     switch (color) {
       case 'indigo':
@@ -97,6 +98,12 @@ export default function ApplyAdminThemePage() {
           bg: 'from-pink-700 to-rose-900',
           badge: 'bg-pink-600',
           button: 'bg-gradient-to-r from-pink-600 to-rose-600'
+        };
+      case 'emerald':
+        return {
+          bg: 'from-emerald-800 via-teal-800 to-green-950',
+          badge: 'bg-emerald-600',
+          button: 'bg-gradient-to-r from-emerald-600 to-teal-600'
         };
       default:
         return {
@@ -196,6 +203,8 @@ export default function ApplyAdminThemePage() {
                     <option value="purple">ม่วงพาสเทล (Glamorous Purple)</option>
                     <option value="indigo">ครามเข้ม (Deep Indigo)</option>
                     <option value="pink">ชมพูบานเย็น (Rose Pink)</option>
+                    {/* 📌 เพิ่มตัวเลือกธีมเขียวพาสเทลใน Dropdown */}
+                    <option value="emerald">เขียวพาสเทล (Pastel Green)</option>
                   </select>
                 </div>
 
