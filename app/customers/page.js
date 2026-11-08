@@ -244,10 +244,14 @@ export default function CustomersPage() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
+        // 1. นำเงินที่จ่ายมาตัดดอกเบี้ยสะสมก่อน
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
         
+        // 2. ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย หักด้วยดอกเบี้ยที่จ่ายไป
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+
+        // 3. เงินที่เหลือค่อยนำไปตัดเงินต้น
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
@@ -290,12 +294,17 @@ export default function CustomersPage() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
+      // 📌 จุดแก้ไขสำคัญ: หากยังเหลือดอกเบี้ยค้าง ให้คงวันเริ่มสะสมเดิมไว้เพื่อไม่ให้วันนับดอกเบี้ยถูกรีเซ็ตเป็นศูนย์
+      const nextInterestStartDate = newRemainingInterest > 0 
+        ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
+        : todayDateStr;
+
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
         remaining_interest: newRemainingInterest,
-        interest_start_date: todayDateStr,
-        calc_next_day: false,
+        interest_start_date: nextInterestStartDate,
+        calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
 

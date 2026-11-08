@@ -497,7 +497,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน: ดอกเบี้ยสะสมจะถูกหักออกตามจำนวนเงินที่จ่ายจริง และส่วนที่เหลือจะถูกเก็บไว้ใน remaining_interest ต่อเนื่อง
+  // 📌 ฟังก์ชันรับชำระเงินที่แก้ไขแล้ว: ป้องกันดอกเบี้ยสะสมหายและไม่รีเซ็ตวันที่ผิดพลาด
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -513,17 +513,13 @@ export default function AdminDashboard() {
 
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
-      
-      // คำนวณดอกเบี้ยสะสมทั้งหมด ณ ปัจจุบันก่อนตัดยอด
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
 
-      // 1. นำ "ส่วนลด" มาหัก "ค่าปรับ" ก่อน
       let remainingFine = fineInputVal;
       let discountUsedForFine = Math.min(remainingFine, discountVal);
       remainingFine -= discountUsedForFine;
       let remainingDiscount = discountVal - discountUsedForFine;
 
-      // 2. นำ "ยอดเงินที่ชำระ" มาหักค่าปรับที่ยังเหลือ
       let remainingPayment = basePayVal;
       let cashUsedForFine = Math.min(remainingFine, remainingPayment);
       remainingPayment -= cashUsedForFine;
@@ -549,19 +545,19 @@ export default function AdminDashboard() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
-        // 3. นำเงินชำระที่เหลือมาตัด "ดอกเบี้ยสะสม" ก่อน
+        // 1. นำเงินที่จ่ายมาตัดดอกเบี้ยสะสมก่อน
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
         
-        // อัปเดตดอกเบี้ยสะสมคงเหลือจริง (หักออกตามที่จ่าย)
+        // 2. ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย หักด้วยดอกเบี้ยที่จ่ายไป
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
-        // 4. หากยังมีเงินชำระเหลือ นำมาตัด "เงินต้น"
+        // 3. เงินที่เหลือค่อยนำไปตัดเงินต้น
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
-      // 5. หากยังมีส่วนลดเหลือ นำมาตัดดอกเบี้ยสะสมหรือเงินต้นเพิ่ม
+      // จัดการส่วนลดที่เหลือ (ถ้ามี) ไปลดดอกเบี้ยค้างหรือเงินต้น
       if (remainingDiscount > 0) {
         if (newRemainingInterest > 0) {
           const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
@@ -600,13 +596,17 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 📌 จุดสำคัญ: ล็อกฐานวันเริ่มต้นนับดอกเบี้ยไว้เป็นวันนี้ เพื่อให้ดอกเบี้ยเก่าที่เหลือ (remaining_interest) ไม่หาย และวันปัจจุบันไม่ถูกรีเซ็ตเป็น 0 ผิดปกติ
+      // 📌 จุดแก้ไขสำคัญ: หากยังเหลือดอกเบี้ยค้าง ให้คงวันเริ่มสะสมเดิมไว้เพื่อไม่ให้วันนับดอกเบี้ยถูกรีเซ็ตเป็นศูนย์
+      const nextInterestStartDate = newRemainingInterest > 0 
+        ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
+        : todayDateStr;
+
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
-        remaining_interest: newRemainingInterest, // บันทึกดอกเบี้ยสะสมที่เหลือจริง
-        interest_start_date: todayDateStr,        // ล็อกวันเริ่มนับไว้ที่วันนี้
-        calc_next_day: false,                     // ป้องกันไม่ให้ข้ามวันล่วงหน้าทันทีหลังจ่าย
+        remaining_interest: newRemainingInterest,
+        interest_start_date: nextInterestStartDate,
+        calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
 
