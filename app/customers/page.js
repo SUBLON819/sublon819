@@ -146,7 +146,7 @@ export default function CustomersPage() {
   const customerPayments = payments.filter(p => customerLoanIds.includes(p.loan_id));
   const customerInfo = customerLoans[0] || {};
 
-  // 📌 ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า (อัปเดตผ่าน id สัญญาหรือชื่อ)
+  // 📌 ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า
   const handleSaveCustomerInfo = async (e) => {
     e.preventDefault();
     try {
@@ -257,7 +257,7 @@ export default function CustomersPage() {
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
         amount: basePayVal + fineVal,
-        payment_amount: basePayVal,
+        payment_amount: basePayVal + fineVal,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
         fine_amount: fineVal,
@@ -268,17 +268,12 @@ export default function CustomersPage() {
 
       if (paymentError) throw paymentError;
 
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
       const isPaidOff = newRemPrin === 0;
 
+      // 🛠 ป้องกันบั๊ก: ตัดการรีเซ็ตวันเริ่มนับและดอกเบี้ยสะสมออก เพื่อให้ระบบคิดดอกเบี้ยสะสมเรียลไทม์ต่อเนื่องได้ถูกต้อง
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
-        remaining_interest: 0,
-        interest_start_date: tomorrowStr,
-        calc_next_day: true,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
 
@@ -378,7 +373,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* ================= 📌 เรียกใช้งาน Component กลาง CustomerDetail แทนมอดัลแบบเดิม ================= */}
+      {/* ================= 📌 เรียกใช้งาน Component กลาง CustomerDetail ================= */}
       {customerProfileModalOpen && (
         <CustomerDetail
           selectedCustomerName={selectedCustomerName}

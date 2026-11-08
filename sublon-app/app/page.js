@@ -533,11 +533,8 @@ export default function AdminDashboard() {
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
-        remaining_interest: 0,
-        interest_start_date: tomorrowStr,
-        calc_next_day: true,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
-      }).eq('id', selectedPaymentLoan.id);
+     }).eq('id', selectedPaymentLoan.id);
 
       if (loanErr) throw loanErr;
 
