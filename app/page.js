@@ -33,7 +33,7 @@ function formatThaiTime(dateInput) {
   return new Intl.DateTimeFormat('en-GB', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันตรวจสอบรอบวันที่เก็บเงิน (อ้างอิงจากวันที่เลือกใน selectedReportDate แทนวันจริง)
+// 📌 ฟังก์ชันตรวจสอบรอบวันที่เก็บเงิน
 function isDateInSchedule(scheduleStr, targetDateStr) {
   if (!scheduleStr) return false;
   const targetDate = new Date(targetDateStr);
@@ -127,8 +127,6 @@ export default function AdminDashboard() {
   const [editAccountNumber, setEditAccountNumber] = useState('');
 
   const [filterTab, setFilterTab] = useState('บิลรอเก็บ');
-  
-  // 📌 ให้ช่องเลือกวันที่ใช้งานได้ทุกแท็บ (ตั้งค่าเริ่มต้นเป็นวันนี้)
   const [selectedReportDate, setSelectedReportDate] = useState('');
 
   const [statModalOpen, setStatModalOpen] = useState(false);
@@ -495,15 +493,16 @@ export default function AdminDashboard() {
     }
   };
 
+  // 📌 ฟังก์ชันรับชำระเงิน พร้อมตรรกะใหม่: ส่วนลด/เงินสด ตัดค่าปรับก่อน -> ดอกเบี้ย -> เงินต้น และหักส่วนลดส่วนที่เหลือจากหนี้
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
 
     const basePayVal = Number(paymentAmount || 0);
-    const fineVal = Number(fineAmount || 0);
+    const fineInputVal = Number(fineAmount || 0);
     const discountVal = Number(discountAmount || 0);
 
-    if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
+    if (basePayVal <= 0 && fineInputVal <= 0 && discountVal <= 0) {
       alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
       return;
     }
@@ -511,36 +510,50 @@ export default function AdminDashboard() {
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
 
+      // 1. นำ "ส่วนลด" มาหัก "ค่าปรับ" ก่อนเป็นอันดับแรก
+      let remainingFine = fineInputVal;
+      let discountUsedForFine = Math.min(remainingFine, discountVal);
+      remainingFine -= discountUsedForFine;
+      let remainingDiscount = discountVal - discountUsedForFine; // ส่วนลดที่เหลือ (ถ้ามี นำไปตัดลดหนี้คงเหลือ)
+
+      // 2. นำ "ยอดเงินที่ชำระ" มาหักค่าปรับที่ยังเหลืออยู่ต่อ
+      let remainingPayment = basePayVal;
+      let cashUsedForFine = Math.min(remainingFine, remainingPayment);
+      remainingPayment -= cashUsedForFine;
+
       let interestPaid = 0;
       let principalPaid = 0;
       let newRemPrin = currentPrin;
 
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-        interestPaid = basePayVal;   
-        principalPaid = basePayVal;  
-        newRemPrin = Math.max(0, currentPrin - basePayVal);
+        interestPaid = Math.min(remainingPayment, remainingPayment);   
+        principalPaid = Math.min(remainingPayment, currentPrin);  
+        newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
         const totalPayable = origPrin + totalInt;
         
-        const netPrincipalPay = Math.max(0, basePayVal);
+        const netPrincipalPay = Math.max(0, remainingPayment);
         const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
         interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
         principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
+        // 3. นำเงินชำระที่เหลือมาตัด "ดอกเบี้ยสะสม"
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
-        if (basePayVal >= accruedInterest) {
-          interestPaid = accruedInterest; 
-          principalPaid = basePayVal - accruedInterest; 
-          newRemPrin = Math.max(0, currentPrin - principalPaid);
-        } else {
-          interestPaid = basePayVal; 
-          principalPaid = 0;
-          newRemPrin = Math.max(0, currentPrin);
-        }
+        interestPaid = Math.min(accruedInterest, remainingPayment);
+        remainingPayment -= interestPaid;
+
+        // 4. นำเงินชำระที่เหลือมาตัด "เงินต้น"
+        principalPaid = Math.min(currentPrin, remainingPayment);
+        newRemPrin = Math.max(0, currentPrin - principalPaid);
+      }
+
+      // 5. ถ้านำส่วนลดไปตัดค่าปรับแล้ว "ยังเหลือส่วนลด" ให้นำส่วนลดที่เหลือมาหักลดออกจากยอดหนี้คงเหลือ (newRemPrin)
+      if (remainingDiscount > 0) {
+        newRemPrin = Math.max(0, newRemPrin - remainingDiscount);
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
@@ -555,11 +568,11 @@ export default function AdminDashboard() {
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
-        amount: basePayVal + fineVal,
+        amount: basePayVal + fineInputVal,
         payment_amount: basePayVal,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
-        fine_amount: fineVal,
+        fine_amount: fineInputVal,
         discount_amount: discountVal,
         note: paymentNote || (discountVal > 0 ? `ให้ส่วนลด -${discountVal}` : 'รับชำระปกติ'),
         created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
@@ -600,15 +613,6 @@ export default function AdminDashboard() {
     c.phone.includes(searchQuery)
   ).slice(0, 5);
 
-  const isDateInRange = (dateStr) => {
-    if (!dateStr) return false;
-    const targetDate = dateStr.split('T')[0];
-    if (startDate && targetDate < startDate) return false;
-    if (endDate && targetDate > endDate) return false;
-    return true;
-  };
-
-  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (นำ selectedReportDate ไปใช้กรองตามเงื่อนไขของแต่ละแท็บอย่างแม่นยำ)
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -625,7 +629,6 @@ export default function AdminDashboard() {
       const isDueOnTarget = schedule === 'จ่ายทุกวัน' || isDateInSchedule(schedule, targetCheckDate);
       if (!isDueOnTarget) return false;
 
-      // ตรวจสอบว่าในวันที่เลือก (targetCheckDate) บิลนี้ชำระเงินไปแล้วหรือยัง
       const paidOnTarget = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === targetCheckDate);
       return !paidOnTarget;
     } 
@@ -670,13 +673,6 @@ export default function AdminDashboard() {
   const customerLoanIds = new Set(customerLoans.map(l => l.id));
   const customerPayments = payments.filter(p => customerLoanIds.has(p.loan_id));
   const customerInfo = customerLoans[0] || {};
-  const totalCustomerBorrowed = customerLoans.reduce((sum, l) => sum + Number(l.principal_amount || 0), 0);
-  const totalCustomerRemaining = customerLoans
-    .filter(l => l.status === 'อนุมัติแล้ว')
-    .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
-  
-  const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
-  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
@@ -823,7 +819,6 @@ export default function AdminDashboard() {
                 setStatModalOpen(true);
               }}
               className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
-              title="รวมดอกเบี้ยเก็บแล้ว + ค่าปรับ"
             >
               <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>กำไรสะสม</span>
@@ -843,7 +838,6 @@ export default function AdminDashboard() {
                 <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
               </h3>
 
-              {/* 📌 ช่องเลือกวันที่ (เปิดให้แสดงและใช้งานได้ทุกแท็บตลอดเวลา) */}
               <div className="flex items-center gap-1.5 bg-purple-100/70 px-2.5 py-1 rounded-xl border border-purple-300">
                 <Calendar className="w-3.5 h-3.5 text-purple-700" />
                 <span className="text-[11px] font-bold text-purple-900">ดูยอดของวันที่:</span>
@@ -894,7 +888,6 @@ export default function AdminDashboard() {
                 const currentRemaining = Number(loan.remaining_principal || loan.principal_amount || 0);
                 const isPending = loan.status === 'รออนุมัติ' || loan.status === 'รอตรวจสอบ';
                 
-                // 📌 ค้นหาประวัติการชำระเงินล่าสุดของบิลนี้
                 const loanPayments = payments.filter(p => String(p.loan_id) === String(loan.id));
                 const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
 
@@ -929,7 +922,6 @@ export default function AdminDashboard() {
                             </>
                           )}
                           
-                          {/* 📌 แสดงเวลาและวันที่ตัดบิลล่าสุด (ถ้ามีประวัติการชำระเงิน) */}
                           {latestPayment && (
                             <span className="bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
                               🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} {formatThaiTime(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
@@ -1719,6 +1711,10 @@ export default function AdminDashboard() {
                   placeholder="ชำระงวดประจำวัน..."
                   className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20"
                 />
+                {/* 📌 เพิ่มคำแนะนำใต้ช่องหมายเหตุ */}
+                <p className="text-[10px] text-purple-700 font-medium mt-1">
+                  💡 หากต้องการใส่ส่วนลด/ลดหนี้อย่างเดียว ให้กรอกแค่ช่อง &quot;ส่วนลด&quot; โดยไม่ต้องใส่ช่อง &quot;ยอดเงินที่ชำระ&quot;
+                </p>
               </div>
 
               <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
