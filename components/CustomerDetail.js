@@ -132,24 +132,24 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-          <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+        {/* ยอดสรุปตัวเลข (ปรับเปลี่ยนเป็นทรงกลม rounded-full ทั้ง 4 ช่อง พร้อมเอฟเฟกต์ซูมเข้า-ออกช้าๆ) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-items-center py-2">
+          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
             <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
             <div className="font-mono font-bold text-[color:#ff007f] text-base sm:text-lg mt-0.5 animate-pulse">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
           </div>
 
-          <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
             <div className="text-[10px] text-slate-500">ยอดหนี้คงเหลือปัจจุบัน</div>
             <div className="font-mono font-bold text-amber-600 text-base sm:text-lg mt-0.5">฿{totalCustomerRemaining.toLocaleString()}</div>
           </div>
 
-          <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
             <div className="text-[10px] text-slate-500">ยอดกู้ทั้งหมด</div>
             <div className="font-mono font-bold text-purple-600 text-base sm:text-lg mt-0.5">฿{totalCustomerBorrowed.toLocaleString()}</div>
           </div>
 
-          <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
+          <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-purple-200 rounded-full shadow-sm flex flex-col items-center justify-center text-center p-2">
             <div className="text-[10px] text-slate-500">ยอดชำระแล้วทั้งหมด</div>
             <div className="font-mono font-bold text-teal-600 text-base sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
           </div>
@@ -177,7 +177,12 @@ export default function CustomerDetail({
                     </div>
                     <div className="text-left sm:text-right font-mono w-full sm:w-auto">
                       <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
-                      <div className="text-[10px] text-amber-600 mt-0.5">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</div>
+                      <div className="flex items-center sm:justify-end gap-2 mt-0.5">
+                        <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
+                          ค่าปรับ: ฿{Number(l.fine_amount || 0).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
 
