@@ -49,7 +49,7 @@ export default function ApplyPage() {
       cycle_date: todayThai 
     }));
     fetchSiteSettings();
-  },ไลฟ์สด? []);
+  }, []);
 
   // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
   const fetchSiteSettings = async () => {
@@ -80,7 +80,7 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (รวมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง และกรุงเทพแล้ว)
+  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร
   const getThemeClasses = (color) => {
     switch (color) {
       case 'purple': // 💜 ธีมไทยพาณิชย์
@@ -101,14 +101,14 @@ export default function ApplyPage() {
           headerBg: 'bg-[#E03E82] text-white',
           inputBg: 'bg-slate-50 text-slate-900 border-slate-200 placeholder-slate-400',
         };
-      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดขอบและปุ่มด้วยสีเหลืองทองเอกลักษณ์)
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดขอบและปุ่มด้วยสีเหลืองทอง)
         return {
           pageBg: 'from-amber-100 via-yellow-50 to-orange-100 text-slate-900',
           cardBg: 'bg-white text-slate-900 border-[#FFCC00]/60 shadow-2xl',
-          badge: 'bg-[#FFCC00] text-[#5C3D2E] font-black', // 🟡 ป้ายเลขขั้นตอนสีเหลืองทองตัดข้อความน้ำตาล
-          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] hover:from-[#452D22] hover:to-[#2C1D15] text-[#FFCC00] font-black shadow-md border border-[#FFCC00]/40', // 🟤 ปุ่มน้ำตาลตัดข้อความเหลืองทอง
-          headerBg: 'bg-[#5C3D2E] text-[#FFCC00]', // 🟤 หัวข้อน้ำตาล ข้อความเหลืองทอง
-          inputBg: 'bg-amber-50/40 text-slate-900 border-[#FFCC00]/60 focus:border-[#FFCC00] placeholder-slate-400', // 🟡 กรอบ Input ตัดด้วยสีเหลืองทอง
+          badge: 'bg-[#FFCC00] text-[#5C3D2E] font-black',
+          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] hover:from-[#452D22] hover:to-[#2C1D15] text-[#FFCC00] font-black shadow-md border border-[#FFCC00]/40',
+          headerBg: 'bg-[#5C3D2E] text-[#FFCC00]',
+          inputBg: 'bg-amber-50/40 text-slate-900 border-[#FFCC00]/60 focus:border-[#FFCC00] placeholder-slate-400',
         };
       case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงินเข้ม BBL)
         return {
