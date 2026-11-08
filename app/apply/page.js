@@ -615,7 +615,7 @@ export default function ApplyPage() {
                 </div>
               </div>
 
-              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี (เปิดให้ลูกค้าเก่าแก้ไข/เปลี่ยนธนาคารได้อย่างอิสระ) */}
+              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี (แก้ไขให้ dropdown และ option มีพื้นหลังและสีตัวหนังสือที่ชัดเจน) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
@@ -625,19 +625,19 @@ export default function ApplyPage() {
                   <select
                     value={formData.bank_name} 
                     onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-black/10 border border-black/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer"
+                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer"
                   >
-                    <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
-                    <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
-                    <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
-                    <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
-                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
-                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                    <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
-                    <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
-                    <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
-                    <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
-                    <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                    <option value="ธนาคารทหารไทยธนชาติ (TTB)" className="bg-slate-900 text-white">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                    <option value="ธนาคารกสิกรไทย (KBANK)" className="bg-slate-900 text-white">ธนาคารกสิกรไทย (KBANK)</option>
+                    <option value="ธนาคารไทยพาณิชย์ (SCB)" className="bg-slate-900 text-white">ธนาคารไทยพาณิชย์ (SCB)</option>
+                    <option value="ธนาคารกรุงไทย (KTB)" className="bg-slate-900 text-white">ธนาคารกรุงไทย (KTB)</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)" className="bg-slate-900 text-white">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)" className="bg-slate-900 text-white">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                    <option value="ธนาคารออมสิน (GSB)" className="bg-slate-900 text-white">ธนาคารออมสิน (GSB)</option>
+                    <option value="ธ.ก.ส. (BAAC)" className="bg-slate-900 text-white">ธ.ก.ส. (BAAC)</option>
+                    <option value="ธนาคารกรุงเทพ (BBL)" className="bg-slate-900 text-white">ธนาคารกรุงเทพ (BBL)</option>
+                    <option value="พร้อมเพย์ (PromptPay)" className="bg-slate-900 text-white">พร้อมเพย์ (PromptPay)</option>
+                    <option value="วอเลต" className="bg-slate-900 text-white">วอเลต (TrueMoney Wallet)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
