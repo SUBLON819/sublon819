@@ -1308,8 +1308,23 @@ export default function AdminDashboard() {
                 <User className="w-5 h-5 text-purple-300" />
               </div>
               <div className="min-w-0 flex-1">
+                {/* 📌 ปุ่มแก้ไขข้อมูลของลูกค้า อยู่ข้างชื่อด้านบนตามภาพ */}
                 <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
                   <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
+                  <button
+                    onClick={() => {
+                      setEditName(selectedCustomerName);
+                      setEditPhone(customerInfo.phone || '');
+                      setEditFacebook(customerInfo.facebook_link || '');
+                      setEditBankName(customerInfo.bank_name || '');
+                      setEditAccountNumber(customerInfo.account_number || '');
+                      setEditCustomerModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>แก้ไขข้อมูล</span>
+                  </button>
                 </h2>
                 <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
               </div>
@@ -1389,35 +1404,17 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
+                      {/* 📌 ส่วนล่างการ์ดสัญญา: มีเฉพาะปุ่มลบบิลนี้ (ซ้าย) และปุ่มบันทึกรับชำระ (ขวา) */}
                       <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingLoanId(l.id);
-                              setEditName(l.full_name || '');
-                              setEditPhone(l.phone || '');
-                              setEditFacebook(l.facebook_link || '');
-                              setEditBankName(l.bank_name || '');
-                              setEditAccountNumber(l.account_number || '');
-                              setEditCustomerModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            <span>แก้ไขข้อมูลบิลนี้</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteLoan(l.id, l.bill_code)}
-                            className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
-                            title="ลบรายการบิลนี้"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>ลบบิลนี้</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLoan(l.id, l.bill_code)}
+                          className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                          title="ลบรายการบิลนี้"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>ลบบิลนี้</span>
+                        </button>
 
                         <button
                           type="button"
