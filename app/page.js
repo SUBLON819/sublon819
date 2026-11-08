@@ -605,7 +605,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ปรับปรุงลอจิกการกรองและการเรียงลำดับใหม่ทั้งหมดตรงนี้
+  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (แก้ไขแท็บ 'ตัดยอดแล้ว' ให้แสดงเฉพาะรายการของวันนี้จริงๆ เท่านั้น)
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -626,7 +626,7 @@ export default function AdminDashboard() {
     } 
     
     if (filterTab === 'ตัดยอดแล้ว') {
-      // 📌 บังคับให้ตรวจสอบว่ามีการชำระเงินใน "วันนี้" จริงๆ เท่านั้นถึงจะแสดง
+      // 📌 บังคับตรวจสอบประวัติการชำระเงินว่าเกิดขึ้นใน "วันนี้" (todayStr) จริงๆ เท่านั้น
       const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
       return hasPaidToday;
     }
@@ -646,7 +646,7 @@ export default function AdminDashboard() {
 
     return true;
   }).sort((a, b) => {
-    // 📌 จัดเรียงลำดับรายการล่าสุดให้อยู่ด้านบนสุดเสมอ (Newest First)
+    // 📌 จัดเรียงลำดับรายการล่าสุดให้อยู่ด้านบนสุดเสมอ (Newest First) ตามเวลาที่ทำธุรกรรมชำระเงิน
     if (filterTab === 'ตัดยอดแล้ว') {
       const payA = payments.find(p => String(p.loan_id) === String(a.id) && formatThaiDate(p.created_at) === todayStr);
       const payB = payments.find(p => String(p.loan_id) === String(b.id) && formatThaiDate(p.created_at) === todayStr);
