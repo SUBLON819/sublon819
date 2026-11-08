@@ -635,6 +635,7 @@ export default function AdminDashboard() {
     } 
     
     if (filterTab === 'ตัดยอดแล้ว') {
+      // 📌 เช็คให้แน่ใจว่าบิลนี้มีการบันทึกรับชำระเงิน (payments) ใน "วันนี้" จริงๆ เท่านั้น
       const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
       return hasPaidToday;
     }
