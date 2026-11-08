@@ -108,8 +108,9 @@ export default function AdminDashboard() {
   const [endDate, setEndDate] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
-  // State สำหรับ Modal แก้ไขข้อมูลลูกค้าในหน้าประวัติ
+  // State สำหรับ Modal แก้ไขข้อมูลลูกค้า (ใช้แก้ไขเป็นรายสัญญา ปลอดภัยกว่าการแก้แบบเหมาชื่อ)
   const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
+  const [editingLoanId, setEditingLoanId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editFacebook, setEditFacebook] = useState('');
@@ -289,10 +290,16 @@ export default function AdminDashboard() {
     .filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && l.status !== 'ปฏิเสธคำขอ')
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
+  // 🛠️ คำนวณกำไรสะสมจากข้อมูลจริงในตาราง payments โดยแยกประเภทบิลรอเคลียร์และบิลปกติอย่างแม่นยำ
   const totalInterestCollected = payments.reduce((sum, p) => {
     const targetLoan = loans.find(l => l.id === p.loan_id);
-    const extraProfit = (targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์')) ? Number(p.amount || 0) : 0;
-    return sum + extraProfit + Number(p.interest_paid || 0) + Number(p.fine_amount || 0);
+    const isPendingClear = targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์');
+    
+    const profitFromThisPayment = isPendingClear 
+      ? Number(p.payment_amount || p.amount || 0) 
+      : (Number(p.interest_paid || 0) + Number(p.fine_amount || 0));
+
+    return sum + profitFromThisPayment;
   }, 0);
 
   const handlePrintReport = () => {
@@ -446,6 +453,7 @@ export default function AdminDashboard() {
 
   const handleSaveCustomerInfo = async (e) => {
     e.preventDefault();
+    if (!editingLoanId) return;
     try {
       const { error } = await supabase
         .from('loans')
@@ -456,12 +464,11 @@ export default function AdminDashboard() {
           bank_name: editBankName,
           account_number: String(editAccountNumber || '').trim()
         })
-        .eq('full_name', selectedCustomerName);
+        .eq('id', editingLoanId); // อัปเดตผ่าน id สัญญาฉบับนั้นๆ เพื่อความปลอดภัยสูงสุด
 
       if (error) throw error;
 
       alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
-      setSelectedCustomerName(editName.trim());
       setEditCustomerModalOpen(false);
       fetchData();
     } catch (err) {
@@ -854,7 +861,6 @@ export default function AdminDashboard() {
                             - {loan.full_name} 🔍
                           </span>
                         </div>
-                        {/* แสดงวันที่กู้และวันที่ครบกำหนดในการ์ดบิลรายการ รวมถึงหน้าคำขอ */}
                         <p className="text-[10px] text-slate-500 mt-0.5 truncate">
                           ประเภท: {loan.loan_type} | รอบจ่าย: <span className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</span> | วันกู้: <span className="text-emerald-700 font-mono font-bold">{loan.loan_date || loan.created_at?.split('T')[0] || '-'}</span> {!isPending && <>| ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></>}
                         </p>
@@ -1304,20 +1310,6 @@ export default function AdminDashboard() {
               <div className="min-w-0 flex-1">
                 <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
                   <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
-                  <button
-                    onClick={() => {
-                      setEditName(selectedCustomerName);
-                      setEditPhone(customerInfo.phone || '');
-                      setEditFacebook(customerInfo.facebook_link || '');
-                      setEditBankName(customerInfo.bank_name || '');
-                      setEditAccountNumber(customerInfo.account_number || '');
-                      setEditCustomerModalOpen(true);
-                    }}
-                    className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>แก้ไขข้อมูล</span>
-                  </button>
                 </h2>
                 <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
               </div>
@@ -1398,15 +1390,34 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteLoan(l.id, l.bill_code)}
-                          className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
-                          title="ลบรายการบิลนี้"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>ลบบิลนี้</span>
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingLoanId(l.id);
+                              setEditName(l.full_name || '');
+                              setEditPhone(l.phone || '');
+                              setEditFacebook(l.facebook_link || '');
+                              setEditBankName(l.bank_name || '');
+                              setEditAccountNumber(l.account_number || '');
+                              setEditCustomerModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>แก้ไขข้อมูลบิลนี้</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLoan(l.id, l.bill_code)}
+                            className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                            title="ลบรายการบิลนี้"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>ลบบิลนี้</span>
+                          </button>
+                        </div>
 
                         <button
                           type="button"
@@ -1796,14 +1807,14 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Edit Customer Modal */}
+      {/* Edit Customer Modal (แก้ไขข้อมูลเฉพาะบิล/สัญญา เพื่อความปลอดภัย) */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
             
             <div className="flex justify-between items-center border-b border-sky-200 pb-2.5">
               <h3 className="font-black text-sky-900 text-sm flex items-center gap-1.5">
-                <span>✏️</span> แก้ไขข้อมูลลูกค้า
+                <span>✏️</span> แก้ไขข้อมูลลูกค้าประจำบิล
               </h3>
               <button 
                 onClick={() => setEditCustomerModalOpen(false)} 
