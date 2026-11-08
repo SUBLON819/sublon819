@@ -80,10 +80,10 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสี 4 ธนาคาร (ปรับแต่งสีพื้นหลังและการ์ดตามโจทย์)
+  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (เพิ่มธีมธนาคารกรุงเทพเข้ามาแล้ว)
   const getThemeClasses = (color) => {
     switch (color) {
-      case 'purple': // 💜 ธีมไทยพาณิชย์ (ม่วง / ขาว / เหลืองทอง)
+      case 'purple': // 💜 ธีมไทยพาณิชย์
         return {
           pageBg: 'from-purple-950 via-slate-900 to-indigo-950 text-white',
           cardBg: 'bg-slate-900/90 text-slate-200 border-white/10',
@@ -92,23 +92,32 @@ export default function ApplyPage() {
           headerBg: 'bg-[#4B1979] text-white',
           inputBg: 'bg-white/5 text-white border-white/10 placeholder-slate-500',
         };
-      case 'pink': // 💗 ธีมชมพูออมสิน (พื้นหลังการ์ดสีขาวสะอาดตา, หัวตารางสีชมพู)
+      case 'pink': // 💗 ธีมชมพูออมสิน
         return {
           pageBg: 'from-pink-100 via-rose-50 to-pink-200 text-slate-800',
           cardBg: 'bg-white text-slate-800 border-pink-200 shadow-xl',
           badge: 'bg-pink-600 text-white font-bold',
           button: 'bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white shadow-md',
-          headerBg: 'bg-[#E03E82] text-white', // ชมพูออมสิน
+          headerBg: 'bg-[#E03E82] text-white',
           inputBg: 'bg-slate-50 text-slate-900 border-slate-200 placeholder-slate-400',
         };
-      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (โทนเหลือง น้ำตาล ขาวสะอาดตา ไม่เอาพื้นดำ)
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาล & เหลือง)
         return {
           pageBg: 'from-amber-100 via-yellow-50 to-orange-100 text-slate-900',
           cardBg: 'bg-white text-slate-900 border-amber-200 shadow-xl',
-          badge: 'bg-amber-500 text-slate-950 font-bold',
-          button: 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-bold shadow-md',
-          headerBg: 'bg-[#F3E500] text-slate-900 font-bold', // เหลืองกรุงศรี
+          badge: 'bg-[#5C3D2E] text-white font-bold',
+          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] hover:from-[#452D22] hover:to-[#2C1D15] text-white font-bold shadow-md',
+          headerBg: 'bg-[#5C3D2E] text-white',
           inputBg: 'bg-amber-50/50 text-slate-900 border-amber-200 placeholder-slate-400',
+        };
+      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงินเข้ม BBL)
+        return {
+          pageBg: 'from-blue-950 via-slate-900 to-indigo-950 text-white',
+          cardBg: 'bg-slate-900/95 text-slate-200 border-blue-500/30 shadow-2xl',
+          badge: 'bg-blue-600 text-white font-bold',
+          button: 'bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white shadow-md',
+          headerBg: 'bg-[#003366] text-white', // น้ำเงินเข้ม BBL
+          inputBg: 'bg-white/5 text-white border-blue-500/30 placeholder-slate-500',
         };
       case 'emerald':
       default: // 💚 ธีมกสิกรไทย
