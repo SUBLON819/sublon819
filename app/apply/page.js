@@ -49,7 +49,7 @@ export default function ApplyPage() {
       cycle_date: todayThai 
     }));
     fetchSiteSettings();
-  }, []);
+  },ไลฟ์สด? []);
 
   // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
   const fetchSiteSettings = async () => {
@@ -80,7 +80,7 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (เพิ่มธีมธนาคารกรุงเทพเข้ามาแล้ว)
+  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (รวมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง และกรุงเทพแล้ว)
   const getThemeClasses = (color) => {
     switch (color) {
       case 'purple': // 💜 ธีมไทยพาณิชย์
@@ -101,14 +101,14 @@ export default function ApplyPage() {
           headerBg: 'bg-[#E03E82] text-white',
           inputBg: 'bg-slate-50 text-slate-900 border-slate-200 placeholder-slate-400',
         };
-      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาล & เหลือง)
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดขอบและปุ่มด้วยสีเหลืองทองเอกลักษณ์)
         return {
           pageBg: 'from-amber-100 via-yellow-50 to-orange-100 text-slate-900',
-          cardBg: 'bg-white text-slate-900 border-amber-200 shadow-xl',
-          badge: 'bg-[#5C3D2E] text-white font-bold',
-          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] hover:from-[#452D22] hover:to-[#2C1D15] text-white font-bold shadow-md',
-          headerBg: 'bg-[#5C3D2E] text-white',
-          inputBg: 'bg-amber-50/50 text-slate-900 border-amber-200 placeholder-slate-400',
+          cardBg: 'bg-white text-slate-900 border-[#FFCC00]/60 shadow-2xl',
+          badge: 'bg-[#FFCC00] text-[#5C3D2E] font-black', // 🟡 ป้ายเลขขั้นตอนสีเหลืองทองตัดข้อความน้ำตาล
+          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] hover:from-[#452D22] hover:to-[#2C1D15] text-[#FFCC00] font-black shadow-md border border-[#FFCC00]/40', // 🟤 ปุ่มน้ำตาลตัดข้อความเหลืองทอง
+          headerBg: 'bg-[#5C3D2E] text-[#FFCC00]', // 🟤 หัวข้อน้ำตาล ข้อความเหลืองทอง
+          inputBg: 'bg-amber-50/40 text-slate-900 border-[#FFCC00]/60 focus:border-[#FFCC00] placeholder-slate-400', // 🟡 กรอบ Input ตัดด้วยสีเหลืองทอง
         };
       case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงินเข้ม BBL)
         return {
@@ -116,7 +116,7 @@ export default function ApplyPage() {
           cardBg: 'bg-slate-900/95 text-slate-200 border-blue-500/30 shadow-2xl',
           badge: 'bg-blue-600 text-white font-bold',
           button: 'bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white shadow-md',
-          headerBg: 'bg-[#003366] text-white', // น้ำเงินเข้ม BBL
+          headerBg: 'bg-[#003366] text-white',
           inputBg: 'bg-white/5 text-white border-blue-500/30 placeholder-slate-500',
         };
       case 'emerald':
@@ -388,7 +388,7 @@ export default function ApplyPage() {
                 <input 
                   type="tel" required placeholder="08x-xxx-xxxx"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-base outline-none focus:border-emerald-500 transition-all font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-base outline-none transition-all font-mono`}
                 />
               </div>
 
@@ -427,7 +427,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required maxLength={4} placeholder="----"
                   value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-center text-xl tracking-widest font-bold outline-none focus:border-emerald-500 font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-center text-xl tracking-widest font-bold outline-none font-mono`}
                 />
               </div>
 
@@ -535,7 +535,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none focus:border-emerald-500 font-bold`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-bold`}
                 />
               </div>
 
@@ -548,7 +548,7 @@ export default function ApplyPage() {
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none focus:border-emerald-500 font-mono`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono`}
                   />
                 </div>
               )}
@@ -561,7 +561,7 @@ export default function ApplyPage() {
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base text-emerald-600 dark:text-emerald-400 font-bold outline-none focus:border-emerald-500 font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-bold outline-none font-mono`}
                 />
               </div>
 
@@ -606,7 +606,7 @@ export default function ApplyPage() {
                   </label>
                   <select
                     value={formData.bank_name} onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-black/10 border border-black/10 rounded-xl px-3 py-2.5 text-base outline-none focus:border-emerald-500 font-bold"
+                    className="w-full bg-black/10 border border-black/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
                     <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
@@ -626,7 +626,7 @@ export default function ApplyPage() {
                   <input 
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base text-emerald-600 dark:text-emerald-400 font-mono font-bold outline-none focus:border-emerald-500`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-mono font-bold outline-none`}
                   />
                 </div>
               </div>
