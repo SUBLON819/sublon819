@@ -64,7 +64,9 @@ export default function CustomerDetail({
     .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
   
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
-  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.amount || 0) + Number(p.fine_amount || 0), 0);
+  
+  // ✅ แก้ไข: นับเฉพาะยอดเงินที่ชำระเข้ามาจริงๆ โดยไม่เอาค่าปรับ (fine_amount) มาบวกปะปน
+  const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800 touch-pan-y">
@@ -158,53 +160,62 @@ export default function CustomerDetail({
             <div className="text-slate-400 text-center py-4 text-[11px]">ไม่พบประวัติสัญญา</div>
           ) : (
             <div className="space-y-2">
-              {customerLoans.map((l) => (
-                <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
-                    <div>
-                      <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
-                      <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
-                        รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span>
+              {customerLoans.map((l) => {
+                // คำนวณหาค่าปรับรวมของบิลนี้จากทั้งฟิลด์ในบิลและประวัติการชำระย้อนหลัง เพื่อให้ป้ายค่าปรับแสดงผลแน่นอน
+                const paymentFineSum = customerPayments
+                  .filter(p => p.loan_id === l.id || !p.loan_id)
+                  .reduce((sum, p) => sum + Number(p.fine_amount || 0), 0);
+                const currentFine = Number(l.fine_amount || 0) > 0 ? Number(l.fine_amount) : paymentFineSum;
+
+                return (
+                  <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
+                      <div>
+                        <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
+                        <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
+                        <div className="text-[10px] text-slate-500 mt-0.5">
+                          รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span>
+                        </div>
+                        <div className="text-[10px] text-amber-800 font-mono mt-0.5">
+                          วันกู้: <span className="font-bold">{l.loan_date || l.created_at?.split('T')[0] || '-'}</span> | ครบกำหนด: <span className="font-bold">{l.cycle_date || '-'}</span>
+                        </div>
                       </div>
-                      <div className="text-[10px] text-amber-800 font-mono mt-0.5">
-                        วันกู้: <span className="font-bold">{l.loan_date || l.created_at?.split('T')[0] || '-'}</span> | ครบกำหนด: <span className="font-bold">{l.cycle_date || '-'}</span>
+                      <div className="text-left sm:text-right font-mono w-full sm:w-auto">
+                        <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
+                        <div className="flex items-center sm:justify-end gap-2 mt-0.5">
+                          {/* ✅ แก้ไข: ตรวจสอบและแสดงป้ายค่าปรับให้ถูกต้องเสมอ */}
+                          {currentFine > 0 && (
+                            <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
+                              ค่าปรับ: ฿{currentFine.toLocaleString()}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-left sm:text-right font-mono w-full sm:w-auto">
-                      <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
-                      <div className="flex items-center sm:justify-end gap-2 mt-0.5">
-                        {Number(l.fine_amount || 0) > 0 && (
-                          <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
-                            ค่าปรับ: ฿{Number(l.fine_amount).toLocaleString()}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</span>
-                      </div>
+
+                    <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={() => onDeleteLoan(l.id, l.bill_code)}
+                        className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                        title="ลบรายการบิลนี้"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>ลบบิลนี้</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onOpenPaymentModal(l)}
+                        className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <span>💵 บันทึกรับชำระ</span>
+                      </button>
                     </div>
                   </div>
-
-                  <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
-                    <button
-                      type="button"
-                      onClick={() => onDeleteLoan(l.id, l.bill_code)}
-                      className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
-                      title="ลบรายการบิลนี้"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span>ลบบิลนี้</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onOpenPaymentModal(l)}
-                      className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors cursor-pointer flex items-center gap-1"
-                    >
-                      <span>💵 บันทึกรับชำระ</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -219,7 +230,7 @@ export default function CustomerDetail({
               {customerPayments.map((p) => (
                 <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
                   <div>
-                    <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? (p.amount - (p.fine_amount || 0))).toLocaleString()}</span>
+                    <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? p.amount ?? 0).toLocaleString()}</span>
                     <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
                     {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
                     {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 ml-1 font-bold">(ส่วนลด -{p.discount_amount})</span>}
