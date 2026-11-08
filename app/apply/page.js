@@ -4,6 +4,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle } from 'lucide-react';
 
+// 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบเรียลไทม์
+function getThaiTodayString() {
+  const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
+  const formatter = new Intl.DateTimeFormat('en-CA', options);
+  return formatter.format(new Date());
+}
+
 export default function ApplyPage() {
   const [step, setStep] = useState('otp'); // 'otp', 'verify_otp', 'gps', 'form'
   const [phone, setPhone] = useState('');
@@ -34,8 +41,14 @@ export default function ApplyPage() {
   });
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, loan_date: today, cycle_date: today }));
+    // 📌 ดึงวันที่ปัจจุบันตามเวลาประเทศไทยแบบเรียลไทม์ ตั้งค่าให้ทั้งวันกู้และวันคืนเป็น "วันที่ปัจจุบัน"
+    const todayThai = getThaiTodayString();
+
+    setFormData(prev => ({ 
+      ...prev, 
+      loan_date: todayThai, 
+      cycle_date: todayThai // กำหนดคืนเป็นวันที่ปัจจุบัน เพื่อบังคับให้ลูกค้าต้องเลือก/กรอกเอง
+    }));
     fetchSiteSettings(); // ดึงการตั้งค่าทั้งหมดจาก Supabase ตอนโหลดหน้า
   }, []);
 
@@ -191,6 +204,26 @@ export default function ApplyPage() {
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
+
+    const todayThai = getThaiTodayString();
+
+    // 🔒 1. ตรวจสอบว่าวันที่กู้ห้ามเป็นวันย้อนหลัง
+    if (formData.loan_date < todayThai) {
+      alert('ไม่อนุญาตให้เลือกวันที่กู้ย้อนหลังได้ กรุณาเลือกวันที่ปัจจุบัน');
+      return;
+    }
+
+    // 🔒 2. บังคับตรวจสอบว่าลูกค้ากรอกวันคืนหรือยัง และวันคืนต้องมากกว่าวันกู้
+    if (!formData.cycle_date) {
+      alert('กรุณากรอกวันที่กำหนดคืน (วันคืน) ก่อนกดส่งคำขอครับ');
+      return;
+    }
+
+    if (formData.cycle_date <= formData.loan_date) {
+      alert('กรุณากำหนดวันคืน (วันที่กำหนดคืน) ให้มากกว่าวันที่กู้ครับ');
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.from('loans').insert([{
@@ -303,7 +336,6 @@ export default function ApplyPage() {
                   <Phone className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                   <span>เบอร์โทรศัพท์มือถือ</span>
                 </label>
-                {/* 🔒 ป้องกันซูมด้วย text-base (16px) บนมือถือ */}
                 <input 
                   type="tel" required placeholder="08x-xxx-xxxx"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -436,16 +468,17 @@ export default function ApplyPage() {
                 />
               </div>
 
-              {/* 🛠️ แก้ไขเลย์เอาต์ช่องวันที่ให้กระชับ ไม่ให้ช่อง input ล้นกรอบออกด้านข้าง */}
+              {/* 🛠️ ช่องวันที่กู้ (ล็อกไม่ให้เลือกย้อนหลัง) และ ช่องกำหนดคืน (ตั้งต้นเป็นวันปัจจุบัน บังคับให้ลูกค้าต้องเลือกวันคืนเอง) */}
               <div className="space-y-2.5 pt-1">
                 <div className="bg-white/5 p-2 rounded-xl border border-white/10 space-y-1">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>วันที่กู้ <span className="text-red-400">*</span></span>
+                    <span>วันที่กู้ <span className="text-red-400">*</span> <span className="text-[10px] text-purple-300 font-normal">(ห้ามเลือกย้อนหลัง)</span></span>
                   </label>
                   <input 
                     type="date"
                     required
+                    min={getThaiTodayString()}
                     value={formData.loan_date}
                     onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
                     className="w-full bg-transparent text-base sm:text-xs text-white outline-none font-mono py-1 px-1"
@@ -455,11 +488,12 @@ export default function ApplyPage() {
                 <div className="bg-red-500/10 p-2 rounded-xl border-2 border-red-500 shadow-sm space-y-1">
                   <label className="text-xs font-semibold text-red-200 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    <span>กำหนดคืน <span className="text-red-400">*</span></span>
+                    <span>กำหนดคืน <span className="text-red-400">*</span> <span className="text-[10px] text-red-300 font-normal">(บังคับเลือกวันคืนที่ต้องมากกว่าวันกู้)</span></span>
                   </label>
                   <input 
                     type="date"
                     required
+                    min={formData.loan_date || getThaiTodayString()}
                     value={formData.cycle_date}
                     onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
                     className="w-full bg-transparent text-base sm:text-xs text-white outline-none font-mono font-bold py-1 px-1"
