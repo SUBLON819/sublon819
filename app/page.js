@@ -126,8 +126,9 @@ export default function AdminDashboard() {
   const [editBankName, setEditBankName] = useState('');
   const [editAccountNumber, setEditAccountNumber] = useState('');
 
-  // 📌 ตั้งค่าเริ่มต้นแท็บเป็น 'บิลรอเก็บ' ตามลำดับใหม่
+  // 📌 ตั้งค่าเริ่มต้นแท็บเป็น 'บิลรอเก็บ' และเพิ่ม State สำหรับเลือกวันที่ดูรายงานตัดยอด
   const [filterTab, setFilterTab] = useState('บิลรอเก็บ');
+  const [selectedReportDate, setSelectedReportDate] = useState('');
 
   const [statModalOpen, setStatModalOpen] = useState(false);
   const [statModalTitle, setStatModalTitle] = useState('');
@@ -240,6 +241,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const todayStrThai = getThaiTodayString();
     setTodayStr(todayStrThai);
+    setSelectedReportDate(todayStrThai);
     setNewLoanData(prev => ({ ...prev, loan_date: todayStrThai, cycle_date: todayStrThai }));
     
     const savedBanks = localStorage.getItem('admin_saved_banks');
@@ -605,7 +607,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (อัปเดตลอจิกแท็บ 'บิลรอเก็บ' และ 'ตัดยอดแล้ว' ใหม่ตามต้องการ)
+  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (อัปเดตแท็บ 'ตัดยอดแล้ว' ให้เช็คตามวันที่ใน selectedReportDate)
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -614,20 +616,24 @@ export default function AdminDashboard() {
     if (!matchQuery) return false;
 
     const status = loan.status || 'รออนุมัติ';
-
-    // ตรวจสอบว่าบิลนี้ "มีการจ่ายเงินในวันนี้ (todayStr)" แล้วหรือยัง
-    const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
+    const targetCheckDate = selectedReportDate || todayStr;
 
     if (filterTab === 'บิลรอเก็บ') {
       if (status !== 'อนุมัติแล้ว') return false;
-      
-      // บิลรอเก็บ: ต้องยังไม่เคยจ่ายเงินใน "วันนี้" (รวมถึงบิลค้างเก่าจากวันก่อนหน้าที่ยังไม่ได้จ่ายในวันนี้ด้วย)
+      const schedule = loan.payment_schedule || 'จ่ายทุกวัน';
+      const isDueToday = schedule === 'จ่ายทุกวัน' || isTodayInSchedule(schedule);
+      if (!isDueToday) return false;
+
+      const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
       return !paidToday;
     } 
     
     if (filterTab === 'ตัดยอดแล้ว') {
-      // ตัดยอดแล้ว: ต้องมีการบันทึกชำระเงินเข้ามาใน "วันนี้" (todayStr) จริงๆ เท่านั้น
-      return paidToday;
+      // 📌 ตรวจสอบประวัติการชำระเงินที่เกิดขึ้นในวันที่เลือก (selectedReportDate) จริงๆ
+      const hasPaidOnTargetDate = payments.some(p => 
+        String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === targetCheckDate
+      );
+      return hasPaidOnTargetDate;
     }
 
     if (filterTab === 'อนุมัติวันนี้') {
@@ -640,14 +646,16 @@ export default function AdminDashboard() {
     
     if (filterTab === 'ทั้งหมด') {
       if (status === 'ปฏิเสธคำขอ') return false;
-      return true;
+      return loan.created_at && formatThaiDate(loan.created_at) === todayStr;
     }
 
     return true;
   }).sort((a, b) => {
+    // 📌 จัดเรียงลำดับรายการตามเวลาที่ทำธุรกรรมชำระเงินในวันที่เลือก
     if (filterTab === 'ตัดยอดแล้ว') {
-      const payA = payments.find(p => String(p.loan_id) === String(a.id) && formatThaiDate(p.created_at) === todayStr);
-      const payB = payments.find(p => String(p.loan_id) === String(b.id) && formatThaiDate(p.created_at) === todayStr);
+      const targetCheckDate = selectedReportDate || todayStr;
+      const payA = payments.find(p => String(p.loan_id) === String(a.id) && formatThaiDate(p.created_at) === targetCheckDate);
+      const payB = payments.find(p => String(p.loan_id) === String(b.id) && formatThaiDate(p.created_at) === targetCheckDate);
       const timeA = new Date(payA?.created_at || a.created_at || 0).getTime();
       const timeB = new Date(payB?.created_at || b.created_at || 0).getTime();
       return timeB - timeA;
@@ -829,10 +837,34 @@ export default function AdminDashboard() {
         {/* Loan List Section */}
         <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4 w-full box-border">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-purple-100 pb-3">
-            <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-purple-700" />
-              <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
-            </h3>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-700" />
+                <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
+              </h3>
+
+              {/* 📌 ช่องเลือกวันที่ (แสดงเฉพาะตอนอยู่แท็บ 'ตัดยอดแล้ว') */}
+              {filterTab === 'ตัดยอดแล้ว' && (
+                <div className="flex items-center gap-1.5 bg-purple-100/70 px-2.5 py-1 rounded-xl border border-purple-300">
+                  <Calendar className="w-3.5 h-3.5 text-purple-700" />
+                  <span className="text-[11px] font-bold text-purple-900">ดูยอดของวันที่:</span>
+                  <input 
+                    type="date"
+                    value={selectedReportDate}
+                    onChange={(e) => setSelectedReportDate(e.target.value)}
+                    className="bg-white border border-purple-300 rounded-lg px-2 py-1 text-xs font-mono font-bold text-purple-900 outline-none"
+                  />
+                  {selectedReportDate !== todayStr && (
+                    <button 
+                      onClick={() => setSelectedReportDate(todayStr)}
+                      className="text-[10px] text-purple-700 underline font-bold hover:text-purple-900 ml-1 cursor-pointer"
+                    >
+                      (กลับมาวันนี้)
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
               {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด'].map((tab) => (
