@@ -212,38 +212,51 @@ export default function CustomersPage() {
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
 
-      // 🛠 ลำดับการหักเงิน: 1. ค่าปรับ -> 2. ดอกเบี้ยสะสม -> 3. เงินต้น
-      let totalMoneyToAllocate = basePayVal + discountVal;
+      // 🛠 ปรับลำดับใหม่ตามที่คุณต้องการ:
+      // 1. นำ "ส่วนลด" มาหัก "ค่าปรับ" ก่อนเป็นอันดับแรก
+      let remainingFine = fineInputVal;
+      let discountUsedForFine = Math.min(remainingFine, discountVal);
+      remainingFine -= discountUsedForFine;
+      let remainingDiscount = discountVal - discountUsedForFine; // ส่วนลดที่เหลือ (ถ้ามี)
 
-      let paidFine = Math.min(fineInputVal, totalMoneyToAllocate);
-      totalMoneyToAllocate -= paidFine;
+      // 2. นำ "ยอดเงินที่ชำระ" มาหักค่าปรับที่ยังเหลืออยู่ต่อ
+      let remainingPayment = basePayVal;
+      let cashUsedForFine = Math.min(remainingFine, remainingPayment);
+      remainingPayment -= cashUsedForFine;
 
       let interestPaid = 0;
       let principalPaid = 0;
       let newRemPrin = currentPrin;
 
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-        interestPaid = Math.min(totalMoneyToAllocate, totalMoneyToAllocate);   
-        principalPaid = Math.min(totalMoneyToAllocate, currentPrin);  
+        interestPaid = Math.min(remainingPayment, remainingPayment);   
+        principalPaid = Math.min(remainingPayment, currentPrin);  
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
         const totalPayable = origPrin + totalInt;
         
-        const netPrincipalPay = Math.max(0, totalMoneyToAllocate);
+        const netPrincipalPay = Math.max(0, remainingPayment);
         const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
         interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
         principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
+        // 3. นำเงินชำระที่เหลือมาตัด "ดอกเบี้ยสะสม"
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
-        interestPaid = Math.min(accruedInterest, totalMoneyToAllocate);
-        totalMoneyToAllocate -= interestPaid;
+        interestPaid = Math.min(accruedInterest, remainingPayment);
+        remainingPayment -= interestPaid;
 
-        principalPaid = Math.min(currentPrin, totalMoneyToAllocate);
+        // 4. นำเงินชำระที่เหลือมาตัด "เงินต้น"
+        principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
+      }
+
+      // 5. ถ้านำส่วนลดไปตัดค่าปรับแล้ว "ยังเหลือส่วนลด" ให้นำส่วนลดที่เหลือมาหักลดออกจากยอดหนี้คงเหลือ (newRemPrin)
+      if (remainingDiscount > 0) {
+        newRemPrin = Math.max(0, newRemPrin - remainingDiscount);
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
@@ -543,8 +556,7 @@ export default function CustomersPage() {
                   placeholder="0"
                   className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
-                {/* 📌 เพิ่มคำอธิบายแนะนำ */}
-                <p className="text-[10px] text-slate-400 mt-0.5">💡 เงินที่จ่ายมาจะถูกนำไปตัดค่าปรับ และดอกเบี้ยสะสม ก่อนนำไปหักเงินต้น</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">💡 นำไปสมทบตัดค่าปรับ ดอกเบี้ยสะสม และเงินต้น</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -558,7 +570,7 @@ export default function CustomersPage() {
                     placeholder="0"
                     className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
-                  <p className="text-[10px] text-slate-400 mt-0.5">⚠️ ยอดนี้จะถูกหักก่อนอันดับแรก</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">⚠️ ถูกหักก่อนเป็นอันดับแรก</p>
                 </div>
                 <div>
                   <label className="block text-slate-700 filter-none font-bold mb-1">ส่วนลด</label>
@@ -570,7 +582,7 @@ export default function CustomersPage() {
                     placeholder="0"
                     className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
-                  <p className="text-[10px] text-slate-400 mt-0.5">🎁 นำมารวมช่วยลดหนี้</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">🎁 นำไปตัดค่าปรับก่อน ถ้าเหลือหักต้น</p>
                 </div>
               </div>
 
