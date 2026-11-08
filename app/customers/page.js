@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { FileText, Search, User, Edit3, Trash2 } from 'lucide-react';
+import { FileText, Search, User, Edit3, Trash2, ExternalLink } from 'lucide-react';
 
 // 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function getThaiTodayString() {
@@ -428,16 +428,17 @@ export default function CustomersPage() {
                 <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
                 <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
               </div>
-              <div className="sm:col-span-3 truncate">
-                <span className="text-slate-500 block text-[10px]">Facebook:</span> 
+              <div className="sm:col-span-3 flex items-center gap-2">
+                <span className="text-slate-500 text-[10px]">Facebook:</span> 
                 {customerInfo.facebook_link ? (
                   <a 
                     href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="text-purple-700 font-bold underline truncate hover:text-purple-900 inline-flex items-center gap-1"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
                   >
-                    {customerInfo.facebook_link} 🔗
+                    <span>🔗 ไปที่ Facebook ลูกค้า</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
                   <span className="text-slate-400">ไม่มีข้อมูล</span>
@@ -481,6 +482,10 @@ export default function CustomersPage() {
                           <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
                           <div className="text-[10px] text-slate-500 mt-0.5">
                             รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span>
+                          </div>
+                          {/* 📌 เพิ่มการแสดงผลวันที่กู้ในบิลรายการที่นี่ */}
+                          <div className="text-[10px] text-amber-800 font-mono mt-0.5">
+                            วันกู้: <span className="font-bold">{l.loan_date || l.created_at?.split('T')[0] || '-'}</span> | ครบกำหนด: <span className="font-bold">{l.cycle_date || '-'}</span>
                           </div>
                         </div>
                         <div className="text-left sm:text-right font-mono w-full sm:w-auto">
@@ -548,7 +553,7 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* ================= MODAL แก้ไขข้อมูลลูกค้า (ปรับดีไซน์โทนฟ้าอ่อน-กรอบฟ้าเข้มสดใส ไม่มีเส้นขีด) ================= */}
+      {/* ================= MODAL แก้ไขข้อมูลลูกค้า ================= */}
       {editCustomerModalOpen && (
         <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">

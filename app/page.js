@@ -835,6 +835,8 @@ export default function AdminDashboard() {
               filteredLoans.map((loan) => {
                 const accrued = calculateAccruedInterest(loan);
                 const currentRemaining = Number(loan.remaining_principal || loan.principal_amount || 0);
+                const isPending = loan.status === 'รออนุมัติ' || loan.status === 'รอตรวจสอบ';
+                
                 return (
                   <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 transition-all">
                     <div className="flex justify-between items-start gap-2">
@@ -852,9 +854,9 @@ export default function AdminDashboard() {
                             - {loan.full_name} 🔍
                           </span>
                         </div>
-                        {/* เอาเบอร์โทรออกจากการ์ดบิลรายการแล้ว */}
+                        {/* แสดงวันที่กู้และวันที่ครบกำหนดในการ์ดบิลรายการ รวมถึงหน้าคำขอ */}
                         <p className="text-[10px] text-slate-500 mt-0.5 truncate">
-                          ประเภท: {loan.loan_type} | รอบจ่าย: <span className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</span> | ครบกำหนด: <span className="text-amber-700 font-mono">{loan.cycle_date || '-'}</span>
+                          ประเภท: {loan.loan_type} | รอบจ่าย: <span className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</span> | วันกู้: <span className="text-emerald-700 font-mono font-bold">{loan.loan_date || loan.created_at?.split('T')[0] || '-'}</span> {!isPending && <>| ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></>}
                         </p>
                       </div>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
@@ -868,7 +870,7 @@ export default function AdminDashboard() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">เงินต้น / ยอดตั้งต้น:</span>
+                        <span className="text-slate-400 block text-[10px]">เงินต้น / ยอดขอกู้:</span>
                         <span className="font-mono font-bold text-emerald-600">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
                       </div>
                       <div>
@@ -897,7 +899,7 @@ export default function AdminDashboard() {
                       </button>
 
                       <div className="flex gap-2 flex-1 sm:justify-end">
-                        {loan.status === 'รออนุมัติ' ? (
+                        {isPending ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -1351,8 +1353,6 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-
-            {/* นำแถวแสดง วันกู้ / วันคืน ออกจากหน้าประวัติข้อมูลลูกค้าแล้ว */}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
               <div className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm">
