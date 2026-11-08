@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -23,6 +23,14 @@ function formatThaiDate(dateInput) {
   const dateObj = new Date(dateInput);
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
+}
+
+// 📌 ฟังก์ชันดึงเวลา (HH:mm) ตามเวลาไทย
+function formatThaiTime(dateInput) {
+  if (!dateInput) return '';
+  const dateObj = new Date(dateInput);
+  const options = { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false };
+  return new Intl.DateTimeFormat('en-GB', options).format(dateObj);
 }
 
 // 📌 ฟังก์ชันตรวจสอบรอบวันที่เก็บเงิน
@@ -54,7 +62,7 @@ function isTodayInSchedule(scheduleStr) {
   }
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (รองรับทั้ง ดอกลอย และ จบต้นดอก)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -105,13 +113,11 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [todayStr, setTodayStr] = useState('');
   
-  // Header Actions State
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
-  // State สำหรับ Modal แก้ไขข้อมูลลูกค้า
   const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
   const [editingLoanId, setEditingLoanId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -120,15 +126,13 @@ export default function AdminDashboard() {
   const [editBankName, setEditBankName] = useState('');
   const [editAccountNumber, setEditAccountNumber] = useState('');
 
-  // 📌 ปรับค่าเริ่มต้นแท็บเป็น 'ทั้งหมด' เพื่อให้เห็นข้อมูลทันทีเมื่อโหลดหน้า
-  const [filterTab, setFilterTab] = useState('ทั้งหมด');
+  // 📌 จัดเรียงลำดับแท็บใหม่ตามที่กำหนด
+  const [filterTab, setFilterTab] = useState('บิลรอเก็บ');
 
-  // Stat Modal States
   const [statModalOpen, setStatModalOpen] = useState(false);
   const [statModalTitle, setStatModalTitle] = useState('');
   const [statModalData, setStatModalData] = useState([]);
 
-  // Modal States
   const [selectedLoanForApproval, setSelectedLoanForApproval] = useState(null);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [approvalData, setApprovalData] = useState({
@@ -164,7 +168,6 @@ export default function AdminDashboard() {
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
 
-  // Payment Modal States
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPaymentLoan, setSelectedPaymentLoan] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -178,7 +181,6 @@ export default function AdminDashboard() {
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
   const reportRef = useRef(null);
 
-  // Notice Bill Modal States
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
   const [noticeLoan, setNoticeLoan] = useState(null);
   const [customNoticeAmount, setCustomNoticeAmount] = useState('');
@@ -277,7 +279,6 @@ export default function AdminDashboard() {
     return dateObj.toISOString().split('T')[0];
   };
 
-  // Statistics
   const todayPayments = payments.filter(p => {
     const payDate = formatThaiDate(p.created_at);
     return payDate === todayStr;
@@ -610,7 +611,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ปรับปรุงฟังก์ชันกรองข้อมูลให้รองรับแท็บ 'ทั้งหมด' และป้องกันรายการหาย
+  // 📌 ลอจิกการกรองข้อมูลและจัดเรียงตามเงื่อนไขใหม่
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -620,34 +621,43 @@ export default function AdminDashboard() {
 
     const status = loan.status || 'รออนุมัติ';
 
-    if (filterTab === 'ทั้งหมด') {
-      return status !== 'ปฏิเสธคำขอ';
-    }
+    if (filterTab === 'บิลรอเก็บ') {
+      if (status !== 'อนุมัติแล้ว') return false;
+      const schedule = loan.payment_schedule || 'จ่ายทุกวัน';
+      const isDueToday = schedule === 'จ่ายทุกวัน' || isTodayInSchedule(schedule);
+      if (!isDueToday) return false;
+
+      // ตรวจสอบว่าวันนี้ชำระเงินไปแล้วหรือยัง (ถ้าชำระแล้วให้ตัดออก)
+      const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
+      return !paidToday;
+    } 
+    
     if (filterTab === 'รออนุมัติ') {
       return status === 'รออนุมัติ' || status === 'รอตรวจสอบ';
     } 
+    
     if (filterTab === 'อนุมัติวันนี้') {
       return status === 'อนุมัติแล้ว' && loan.created_at && formatThaiDate(loan.created_at) === todayStr;
     } 
-    if (filterTab === 'บิลที่ต้องเก็บวันนี้') {
-      if (loan.status !== 'อนุมัติแล้ว') return false;
-      const schedule = loan.payment_schedule || 'จ่ายทุกวัน';
-      if (schedule === 'จ่ายทุกวัน') return true;
-      return isTodayInSchedule(schedule);
-    } 
-    if (filterTab === 'ตัดยอดวันนี้') {
-      const hasPaymentInPeriod = payments.some(p => {
-        if (String(p.loan_id) !== String(loan.id)) return false;
-        if (!p.created_at) return false;
-        if (startDate || endDate) {
-          return isDateInRange(p.created_at);
-        }
-        return formatThaiDate(p.created_at) === todayStr;
-      });
-      return hasPaymentInPeriod || status === 'ชำระแล้ว';
+    
+    if (filterTab === 'ตัดยอดแล้ว') {
+      // แสดงเฉพาะบิลที่มีการบันทึกรับชำระแล้วของวันนี้เท่านั้น
+      const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
+      return hasPaidToday || status === 'ชำระแล้ว';
+    }
+
+    if (filterTab === 'ทั้งหมด') {
+      // เฉพาะรายการที่ทำธุรกรรมหรือสร้างในวันนี้เท่านั้น (เทียบจาก created_at)
+      if (status === 'ปฏิเสธคำขอ') return false;
+      return loan.created_at && formatThaiDate(loan.created_at) === todayStr;
     }
 
     return true;
+  }).sort((a, b) => {
+    // หากอยู่แท็บทั้งหมด หรือแท็บทั่วไป ให้เรียงจากล่าสุด (เวลาใหม่สุด) ไว้บนสุด
+    const timeA = new Date(a.created_at || 0).getTime();
+    const timeB = new Date(b.created_at || 0).getTime();
+    return timeB - timeA;
   });
 
   const customerLoans = loans.filter(l => l.full_name === selectedCustomerName && l.status !== 'ปฏิเสธคำขอ');
@@ -818,7 +828,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Loan List Section (Tabs) */}
+        {/* Loan List Section (Tabs Reordered) */}
         <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4 w-full box-border">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-purple-100 pb-3">
             <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
@@ -826,9 +836,9 @@ export default function AdminDashboard() {
               <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
             </h3>
 
-            {/* 📌 เพิ่มแท็บ 'ทั้งหมด' เข้าไปเพื่อให้เลือกดูข้อมูลง่ายขึ้น */}
+            {/* 📌 จัดเรียงลำดับแท็บใหม่ตามที่กำหนด: บิลรอเก็บ - รออนุมัติ - อนุมัติวันนี้ - ตัดยอดแล้ว - ทั้งหมด */}
             <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
-              {['ทั้งหมด', 'รออนุมัติ', 'อนุมัติวันนี้', 'บิลที่ต้องเก็บวันนี้', 'ตัดยอดวันนี้'].map((tab) => (
+              {['บิลรอเก็บ', 'รออนุมัติ', 'อนุมัติวันนี้', 'ตัดยอดแล้ว', 'ทั้งหมด'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilterTab(tab)}
@@ -868,8 +878,14 @@ export default function AdminDashboard() {
                             - {loan.full_name} 🔍
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">
-                          ประเภท: {loan.loan_type} | รอบจ่าย: <span className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</span> | วันกู้: <span className="text-emerald-700 font-mono font-bold">{loan.loan_date || loan.created_at?.split('T')[0] || '-'}</span> {!isPending && <>| ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></>}
+                        <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span>ประเภท: {loan.loan_type}</span> | 
+                          <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
+                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
+                            <Clock className="w-3 h-3" />
+                            {loan.created_at ? `${formatThaiDate(loan.created_at)} ${formatThaiTime(loan.created_at)}` : (loan.loan_date || '-')}
+                          </span>
+                          {!isPending && <>| ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></>}
                         </p>
                       </div>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
