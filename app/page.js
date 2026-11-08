@@ -33,13 +33,13 @@ function formatThaiTime(dateInput) {
   return new Intl.DateTimeFormat('en-GB', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันตรวจสอบรอบวันที่เก็บเงิน
-function isTodayInSchedule(scheduleStr) {
+// 📌 ฟังก์ชันตรวจสอบรอบวันที่เก็บเงิน (อ้างอิงจากวันที่เลือกใน selectedReportDate แทนวันจริง)
+function isDateInSchedule(scheduleStr, targetDateStr) {
   if (!scheduleStr) return false;
-  const now = new Date();
-  const day = now.getDate();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+  const targetDate = new Date(targetDateStr);
+  const day = targetDate.getDate();
+  const month = targetDate.getMonth() + 1;
+  const year = targetDate.getFullYear();
 
   if (scheduleStr === 'จ่ายทุกสิ้นเดือน') {
     const lastDayOfMonth = new Date(year, month, 0).getDate();
@@ -126,8 +126,9 @@ export default function AdminDashboard() {
   const [editBankName, setEditBankName] = useState('');
   const [editAccountNumber, setEditAccountNumber] = useState('');
 
-  // 📌 ตั้งค่าเริ่มต้นแท็บเป็น 'บิลรอเก็บ' และเพิ่ม State สำหรับเลือกวันที่ดูรายงานตัดยอด
   const [filterTab, setFilterTab] = useState('บิลรอเก็บ');
+  
+  // 📌 ให้ช่องเลือกวันที่ใช้งานได้ทุกแท็บ (ตั้งค่าเริ่มต้นเป็นวันนี้)
   const [selectedReportDate, setSelectedReportDate] = useState('');
 
   const [statModalOpen, setStatModalOpen] = useState(false);
@@ -607,7 +608,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (อัปเดตแท็บ 'ตัดยอดแล้ว' ให้เช็คตามวันที่ใน selectedReportDate)
+  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (นำ selectedReportDate ไปใช้กรองตามเงื่อนไขของแต่ละแท็บอย่างแม่นยำ)
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -621,15 +622,15 @@ export default function AdminDashboard() {
     if (filterTab === 'บิลรอเก็บ') {
       if (status !== 'อนุมัติแล้ว') return false;
       const schedule = loan.payment_schedule || 'จ่ายทุกวัน';
-      const isDueToday = schedule === 'จ่ายทุกวัน' || isTodayInSchedule(schedule);
-      if (!isDueToday) return false;
+      const isDueOnTarget = schedule === 'จ่ายทุกวัน' || isDateInSchedule(schedule, targetCheckDate);
+      if (!isDueOnTarget) return false;
 
-      const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
-      return !paidToday;
+      // ตรวจสอบว่าในวันที่เลือก (targetCheckDate) บิลนี้ชำระเงินไปแล้วหรือยัง
+      const paidOnTarget = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === targetCheckDate);
+      return !paidOnTarget;
     } 
     
     if (filterTab === 'ตัดยอดแล้ว') {
-      // 📌 ตรวจสอบประวัติการชำระเงินที่เกิดขึ้นในวันที่เลือก (selectedReportDate) จริงๆ
       const hasPaidOnTargetDate = payments.some(p => 
         String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === targetCheckDate
       );
@@ -637,7 +638,7 @@ export default function AdminDashboard() {
     }
 
     if (filterTab === 'อนุมัติวันนี้') {
-      return status === 'อนุมัติแล้ว' && loan.created_at && formatThaiDate(loan.created_at) === todayStr;
+      return status === 'อนุมัติแล้ว' && loan.created_at && formatThaiDate(loan.created_at) === targetCheckDate;
     } 
 
     if (filterTab === 'รออนุมัติ') {
@@ -646,12 +647,11 @@ export default function AdminDashboard() {
     
     if (filterTab === 'ทั้งหมด') {
       if (status === 'ปฏิเสธคำขอ') return false;
-      return loan.created_at && formatThaiDate(loan.created_at) === todayStr;
+      return loan.created_at && formatThaiDate(loan.created_at) === targetCheckDate;
     }
 
     return true;
   }).sort((a, b) => {
-    // 📌 จัดเรียงลำดับรายการตามเวลาที่ทำธุรกรรมชำระเงินในวันที่เลือก
     if (filterTab === 'ตัดยอดแล้ว') {
       const targetCheckDate = selectedReportDate || todayStr;
       const payA = payments.find(p => String(p.loan_id) === String(a.id) && formatThaiDate(p.created_at) === targetCheckDate);
@@ -843,27 +843,25 @@ export default function AdminDashboard() {
                 <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
               </h3>
 
-              {/* 📌 ช่องเลือกวันที่ (แสดงเฉพาะตอนอยู่แท็บ 'ตัดยอดแล้ว') */}
-              {filterTab === 'ตัดยอดแล้ว' && (
-                <div className="flex items-center gap-1.5 bg-purple-100/70 px-2.5 py-1 rounded-xl border border-purple-300">
-                  <Calendar className="w-3.5 h-3.5 text-purple-700" />
-                  <span className="text-[11px] font-bold text-purple-900">ดูยอดของวันที่:</span>
-                  <input 
-                    type="date"
-                    value={selectedReportDate}
-                    onChange={(e) => setSelectedReportDate(e.target.value)}
-                    className="bg-white border border-purple-300 rounded-lg px-2 py-1 text-xs font-mono font-bold text-purple-900 outline-none"
-                  />
-                  {selectedReportDate !== todayStr && (
-                    <button 
-                      onClick={() => setSelectedReportDate(todayStr)}
-                      className="text-[10px] text-purple-700 underline font-bold hover:text-purple-900 ml-1 cursor-pointer"
-                    >
-                      (กลับมาวันนี้)
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* 📌 ช่องเลือกวันที่ (เปิดให้แสดงและใช้งานได้ทุกแท็บตลอดเวลา) */}
+              <div className="flex items-center gap-1.5 bg-purple-100/70 px-2.5 py-1 rounded-xl border border-purple-300">
+                <Calendar className="w-3.5 h-3.5 text-purple-700" />
+                <span className="text-[11px] font-bold text-purple-900">ดูยอดของวันที่:</span>
+                <input 
+                  type="date"
+                  value={selectedReportDate}
+                  onChange={(e) => setSelectedReportDate(e.target.value)}
+                  className="bg-white border border-purple-300 rounded-lg px-2 py-1 text-xs font-mono font-bold text-purple-900 outline-none"
+                />
+                {selectedReportDate !== todayStr && (
+                  <button 
+                    onClick={() => setSelectedReportDate(todayStr)}
+                    className="text-[10px] text-purple-700 underline font-bold hover:text-purple-900 ml-1 cursor-pointer"
+                  >
+                    (กลับมาวันนี้)
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
@@ -896,6 +894,10 @@ export default function AdminDashboard() {
                 const currentRemaining = Number(loan.remaining_principal || loan.principal_amount || 0);
                 const isPending = loan.status === 'รออนุมัติ' || loan.status === 'รอตรวจสอบ';
                 
+                // 📌 ค้นหาประวัติการชำระเงินล่าสุดของบิลนี้
+                const loanPayments = payments.filter(p => String(p.loan_id) === String(loan.id));
+                const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
+
                 return (
                   <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 transition-all">
                     <div className="flex justify-between items-start gap-2">
@@ -913,16 +915,29 @@ export default function AdminDashboard() {
                             - {loan.full_name} 🔍
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] text-slate-500 mt-1 flex-wrap">
                           <span>ประเภท: {loan.loan_type}</span> | 
                           <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
                           <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
                             <Clock className="w-3 h-3" />
-                            {loan.created_at ? `${formatThaiDate(loan.created_at)} ${formatThaiTime(loan.created_at)}` : (loan.loan_date || '-')}
+                            สร้าง: {loan.created_at ? `${formatThaiDate(loan.created_at)} ${formatThaiTime(loan.created_at)}` : (loan.loan_date || '-')}
                           </span>
-                          {!isPending && <>| ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></>}
-                        </p>
+                          {!isPending && (
+                            <>
+                              | ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span>
+                            </>
+                          )}
+                          
+                          {/* 📌 แสดงเวลาและวันที่ตัดบิลล่าสุด (ถ้ามีประวัติการชำระเงิน) */}
+                          {latestPayment && (
+                            <span className="bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+                              🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} {formatThaiTime(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                         loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                         loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
