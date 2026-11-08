@@ -605,7 +605,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (แก้ไขแท็บ 'ตัดยอดแล้ว' ให้แสดงเฉพาะรายการของวันนี้จริงๆ เท่านั้น)
+  // 📌 ฟังก์ชันกรองและจัดเรียงข้อมูล (อัปเดตลอจิกแท็บ 'บิลรอเก็บ' และ 'ตัดยอดแล้ว' ใหม่ตามต้องการ)
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                        (loan.phone || '').includes(searchQuery) ||
@@ -615,20 +615,19 @@ export default function AdminDashboard() {
 
     const status = loan.status || 'รออนุมัติ';
 
+    // ตรวจสอบว่าบิลนี้ "มีการจ่ายเงินในวันนี้ (todayStr)" แล้วหรือยัง
+    const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
+
     if (filterTab === 'บิลรอเก็บ') {
       if (status !== 'อนุมัติแล้ว') return false;
-      const schedule = loan.payment_schedule || 'จ่ายทุกวัน';
-      const isDueToday = schedule === 'จ่ายทุกวัน' || isTodayInSchedule(schedule);
-      if (!isDueToday) return false;
-
-      const paidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
+      
+      // บิลรอเก็บ: ต้องยังไม่เคยจ่ายเงินใน "วันนี้" (รวมถึงบิลค้างเก่าจากวันก่อนหน้าที่ยังไม่ได้จ่ายในวันนี้ด้วย)
       return !paidToday;
     } 
     
     if (filterTab === 'ตัดยอดแล้ว') {
-      // 📌 บังคับตรวจสอบประวัติการชำระเงินว่าเกิดขึ้นใน "วันนี้" (todayStr) จริงๆ เท่านั้น
-      const hasPaidToday = payments.some(p => String(p.loan_id) === String(loan.id) && formatThaiDate(p.created_at) === todayStr);
-      return hasPaidToday;
+      // ตัดยอดแล้ว: ต้องมีการบันทึกชำระเงินเข้ามาใน "วันนี้" (todayStr) จริงๆ เท่านั้น
+      return paidToday;
     }
 
     if (filterTab === 'อนุมัติวันนี้') {
@@ -641,12 +640,11 @@ export default function AdminDashboard() {
     
     if (filterTab === 'ทั้งหมด') {
       if (status === 'ปฏิเสธคำขอ') return false;
-      return loan.created_at && formatThaiDate(loan.created_at) === todayStr;
+      return true;
     }
 
     return true;
   }).sort((a, b) => {
-    // 📌 จัดเรียงลำดับรายการล่าสุดให้อยู่ด้านบนสุดเสมอ (Newest First) ตามเวลาที่ทำธุรกรรมชำระเงิน
     if (filterTab === 'ตัดยอดแล้ว') {
       const payA = payments.find(p => String(p.loan_id) === String(a.id) && formatThaiDate(p.created_at) === todayStr);
       const payB = payments.find(p => String(p.loan_id) === String(b.id) && formatThaiDate(p.created_at) === todayStr);
