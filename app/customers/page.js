@@ -201,10 +201,10 @@ export default function CustomersPage() {
     if (!selectedPaymentLoan) return;
 
     const basePayVal = Number(paymentAmount || 0);
-    const fineVal = Number(fineAmount || 0);
+    const fineInputVal = Number(fineAmount || 0);
     const discountVal = Number(discountAmount || 0);
 
-    if (basePayVal <= 0 && fineVal <= 0 && discountVal <= 0) {
+    if (basePayVal <= 0 && fineInputVal <= 0 && discountVal <= 0) {
       alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
       return;
     }
@@ -212,20 +212,26 @@ export default function CustomersPage() {
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
 
+      // 🛠 ลำดับการหักเงิน: 1. ค่าปรับ -> 2. ดอกเบี้ยสะสม -> 3. เงินต้น
+      let totalMoneyToAllocate = basePayVal + discountVal;
+
+      let paidFine = Math.min(fineInputVal, totalMoneyToAllocate);
+      totalMoneyToAllocate -= paidFine;
+
       let interestPaid = 0;
       let principalPaid = 0;
       let newRemPrin = currentPrin;
 
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-        interestPaid = basePayVal;   
-        principalPaid = basePayVal;  
-        newRemPrin = Math.max(0, currentPrin - basePayVal);
+        interestPaid = Math.min(totalMoneyToAllocate, totalMoneyToAllocate);   
+        principalPaid = Math.min(totalMoneyToAllocate, currentPrin);  
+        newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
         const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
         const totalPayable = origPrin + totalInt;
         
-        const netPrincipalPay = Math.max(0, basePayVal);
+        const netPrincipalPay = Math.max(0, totalMoneyToAllocate);
         const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
         interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
         principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
@@ -233,15 +239,11 @@ export default function CustomersPage() {
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
         const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
-        if (basePayVal >= accruedInterest) {
-          interestPaid = accruedInterest; 
-          principalPaid = basePayVal - accruedInterest; 
-          newRemPrin = Math.max(0, currentPrin - principalPaid);
-        } else {
-          interestPaid = basePayVal; 
-          principalPaid = 0;
-          newRemPrin = Math.max(0, currentPrin);
-        }
+        interestPaid = Math.min(accruedInterest, totalMoneyToAllocate);
+        totalMoneyToAllocate -= interestPaid;
+
+        principalPaid = Math.min(currentPrin, totalMoneyToAllocate);
+        newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
@@ -256,11 +258,11 @@ export default function CustomersPage() {
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
-        amount: basePayVal + fineVal,
-        payment_amount: basePayVal + fineVal,
+        amount: basePayVal + fineInputVal,
+        payment_amount: basePayVal,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
-        fine_amount: fineVal,
+        fine_amount: fineInputVal,
         discount_amount: discountVal,
         note: paymentNote || (discountVal > 0 ? `ให้ส่วนลด -${discountVal}` : 'รับชำระปกติ'),
         created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
@@ -270,7 +272,6 @@ export default function CustomersPage() {
 
       const isPaidOff = newRemPrin === 0;
 
-      // 🛠 ป้องกันบั๊ก: ตัดการรีเซ็ตวันเริ่มนับและดอกเบี้ยสะสมออก เพื่อให้ระบบคิดดอกเบี้ยสะสมเรียลไทม์ต่อเนื่องได้ถูกต้อง
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
@@ -542,6 +543,8 @@ export default function CustomersPage() {
                   placeholder="0"
                   className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
                 />
+                {/* 📌 เพิ่มคำอธิบายแนะนำ */}
+                <p className="text-[10px] text-slate-400 mt-0.5">💡 เงินที่จ่ายมาจะถูกนำไปตัดค่าปรับ และดอกเบี้ยสะสม ก่อนนำไปหักเงินต้น</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -555,6 +558,7 @@ export default function CustomersPage() {
                     placeholder="0"
                     className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
+                  <p className="text-[10px] text-slate-400 mt-0.5">⚠️ ยอดนี้จะถูกหักก่อนอันดับแรก</p>
                 </div>
                 <div>
                   <label className="block text-slate-700 filter-none font-bold mb-1">ส่วนลด</label>
@@ -566,6 +570,7 @@ export default function CustomersPage() {
                     placeholder="0"
                     className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
                   />
+                  <p className="text-[10px] text-slate-400 mt-0.5">🎁 นำมารวมช่วยลดหนี้</p>
                 </div>
               </div>
 
