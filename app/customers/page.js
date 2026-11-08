@@ -14,7 +14,7 @@ function getThaiTodayString() {
   return formatter.format(new Date());
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (รองรับ remaining_interest สะสมต่อเนื่อง)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -24,8 +24,10 @@ function calculateAccruedInterest(loan) {
 
   if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
   
+  const oldRemainingInterest = Number(loan.remaining_interest || 0);
+  
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
-  if (!startDateStr) return 0;
+  if (!startDateStr) return oldRemainingInterest;
 
   const cleanStartDate = startDateStr.split('T')[0];
   const [startYear, startMonth, startDay] = cleanStartDate.split('-').map(Number);
@@ -54,7 +56,6 @@ function calculateAccruedInterest(loan) {
   }
 
   const newlyAccrued = days * dailyRate;
-  const oldRemainingInterest = Number(loan.remaining_interest || 0);
 
   return newlyAccrued + oldRemainingInterest;
 }
@@ -211,8 +212,8 @@ export default function CustomersPage() {
 
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
+      const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
 
-      // 🛠 ลำดับการหักเงิน: 1. ส่วนลดและเงินชำระหักค่าปรับ -> 2. ดอกเบี้ยสะสม -> 3. เงินต้น
       let remainingFine = fineInputVal;
       let discountUsedForFine = Math.min(remainingFine, discountVal);
       remainingFine -= discountUsedForFine;
@@ -225,6 +226,7 @@ export default function CustomersPage() {
       let interestPaid = 0;
       let principalPaid = 0;
       let newRemPrin = currentPrin;
+      let newRemainingInterest = totalAccruedBefore;
 
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
         interestPaid = Math.min(remainingPayment, remainingPayment);   
@@ -242,16 +244,23 @@ export default function CustomersPage() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
-        const accruedInterest = calculateAccruedInterest(selectedPaymentLoan);
-        interestPaid = Math.min(accruedInterest, remainingPayment);
+        interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
-
+        
+        newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
       if (remainingDiscount > 0) {
-        newRemPrin = Math.max(0, newRemPrin - remainingDiscount);
+        if (newRemainingInterest > 0) {
+          const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
+          newRemainingInterest -= discountForInt;
+          remainingDiscount -= discountForInt;
+        }
+        if (remainingDiscount > 0) {
+          newRemPrin = Math.max(0, newRemPrin - remainingDiscount);
+        }
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
@@ -278,11 +287,15 @@ export default function CustomersPage() {
 
       if (paymentError) throw paymentError;
 
-      const isPaidOff = newRemPrin === 0;
+      const todayDateStr = getThaiTodayString();
+      const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
+        remaining_interest: newRemainingInterest,
+        interest_start_date: todayDateStr,
+        calc_next_day: false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
 
@@ -566,7 +579,7 @@ export default function CustomersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 filter-none font-bold mb-1">ส่วนลด</label>
+                  <label className="block text-slate-700 font-bold mb-1">ส่วนลด</label>
                   <input 
                     type="number" 
                     step="any"
@@ -587,7 +600,6 @@ export default function CustomersPage() {
                   placeholder="ชำระงวดประจำวัน..."
                   className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20"
                 />
-                {/* 📌 ปรับคำแนะนำใหม่ย้ายมาไว้ใต้ช่องหมายเหตุ */}
                 <p className="text-[10px] text-purple-700 font-medium mt-1">
                   💡 หากต้องการใส่ส่วนลด/ลดหนี้อย่างเดียว ให้กรอกแค่ช่อง &quot;ส่วนลด&quot; โดยไม่ต้องใส่ช่อง &quot;ยอดเงินที่ชำระ&quot;
                 </p>
