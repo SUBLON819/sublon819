@@ -19,16 +19,15 @@ export default function ApplyPage() {
   
   const [isOldCustomer, setIsOldCustomer] = useState(false);
   const [location, setLocation] = useState({ lat: null, lng: null, status: 'ยังไม่ได้ระบุพิกัด' });
-  const [locationError, setLocationError] = useState(false); // State ตรวจสอบว่าติดบล็อกพิกัดหรือไม่
+  const [locationError, setLocationError] = useState(false);
 
-  // 🔒 State สำหรับจัดการข้อมูลธีมและสถานะจากหลังบ้าน (Supabase)
   const [isSystemOpen, setIsSystemOpen] = useState(true);
   const [checkingSystem, setCheckingSystem] = useState(true);
   const [siteConfig, setSiteConfig] = useState({
     banner_title: 'สมัครขอสินเชื่อออนไลน์ SUBLON819',
     banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
     theme_color: 'purple',
-    line_contact: '@sublon819',
+    line_contact: '@682clwce',
   });
 
   const [formData, setFormData] = useState({
@@ -51,7 +50,6 @@ export default function ApplyPage() {
     fetchSiteSettings();
   }, []);
 
-  // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
   const fetchSiteSettings = async () => {
     setCheckingSystem(true);
     try {
@@ -80,7 +78,6 @@ export default function ApplyPage() {
     }
   };
 
-  // ฟังก์ชันจับคู่ธีมสี
   const getThemeClasses = (color) => {
     switch (color) {
       case 'indigo':
@@ -177,7 +174,6 @@ export default function ApplyPage() {
     setStep('gps');
   };
 
-  // 📍 ฟังก์ชันดึงพิกัด GPS พร้อมตั้งค่า High Accuracy และดักจับ Error
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       alert('เบราว์เซอร์ของคุณไม่รองรับการระบุพิกัด GPS');
@@ -205,11 +201,7 @@ export default function ApplyPage() {
       },
       (error) => {
         setLoading(false);
-        if (error.code === 1) {
-          setLocationError(true); // บล็อกสิทธิ์
-        } else {
-          alert('ไม่สามารถดึงพิกัดได้ (สัญญาณอาจอ่อนเกินไป) กรุณาลองใหม่อีกครั้งหรือใช้ภาพถ่ายแทน');
-        }
+        setLocationError(true);
       },
       options
     );
@@ -246,8 +238,8 @@ export default function ApplyPage() {
         remaining_principal: Number(formData.principal_amount),
         installment_amount: Number(formData.principal_amount) * 0.1,
         status: 'รออนุมัติ',
-        latitude: location.lat, // เป็นค่า null ได้ หากลูกค้าใช้ภาพถ่ายแทน
-        longitude: location.lng, // เป็นค่า null ได้ หากลูกค้าใช้ภาพถ่ายแทน
+        latitude: location.lat,
+        longitude: location.lng,
         bank_name: formData.bank_name,
         account_number: formData.account_number,
         loan_date: formData.loan_date || null,
@@ -318,11 +310,8 @@ export default function ApplyPage() {
     <div className={`min-h-screen bg-gradient-to-br ${theme.bg} flex items-center justify-center p-2 sm:p-6 font-sans text-white relative overflow-x-hidden transition-all duration-500`}>
       <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden">
         
-        {/* Header */}
+        {/* Header (ลบอันที่ซ้ำออกแล้ว เหลือหัวข้อใหญ่เด่นชัด) */}
         <div className={`${theme.headerBg} text-white p-5 sm:p-6 text-center space-y-1.5 border-b border-white/10 transition-colors duration-300`}>
-          <div className="inline-block px-3 py-0.5 bg-white/20 text-white font-bold text-[10px] rounded-full">
-            SUBLON819
-          </div>
           <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
             {siteConfig.banner_title}
           </h1>
@@ -333,7 +322,7 @@ export default function ApplyPage() {
 
         <div className="p-3.5 sm:p-6 space-y-3 text-slate-200">
           
-          {/* STEP 1: ขอ OTP */}
+          {/* STEP 1: OTP */}
           {step === 'otp' && (
             <form onSubmit={handleRequestOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
@@ -349,7 +338,7 @@ export default function ApplyPage() {
                 <input 
                   type="tel" required placeholder="08x-xxx-xxxx"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 outline-none focus:border-purple-400 transition-all font-mono"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-base text-white placeholder-slate-500 outline-none focus:border-purple-400 transition-all font-mono"
                 />
               </div>
 
@@ -373,7 +362,7 @@ export default function ApplyPage() {
             </form>
           )}
 
-          {/* STEP 2: ยืนยัน OTP */}
+          {/* STEP 2: Verify OTP */}
           {step === 'verify_otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10">
@@ -388,7 +377,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required maxLength={6} placeholder="------"
                   value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-center text-base sm:text-lg tracking-widest text-white font-bold outline-none focus:border-purple-400"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-center text-base tracking-widest text-white font-bold outline-none focus:border-purple-400"
                 />
               </div>
 
@@ -402,7 +391,7 @@ export default function ApplyPage() {
             </form>
           )}
 
-          {/* STEP 3: ระบุพิกัด GPS (พร้อมระบบช่วยเหลือกรณีติดบล็อก) */}
+          {/* STEP 3: พิกัด GPS พร้อมคำแนะนำเหตุผลและวิธีแก้ไข */}
           {step === 'gps' && (
             <div className="space-y-3">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 flex items-center gap-2">
@@ -414,13 +403,21 @@ export default function ApplyPage() {
                 <MapPin className="w-8 h-8 text-purple-400 mx-auto animate-pulse" />
                 <p className="text-xs text-slate-300">ระบบต้องการเข้าถึงพิกัดตำแหน่งของคุณเพื่อใช้ประกอบการอนุมัติสินเชื่อ</p>
                 
-                {locationError && (
-                  <div className="bg-red-500/20 border border-red-500/50 p-2.5 rounded-xl text-left space-y-1 text-[11px] text-red-200">
-                    <p className="font-bold">⚠️ ตรวจพบการบล็อกสิทธิ์ตำแหน่ง:</p>
-                    <p>• ให้กดที่รูป <b>แม่กุญแจ 🔒</b> บนแถบ URL ด้านบน แล้วเปลี่ยนสิทธิ์ <b>"ตำแหน่ง"</b> เป็น <b>"อนุญาต"</b></p>
-                    <p>• หรือกดเปิดเว็บนี้ใน Google Chrome / Safari โดยตรง</p>
-                  </div>
-                )}
+                {/* 📌 คำแนะนำ/สาเหตุเบื้องต้นที่มักทำให้ระบุพิกัดไม่ได้ */}
+                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-left space-y-1.5 text-[11px] text-amber-200">
+                  <p className="font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>ทำไมบางครั้งถึงระบุพิกัดไม่ได้?</span>
+                  </p>
+                  <p className="text-slate-300 leading-relaxed">
+                    1. เปิดเว็บผ่านแอป Facebook / LINE (ทำให้ระบบบล็อกพิกัด)<br/>
+                    2. ปิดบริการระบุตำแหน่ง (Location) ในมือถือ<br/>
+                    3. เผลอกดปฏิเสธสิทธิ์ (Block) บนเบราว์เซอร์
+                  </p>
+                  <p className="text-purple-300 pt-1 font-semibold">
+                    👉 <b>วิธีแก้เบื้องต้น:</b> แนะนำให้คัดลอกลิงก์ไปเปิดในแอป **Google Chrome** หรือ **Safari** โดยตรงครับ
+                  </p>
+                </div>
 
                 <button 
                   type="button"
@@ -441,9 +438,9 @@ export default function ApplyPage() {
                   )}
                 </button>
 
-                {/* 🛠️ ปุ่มทางเลือกกรณีระบุพิกัดไม่ได้ ให้ใช้ภาพถ่ายแทน */}
+                {/* ปุ่มสำรอง: ใช้แอปถ่ายภาพหน้าบ้านแทน */}
                 <div className="pt-2 border-t border-white/10 space-y-2">
-                  <p className="text-[11px] text-amber-300">หากระบุพิกัดบนเว็บไม่ได้ สามารถใช้ภาพถ่ายหน้าบ้านแทนได้</p>
+                  <p className="text-[11px] text-slate-300">หากลองแล้วยังไม่ได้ สามารถใช้แอปถ่ายภาพพิกัดแทนได้</p>
                   <button 
                     type="button"
                     onClick={() => {
@@ -453,14 +450,14 @@ export default function ApplyPage() {
                     className="w-full py-2.5 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Upload className="w-4 h-4" />
-                    <span>ข้ามพิกัด GPS และไปแนบภาพถ่ายหน้าบ้านแทน</span>
+                    <span>ข้ามพิกัด & ใช้แอปถ่ายภาพหน้าบ้านแทน</span>
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* STEP 4: กรอกข้อมูลและแนบเอกสาร */}
+          {/* STEP 4: กรอกข้อมูลฟอร์มหลัก (ปรับ text-base ป้องกันซูมและหน้าเลื่อน) */}
           {step === 'form' && (
             <form onSubmit={handleFinalSubmit} className="space-y-2.5">
               <div className="text-[11px] font-bold text-white bg-white/10 px-3 py-2 rounded-xl border border-white/10 text-center">
@@ -475,7 +472,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400 font-bold"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base text-white placeholder-slate-500 outline-none focus:border-purple-400 font-bold"
                 />
               </div>
 
@@ -488,7 +485,7 @@ export default function ApplyPage() {
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base text-white placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
                   />
                 </div>
               )}
@@ -501,11 +498,11 @@ export default function ApplyPage() {
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-sm text-emerald-400 font-bold placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base text-emerald-400 font-bold placeholder-slate-500 outline-none focus:border-purple-400 font-mono"
                 />
               </div>
 
-              {/* วันที่กู้ & วันกำหนดคืน */}
+              {/* วันที่กู้ & กำหนดคืน */}
               <div className="space-y-2.5 pt-1">
                 <div className="bg-white/5 p-2 rounded-xl border border-white/10 space-y-1">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -518,14 +515,14 @@ export default function ApplyPage() {
                     min={getThaiTodayString()}
                     value={formData.loan_date}
                     onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
-                    className="w-full bg-transparent text-base sm:text-xs text-white outline-none font-mono py-1 px-1"
+                    className="w-full bg-transparent text-base text-white outline-none font-mono py-1 px-1"
                   />
                 </div>
 
                 <div className="bg-red-500/10 p-2 rounded-xl border-2 border-red-500 shadow-sm space-y-1">
                   <label className="text-xs font-semibold text-red-200 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    <span>กำหนดคืน <span className="text-red-400">*</span> <span className="text-[10px] text-red-300 font-normal">(บังคับกรอก)</span></span>
+                    <span>กำหนดคืน <span className="text-red-400">*</span> <span className="text-[10px] text-red-300 font-normal">(บังคับวันคืนมากกว่าวันกู้)</span></span>
                   </label>
                   <input 
                     type="date"
@@ -533,7 +530,7 @@ export default function ApplyPage() {
                     min={formData.loan_date || getThaiTodayString()}
                     value={formData.cycle_date}
                     onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                    className="w-full bg-transparent text-base sm:text-xs text-white outline-none font-mono font-bold py-1 px-1"
+                    className="w-full bg-transparent text-base text-white outline-none font-mono font-bold py-1 px-1"
                   />
                 </div>
               </div>
@@ -546,7 +543,7 @@ export default function ApplyPage() {
                   </label>
                   <select
                     value={formData.bank_name} onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-white outline-none focus:border-purple-400 font-bold"
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-base text-white outline-none focus:border-purple-400 font-bold"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
                     <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
@@ -566,12 +563,12 @@ export default function ApplyPage() {
                   <input 
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-base sm:text-xs text-emerald-400 font-mono font-bold placeholder-slate-500 outline-none focus:border-purple-400"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base text-emerald-400 font-mono font-bold placeholder-slate-500 outline-none focus:border-purple-400"
                   />
                 </div>
               </div>
 
-              {/* ส่วนแนบเอกสาร + คำแนะนำกรณีใช้ภาพถ่ายหน้าบ้านแทนพิกัด */}
+              {/* แนบเอกสาร พร้อมคำแนะนำการใช้แอปพิกัด */}
               {!isOldCustomer ? (
                 <div className="space-y-1.5 pt-1 border-t border-white/10">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -581,9 +578,9 @@ export default function ApplyPage() {
                   
                   {location.lat === null && (
                     <div className="bg-purple-500/10 border border-purple-500/30 p-2.5 rounded-xl text-[11px] text-purple-200 space-y-1">
-                      <p className="font-bold">📍 คำแนะนำกรณีข้ามพิกัด GPS:</p>
-                      <p className="text-slate-300">
-                        แนะนำให้ใช้แอปพลิเคชันถ่ายภาพที่มีพิกัด/เวลา (เช่น <b>GPS Map Camera</b>) ถ่ายรูปหน้าบ้านแล้วนำภาพที่มีพิกัด/เวลามาแนบในช่องนี้แทนครับ
+                      <p className="font-bold">📱 คำแนะนำกรณีใช้ภาพถ่ายแทนพิกัด:</p>
+                      <p className="text-slate-300 leading-relaxed">
+                        โหลดแอปพลิเคชันระบุพิกัด/เวลา (เช่น <b>GPS Map Camera</b>) ถ่ายรูปหน้าบ้านแล้วนำภาพที่มีลายน้ำพิกัด/เวลามาแนบในช่องนี้แทนครับ
                       </p>
                     </div>
                   )}
@@ -608,7 +605,7 @@ export default function ApplyPage() {
               )}
 
               <div className="bg-white/5 border border-white/10 p-2 rounded-xl text-[10px] text-slate-300 leading-relaxed">
-                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน ข้าพเจ้าได้ไตร่ตรองอย่างถี่ถ้วนแล้วว่า มีความสามารถในการชำระคืนได้ตรงเวลาโดยไม่กระทบต่อการดำรงชีวิตประจำวัน และจะรักษาประวัติทางการเงิน (เครดิต) ของตนเองไว้อย่างดีที่สุด"
+                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน..."
               </div>
 
               <button 
