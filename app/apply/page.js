@@ -278,7 +278,6 @@ export default function ApplyPage() {
         const fileExt = file.name.split('.').pop();
         const fileName = `${phone}-${Date.now()}.${fileExt}`;
         
-        // 🛠️ แก้ไขชื่อ Bucket ให้ตรงกับ Supabase Dashboard คือ 'fin-docs'
         const { error: uploadError } = await supabase.storage
           .from('fin-docs')
           .upload(fileName, file);
