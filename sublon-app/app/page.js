@@ -163,7 +163,6 @@ export default function AdminDashboard() {
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
     calc_next_day: false,
-    initial_accrued_interest: '',
   });
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -412,8 +411,6 @@ export default function AdminDashboard() {
     try {
       const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
       const principal = Number(newLoanData.principal_amount || 0);
-      const initialAccrued = Number(newLoanData.initial_accrued_interest || 0);
-
       const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
         ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
         : newLoanData.payment_schedule;
@@ -426,7 +423,7 @@ export default function AdminDashboard() {
         loan_type: newLoanData.loan_type,
         principal_amount: principal,
         remaining_principal: principal,
-        remaining_interest: initialAccrued,
+        remaining_interest: 0,
         status: 'อนุมัติแล้ว',
         bank_name: newLoanData.bank_name,
         account_number: newLoanData.account_number,
@@ -495,6 +492,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // 📌 ฟังก์ชันรับชำระเงิน (แก้ไขการคำนวณตัดดอกเบี้ย ค่าปรับ และส่วนลดให้ถูกต้องแม่นยำ)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -512,6 +510,7 @@ export default function AdminDashboard() {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
 
+      // 1. จัดการส่วนลดและค่าปรับก่อน
       let remainingDiscount = discountVal;
       let effectiveFine = fineInputVal;
       
@@ -544,15 +543,19 @@ export default function AdminDashboard() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
+        // 2. นำเงินสดที่เหลือมาตัด "ดอกเบี้ยสะสม" (แก้ไขจุดที่เคยผิดพลาดเรียบร้อย)
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
         
+        // ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย - ดอกเบี้ยที่จ่ายไป
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
+        // 3. นำเงินสดที่เหลือไปตัด "เงินต้น" (ถ้ามีเหลือ)
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
+      // 4. หากยังมีส่วนลดเหลืออยู่ นำไปตัดดอกเบี้ยสะสมที่เหลือ หรือตัดเงินต้นเพิ่ม
       if (remainingDiscount > 0) {
         if (newRemainingInterest > 0) {
           const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
@@ -572,6 +575,7 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
+      // บันทึกประวัติการชำระลงฐานข้อมูล
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -595,6 +599,7 @@ export default function AdminDashboard() {
         ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
         : todayDateStr;
 
+      // อัปเดตข้อมูลตาราง loans
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
@@ -1615,19 +1620,6 @@ export default function AdminDashboard() {
                     <label className="font-semibold text-emerald-900 text-[11px]">ดอกเบี้ย (บาทต่อวัน)</label>
                     <input type="number" step="0.01" placeholder="เช่น 40" value={newLoanData.daily_interest || ''} onChange={(e) => setNewLoanData({...newLoanData, daily_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-base sm:text-xs" />
                   </div>
-
-                  <div>
-                    <label className="font-semibold text-emerald-900 text-[11px]">ดอกเบี้ยสะสมตั้งต้น (กรณีสร้างย้อนหลัง)</label>
-                    <input 
-                      type="number" 
-                      step="any" 
-                      placeholder="เช่น 500 (ถ้าไม่มีปล่อยว่างไว้)" 
-                      value={newLoanData.initial_accrued_interest || ''} 
-                      onChange={(e) => setNewLoanData({...newLoanData, initial_accrued_interest: e.target.value})} 
-                      className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-pink-700 bg-white text-base sm:text-xs" 
-                    />
-                  </div>
-
                   <div className="bg-emerald-100/60 p-2 rounded-lg border border-emerald-200 flex items-center gap-2">
                     <input 
                       type="checkbox"
@@ -1901,31 +1893,6 @@ export default function AdminDashboard() {
                   <span className="text-slate-400">ไม่มีข้อมูล</span>
                 )}
               </div>
-
-              {selectedLoanForApproval.id_card_url && (
-                <div className="pt-1 pb-1 border-t border-purple-200 space-y-1">
-                  <span className="text-slate-600 font-semibold block">รูปบัตรประชาชน:</span>
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={selectedLoanForApproval.id_card_url} 
-                      alt="บัตรประชาชนลูกค้า" 
-                      className="w-28 h-16 object-cover rounded-lg border border-purple-300 cursor-pointer hover:opacity-90 shadow-sm"
-                      onClick={() => window.open(selectedLoanForApproval.id_card_url, '_blank')} 
-                    />
-                    <div className="text-[10px] text-slate-500">
-                      <p>คลิกที่รูปเพื่อดูภาพเต็ม</p>
-                      <a 
-                        href={selectedLoanForApproval.id_card_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-purple-700 hover:underline font-bold inline-block mt-0.5"
-                      >
-                        เปิดดูในแท็บใหม่ ↗
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <p>💰 ยอดขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
               <p>🏦 ธนาคาร: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
