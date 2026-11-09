@@ -163,7 +163,7 @@ export default function AdminDashboard() {
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
     calc_next_day: false,
-    initial_accrued_interest: '', // 👈 ฟิลด์ดอกเบี้ยสะสมตั้งต้น
+    initial_accrued_interest: '',
   });
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -1873,7 +1873,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-       {/* Approval Modal */}
+      {/* Approval Modal */}
       {approvalModalOpen && selectedLoanForApproval && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl p-4 max-w-md w-full space-y-3 text-slate-900 relative shadow-2xl max-h-[85vh] overflow-y-auto text-xs">
@@ -1902,7 +1902,6 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              {/* 🖼️ ส่วนเพิ่มใหม่: แสดงรูปบัตรประชาชนลูกค้าจาก Supabase Storage */}
               {selectedLoanForApproval.id_card_url && (
                 <div className="pt-1 pb-1 border-t border-purple-200 space-y-1">
                   <span className="text-slate-600 font-semibold block">รูปบัตรประชาชน:</span>
@@ -2024,10 +2023,6 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
               {approvalData.loan_type === 'ดอกลอย' && (
                 <>
