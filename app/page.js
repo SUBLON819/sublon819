@@ -163,7 +163,7 @@ export default function AdminDashboard() {
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
     calc_next_day: false,
-    initial_accrued_interest: '', // 👈 เพิ่มฟิลด์รับค่าดอกเบี้ยสะสมตั้งต้น
+    initial_accrued_interest: '', // 👈 ฟิลด์ดอกเบี้ยสะสมตั้งต้น
   });
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -412,8 +412,6 @@ export default function AdminDashboard() {
     try {
       const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
       const principal = Number(newLoanData.principal_amount || 0);
-      
-      // ดึงค่าดอกเบี้ยสะสมตั้งต้นที่ผู้ใช้กรอก (ถ้าไม่กรอกให้เป็น 0)
       const initialAccrued = Number(newLoanData.initial_accrued_interest || 0);
 
       const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
@@ -428,7 +426,7 @@ export default function AdminDashboard() {
         loan_type: newLoanData.loan_type,
         principal_amount: principal,
         remaining_principal: principal,
-        remaining_interest: initialAccrued, // 👈 บันทึกดอกเบี้ยสะสมตั้งต้นที่ผู้ใช้กรอก
+        remaining_interest: initialAccrued,
         status: 'อนุมัติแล้ว',
         bank_name: newLoanData.bank_name,
         account_number: newLoanData.account_number,
@@ -497,7 +495,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -1619,7 +1616,6 @@ export default function AdminDashboard() {
                     <input type="number" step="0.01" placeholder="เช่น 40" value={newLoanData.daily_interest || ''} onChange={(e) => setNewLoanData({...newLoanData, daily_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-base sm:text-xs" />
                   </div>
 
-                  {/* 👇 เพิ่มช่องกรอกดอกเบี้ยสะสมตั้งต้นใน Modal สร้างบิลใหม่ */}
                   <div>
                     <label className="font-semibold text-emerald-900 text-[11px]">ดอกเบี้ยสะสมตั้งต้น (กรณีสร้างย้อนหลัง)</label>
                     <input 
@@ -1877,7 +1873,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Approval Modal */}
+       {/* Approval Modal */}
       {approvalModalOpen && selectedLoanForApproval && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl p-4 max-w-md w-full space-y-3 text-slate-900 relative shadow-2xl max-h-[85vh] overflow-y-auto text-xs">
@@ -1905,6 +1901,32 @@ export default function AdminDashboard() {
                   <span className="text-slate-400">ไม่มีข้อมูล</span>
                 )}
               </div>
+
+              {/* 🖼️ ส่วนเพิ่มใหม่: แสดงรูปบัตรประชาชนลูกค้าจาก Supabase Storage */}
+              {selectedLoanForApproval.id_card_url && (
+                <div className="pt-1 pb-1 border-t border-purple-200 space-y-1">
+                  <span className="text-slate-600 font-semibold block">รูปบัตรประชาชน:</span>
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={selectedLoanForApproval.id_card_url} 
+                      alt="บัตรประชาชนลูกค้า" 
+                      className="w-28 h-16 object-cover rounded-lg border border-purple-300 cursor-pointer hover:opacity-90 shadow-sm"
+                      onClick={() => window.open(selectedLoanForApproval.id_card_url, '_blank')} 
+                    />
+                    <div className="text-[10px] text-slate-500">
+                      <p>คลิกที่รูปเพื่อดูภาพเต็ม</p>
+                      <a 
+                        href={selectedLoanForApproval.id_card_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-purple-700 hover:underline font-bold inline-block mt-0.5"
+                      >
+                        เปิดดูในแท็บใหม่ ↗
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <p>💰 ยอดขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
               <p>🏦 ธนาคาร: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
@@ -2002,6 +2024,10 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
               {approvalData.loan_type === 'ดอกลอย' && (
                 <>
