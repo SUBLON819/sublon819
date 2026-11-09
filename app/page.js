@@ -492,7 +492,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงินที่แก้ไขแล้ว: ป้องกันดอกเบี้ยสะสมหายและไม่รีเซ็ตวันที่ผิดพลาด
+  // 📌 ฟังก์ชันรับชำระเงิน (คำนวณตัดดอกเบี้ยหมด แล้วเซ็ตวันเริ่มนับดอกเบี้ยเป็นพรุ่งนี้/วันนี้อัตโนมัติ)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -590,7 +590,7 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 📌 จุดแก้ไขสำคัญ: หากยังเหลือดอกเบี้ยค้าง ให้คงวันเริ่มสะสมเดิมไว้เพื่อไม่ให้วันนับดอกเบี้ยถูกรีเซ็ตเป็นศูนย์
+      // 📌 จุดสำคัญ: ถ้าตัดดอกเบี้ยหมด (newRemainingInterest === 0) วันเริ่มนับดอกเบี้ยจะถูกเซ็ตเป็นวันนี้ เพื่อเริ่มนับรอบใหม่พรุ่งนี้ แต่ถ้ายังเหลือค้างจะใช้วันเดิม
       const nextInterestStartDate = newRemainingInterest > 0 
         ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
         : todayDateStr;
@@ -1750,6 +1750,109 @@ export default function AdminDashboard() {
                   className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
                   ยืนยันรับชำระ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Customer Modal */}
+      {editCustomerModalOpen && (
+        <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-sky-200 pb-2.5">
+              <h3 className="font-black text-sky-900 text-sm flex items-center gap-1.5">
+                <span>✏️</span> แก้ไขข้อมูลลูกค้าประจำบิล
+              </h3>
+              <button 
+                onClick={() => setEditCustomerModalOpen(false)} 
+                className="w-7 h-7 rounded-full bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
+              <div>
+                <label className="block text-sky-900 font-bold mb-1">ชื่อ-นามสกุล *</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sky-900 font-bold mb-1">เบอร์โทรศัพท์</label>
+                <input 
+                  type="text" 
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sky-900 font-bold mb-1">ลิงก์ Facebook</label>
+                <input 
+                  type="text" 
+                  value={editFacebook}
+                  onChange={(e) => setEditFacebook(e.target.value)}
+                  placeholder="facebook.com/username"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sky-900 font-bold mb-1">ธนาคาร</label>
+                <select
+                  value={editBankName}
+                  onChange={(e) => setEditBankName(e.target.value)}
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
+                >
+                  <option value="">-- เลือกธนาคาร --</option>
+                  <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                  <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                  <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                  <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                  <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                  <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                  <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                  <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                  <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                  <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                  <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sky-900 font-bold mb-1">เลขบัญชี / พร้อมเพย์</label>
+                <input 
+                  type="text" 
+                  value={editAccountNumber}
+                  onChange={(e) => setEditAccountNumber(e.target.value)}
+                  placeholder="เช่น 1234567890 หรือเบอร์โทรพร้อมเพย์"
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-sky-200 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setEditCustomerModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-xs"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-md transition-colors cursor-pointer text-xs"
+                >
+                  บันทึก
                 </button>
               </div>
             </form>
