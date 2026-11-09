@@ -606,14 +606,18 @@ export default function AdminDashboard() {
       const nextInterestStartDate = getTomorrowDate(todayDateStr);
 
       // อัปเดตข้อมูลตาราง loans
-      const { error: loanErr } = await supabase.from('loans').update({
-        remaining_principal: newRemPrin,
-        daily_interest: newDailyInterest,
-        remaining_interest: newRemainingInterest,
-        interest_start_date: nextInterestStartDate,
-        calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
-        status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
-      }).eq('id', selectedPaymentLoan.id);
+    const { error: loanErr } = await supabase.from('loans').update({
+      remaining_principal: newRemPrin,
+      daily_interest: newDailyInterest,
+      remaining_interest: newRemainingInterest,
+      interest_start_date: nextInterestStartDate,
+      
+      // 🟢 เพิ่มบรรทัดนี้ เพื่อหักล้างยอดค่าปรับออกเมื่อมีการบันทึกเคลียร์
+      fine_amount: Math.max(0, Number(selectedPaymentLoan.fine_amount || 0) - fineInputVal),
+
+      calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
+      status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
+    }).eq('id', selectedPaymentLoan.id);
 
       if (loanErr) throw loanErr;
 
