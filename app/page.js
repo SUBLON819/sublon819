@@ -62,7 +62,7 @@ function isDateInSchedule(scheduleStr, targetDateStr) {
   }
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (นำดอกเบี้ยเดิมที่สะสมไว้มารวมกับดอกเบี้ยใหม่ที่เพิ่มขึ้นตามวัน)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -492,7 +492,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน (คำนวณตัดดอกเบี้ยหมด แล้วเซ็ตวันเริ่มนับดอกเบี้ยเป็นพรุ่งนี้/วันนี้อัตโนมัติ)
+  // 📌 ฟังก์ชันรับชำระเงิน (คำนวณตัดดอกเบี้ยคงค้างสะสมถูกต้อง)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -544,10 +544,10 @@ export default function AdminDashboard() {
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
         
-        // 2. ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย หักด้วยดอกเบี้ยที่จ่ายไป
+        // 2. ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย หักด้วยดอกเบี้ยที่จ่ายไป (ถ้าจ่ายไม่พอ ดอกเบี้ยจะคงค้างต่อ)
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
-        // 3. เงินที่เหลือค่อยนำไปตัดเงินต้น
+        // 3. เงินที่เหลือค่อยนำไปตัดเงินต้น (ถ้ามีเหลือ)
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
@@ -590,7 +590,7 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 📌 จุดสำคัญ: ถ้าตัดดอกเบี้ยหมด (newRemainingInterest === 0) วันเริ่มนับดอกเบี้ยจะถูกเซ็ตเป็นวันนี้ เพื่อเริ่มนับรอบใหม่พรุ่งนี้ แต่ถ้ายังเหลือค้างจะใช้วันเดิม
+      // 📌 ถ้าดอกเบี้ยตัดหมดเกลี้ยง (newRemainingInterest === 0) ให้เริ่มนับรอบใหม่พรุ่งนี้ แต่ถ้ายังค้างอยู่ ให้ใช้วันเริ่มนับเดิม
       const nextInterestStartDate = newRemainingInterest > 0 
         ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
         : todayDateStr;
