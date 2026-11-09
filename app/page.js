@@ -603,9 +603,7 @@ export default function AdminDashboard() {
       };
 
       // 🟢 บังคับให้หลังตัดยอดหรือเพิ่มค่าปรับแล้ว ขยับวันเริ่มคิดดอกเบี้ยรอบถัดไปเป็น "วันพรุ่งนี้" เสมอ
-      const nextInterestStartDate = newRemainingInterest > 0 
-        ? getTomorrowDate(todayDateStr) 
-        : todayDateStr;
+      const nextInterestStartDate = getTomorrowDate(todayDateStr);
 
       // อัปเดตข้อมูลตาราง loans
       const { error: loanErr } = await supabase.from('loans').update({
