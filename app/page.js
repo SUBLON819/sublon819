@@ -612,8 +612,8 @@ export default function AdminDashboard() {
         remaining_interest: newRemainingInterest,
         interest_start_date: nextInterestStartDate,
         
-        // 🟢 บรรทัดนี้ถูกต้องและสมบูรณ์แล้ว
-        fine_amount: Math.max(0, Number(selectedPaymentLoan.fine_amount || 0) - fineInputVal),
+        // 🟢 แก้ไขตรงนี้เป็น fineAmount ให้ตรงกับชื่อ State ในระบบ
+        fine_amount: Math.max(0, Number(selectedPaymentLoan.fine_amount || 0) - Number(fineAmount || 0)),
 
         calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
