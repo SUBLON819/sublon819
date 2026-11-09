@@ -277,8 +277,10 @@ export default function ApplyPage() {
       if (!isOldCustomer && file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${phone}-${Date.now()}.${fileExt}`;
+        
+        // 🛠️ แก้ไขชื่อ Bucket ให้ตรงกับ Supabase Dashboard คือ 'fin-docs'
         const { error: uploadError } = await supabase.storage
-          .from('documents')
+          .from('fin-docs')
           .upload(fileName, file);
 
         if (uploadError) {
@@ -286,7 +288,7 @@ export default function ApplyPage() {
         }
 
         const { data: publicUrlData } = supabase.storage
-          .from('documents')
+          .from('fin-docs')
           .getPublicUrl(fileName);
 
         fileUrl = publicUrlData.publicUrl;
@@ -615,7 +617,7 @@ export default function ApplyPage() {
                 </div>
               </div>
 
-              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี (แก้ไขให้ dropdown และ option มีพื้นหลังและสีตัวหนังสือที่ชัดเจน) */}
+              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
@@ -668,7 +670,7 @@ export default function ApplyPage() {
                     </div>
                   )}
 
-                  <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                  <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap2">
                     <label className={`px-3 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
                       <input 
