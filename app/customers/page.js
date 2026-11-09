@@ -294,6 +294,7 @@ export default function CustomersPage() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
+      // 📌 จุดแก้ไขสำคัญ: หากยังเหลือดอกเบี้ยค้าง ให้คงวันเริ่มสะสมเดิมไว้เพื่อไม่ให้วันนับดอกเบี้ยถูกรีเซ็ตเป็นศูนย์
       const nextInterestStartDate = newRemainingInterest > 0 
         ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
         : todayDateStr;
