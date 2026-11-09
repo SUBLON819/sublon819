@@ -3,13 +3,22 @@
 import { useState } from 'react';
 import { User, Edit3, Trash2, ExternalLink } from 'lucide-react';
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
+// 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
 function getThaiTodayString() {
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   const formatter = new Intl.DateTimeFormat('en-CA', options);
   return formatter.format(new Date());
 }
 
+// 📌 ฟังก์ชันแปลง Date เป็น YYYY-MM-DD ตามเวลาไทย
+function formatThaiDate(dateInput) {
+  if (!dateInput) return '';
+  const dateObj = new Date(dateInput);
+  const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
+  return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
+}
+
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
@@ -35,7 +44,7 @@ function calculateAccruedInterest(loan) {
   const days = Math.max(0, diffDays);
   
   const origPrin = Number(loan.principal_amount || 0);
-  const currentPrin = Number(loan.remaining_principal ?? origPrin);
+  const currentPrin = Number((loan.remaining_principal ?? origPrin) || 0);
   let dailyRate = Number(loan.daily_interest || 0);
 
   if (origPrin > 0 && loan.loan_type === 'ดอกลอย') {
@@ -61,11 +70,10 @@ export default function CustomerDetail({
 }) {
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
-    .reduce((sum, l) => sum + Number(l.remaining_principal || l.principal_amount || 0), 0);
+    .reduce((sum, l) => sum + Number((l.remaining_principal ?? l.principal_amount) || 0), 0);
   
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
   
-  // ✅ แก้ไข: นับเฉพาะยอดเงินที่ชำระเข้ามาจริงๆ โดยไม่เอาค่าปรับ (fine_amount) มาบวกปะปน
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
 
   return (
@@ -133,7 +141,7 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 ช่อง (ทรงกลม ขอบทึบ มั่นคงไม่ขยับ) */}
+        {/* ยอดสรุปตัวเลข 3 ช่อง */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 justify-items-center py-2">
           
           <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white border-2 border-purple-400 shadow-md rounded-full flex flex-col items-center justify-center text-center p-2">
@@ -161,7 +169,6 @@ export default function CustomerDetail({
           ) : (
             <div className="space-y-2">
               {customerLoans.map((l) => {
-                // คำนวณหาค่าปรับรวมของบิลนี้จากทั้งฟิลด์ในบิลและประวัติการชำระย้อนหลัง เพื่อให้ป้ายค่าปรับแสดงผลแน่นอน
                 const paymentFineSum = customerPayments
                   .filter(p => p.loan_id === l.id || !p.loan_id)
                   .reduce((sum, p) => sum + Number(p.fine_amount || 0), 0);
@@ -177,19 +184,18 @@ export default function CustomerDetail({
                           รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span>
                         </div>
                         <div className="text-[10px] text-amber-800 font-mono mt-0.5">
-                          วันกู้: <span className="font-bold">{l.loan_date || l.created_at?.split('T')[0] || '-'}</span> | ครบกำหนด: <span className="font-bold">{l.cycle_date || '-'}</span>
+                          วันกู้: <span className="font-bold">{formatThaiDate(l.loan_date || l.created_at) || '-'}</span> | ครบกำหนด: <span className="font-bold">{l.cycle_date || '-'}</span>
                         </div>
                       </div>
                       <div className="text-left sm:text-right font-mono w-full sm:w-auto">
                         <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
                         <div className="flex items-center sm:justify-end gap-2 mt-0.5">
-                          {/* ✅ แก้ไข: ตรวจสอบและแสดงป้ายค่าปรับให้ถูกต้องเสมอ */}
                           {currentFine > 0 && (
                             <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
                               ค่าปรับ: ฿{currentFine.toLocaleString()}
                             </span>
                           )}
-                          <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number(l.remaining_principal || l.principal_amount || 0).toLocaleString()}</span>
+                          <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number((l.remaining_principal ?? l.principal_amount) || 0).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
