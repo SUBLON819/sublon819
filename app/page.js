@@ -492,7 +492,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน (คำนวณตัดดอกเบี้ยคงค้างสะสมถูกต้อง)
+  // 📌 ฟังก์ชันรับชำระเงิน (แก้ไขการคำนวณตัดดอกเบี้ย ค่าปรับ และส่วนลดให้ถูกต้องแม่นยำ)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -510,14 +510,17 @@ export default function AdminDashboard() {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
 
-      let remainingFine = fineInputVal;
-      let discountUsedForFine = Math.min(remainingFine, discountVal);
-      remainingFine -= discountUsedForFine;
-      let remainingDiscount = discountVal - discountUsedForFine;
+      // 1. จัดการส่วนลดและค่าปรับก่อน
+      let remainingDiscount = discountVal;
+      let effectiveFine = fineInputVal;
+      
+      let discountUsedForFine = Math.min(effectiveFine, remainingDiscount);
+      effectiveFine -= discountUsedForFine;
+      remainingDiscount -= discountUsedForFine;
 
       let remainingPayment = basePayVal;
-      let cashUsedForFine = Math.min(remainingFine, remainingPayment);
-      remainingPayment -= cashUsedForFine;
+      let finePaid = Math.min(effectiveFine, remainingPayment);
+      remainingPayment -= finePaid;
 
       let interestPaid = 0;
       let principalPaid = 0;
@@ -525,7 +528,7 @@ export default function AdminDashboard() {
       let newRemainingInterest = totalAccruedBefore;
 
       if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-        interestPaid = Math.min(remainingPayment, remainingPayment);   
+        interestPaid = 0;   
         principalPaid = Math.min(remainingPayment, currentPrin);  
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
@@ -540,18 +543,19 @@ export default function AdminDashboard() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
-        // 1. นำเงินที่จ่ายมาตัดดอกเบี้ยสะสมก่อน
+        // 2. นำเงินสดที่เหลือมาตัด "ดอกเบี้ยสะสม" (แก้ไขจุดที่เคยผิดพลาดเรียบร้อย)
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
         
-        // 2. ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย หักด้วยดอกเบี้ยที่จ่ายไป (ถ้าจ่ายไม่พอ ดอกเบี้ยจะคงค้างต่อ)
+        // ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย - ดอกเบี้ยที่จ่ายไป
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
-        // 3. เงินที่เหลือค่อยนำไปตัดเงินต้น (ถ้ามีเหลือ)
+        // 3. นำเงินสดที่เหลือไปตัด "เงินต้น" (ถ้ามีเหลือ)
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
+      // 4. หากยังมีส่วนลดเหลืออยู่ นำไปตัดดอกเบี้ยสะสมที่เหลือ หรือตัดเงินต้นเพิ่ม
       if (remainingDiscount > 0) {
         if (newRemainingInterest > 0) {
           const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
@@ -571,6 +575,7 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
+      // บันทึกประวัติการชำระลงฐานข้อมูล
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -590,11 +595,11 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 📌 ถ้าดอกเบี้ยตัดหมดเกลี้ยง (newRemainingInterest === 0) ให้เริ่มนับรอบใหม่พรุ่งนี้ แต่ถ้ายังค้างอยู่ ให้ใช้วันเริ่มนับเดิม
       const nextInterestStartDate = newRemainingInterest > 0 
         ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
         : todayDateStr;
 
+      // อัปเดตข้อมูลตาราง loans
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
