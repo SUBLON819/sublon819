@@ -595,8 +595,16 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
+      // 🟢 ฟังก์ชันคำนวณวันพรุ่งนี้ (วันถัดไป)
+      const getTomorrowDate = (dateStr) => {
+        const baseDate = dateStr ? new Date(dateStr) : new Date();
+        baseDate.setDate(baseDate.getDate() + 1);
+        return baseDate.toISOString().split('T')[0];
+      };
+
+      // 🟢 บังคับให้หลังตัดยอดหรือเพิ่มค่าปรับแล้ว ขยับวันเริ่มคิดดอกเบี้ยรอบถัดไปเป็น "วันพรุ่งนี้" เสมอ
       const nextInterestStartDate = newRemainingInterest > 0 
-        ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
+        ? getTomorrowDate(todayDateStr) 
         : todayDateStr;
 
       // อัปเดตข้อมูลตาราง loans
