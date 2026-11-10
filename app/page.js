@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell, RotateCcw
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -165,11 +165,11 @@ export default function AdminDashboard() {
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
 
+  // 📌 State สำหรับหน้าต่างรับชำระแบบ 3 เงื่อนไข
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPaymentLoan, setSelectedPaymentLoan] = useState(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [fineAmount, setFineAmount] = useState('');
-  const [discountAmount, setDiscountAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState('ชำระยอดปกติ'); // 'ชำระยอดปกติ' | 'ส่วนลด' | 'เพิ่มปรับ'
+  const [actionAmount, setActionAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
 
   const [customerProfileModalOpen, setCustomerProfileModalOpen] = useState(false);
@@ -490,89 +490,92 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันสำหรับรีเซ็ต/ล้างค่าปรับของบิลให้เป็น 0
-  const handleResetFine = async (loanId, billCode) => {
-    if (!confirm(`คุณต้องการล้างค่าปรับของบิล "${billCode}" ให้กลับเป็น 0 ใช่หรือไม่?`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('loans')
-        .update({ fine_amount: 0 })
-        .eq('id', loanId);
-
-      if (error) throw error;
-
-      alert('ล้างค่าปรับเป็น 0 เรียบร้อยแล้ว!');
-      fetchData();
-    } catch (err) {
-      console.error('Error resetting fine:', err.message);
-      alert('เกิดข้อผิดพลาดในการล้างค่าปรับ: ' + err.message);
-    }
-  };
-
-  // 📌 ฟังก์ชันรับชำระเงิน
+  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
 
-    const basePayVal = Number(paymentAmount || 0);
-    const fineInputVal = Number(fineAmount || 0);
-    const discountVal = Number(discountAmount || 0);
-
-    if (basePayVal <= 0 && fineInputVal <= 0 && discountVal <= 0) {
-      alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
+    const val = Number(actionAmount || 0);
+    if (val <= 0) {
+      alert('กรุณากรอกจำนวนเงินให้มากกว่า 0');
       return;
     }
 
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
+      const currentFine = Number(selectedPaymentLoan.fine_amount || 0);
 
-      let remainingPayment = basePayVal;
-      let remainingDiscount = discountVal;
-
+      let finePaid = 0;
       let interestPaid = 0;
       let principalPaid = 0;
+      
       let newRemPrin = currentPrin;
       let newRemainingInterest = totalAccruedBefore;
+      let newTotalFine = currentFine;
 
-      if (basePayVal > 0) {
-        if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-          interestPaid = 0;   
-          principalPaid = Math.min(remainingPayment, currentPrin);  
-          newRemPrin = Math.max(0, currentPrin - principalPaid);
-        } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
-          const totalInt = Number(selectedPaymentLoan.total_interest || 0);
-          const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
-          const totalPayable = origPrin + totalInt;
-          
-          const netPrincipalPay = Math.max(0, remainingPayment);
-          const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
-          interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
-          principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
-          
-          newRemPrin = Math.max(0, currentPrin - principalPaid);
-        } else {
-          interestPaid = Math.min(totalAccruedBefore, remainingPayment);
-          remainingPayment -= interestPaid;
-          newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+      let recordAmount = 0;
+      let noteText = paymentNote;
 
-          principalPaid = Math.min(currentPrin, remainingPayment);
+      if (paymentMode === 'ชำระยอดปกติ') {
+        recordAmount = val;
+        let rem = val;
+
+        // ลำดับตัดหนี้: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
+        if (currentFine > 0 && rem > 0) {
+          finePaid = Math.min(currentFine, rem);
+          rem -= finePaid;
+          newTotalFine -= finePaid;
+        }
+
+        if (totalAccruedBefore > 0 && rem > 0) {
+          if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
+            interestPaid = 0;
+          } else {
+            interestPaid = Math.min(totalAccruedBefore, rem);
+            rem -= interestPaid;
+            newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+          }
+        }
+
+        if (rem > 0) {
+          principalPaid = Math.min(currentPrin, rem);
           newRemPrin = Math.max(0, currentPrin - principalPaid);
         }
-      }
 
-      if (remainingDiscount > 0) {
-        if (newRemainingInterest > 0) {
-          const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
-          newRemainingInterest -= discountForInt;
-          remainingDiscount -= discountForInt;
+        if (!noteText) noteText = 'รับชำระปกติ (ตัด ค่าปรับ/ดอกเบี้ย/ต้น)';
+
+      } else if (paymentMode === 'ส่วนลด') {
+        recordAmount = 0; // ส่วนลดไม่นับเป็นเงินสดรับเข้า
+        let remDiscount = val;
+
+        // ลำดับหักส่วนลด: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
+        if (currentFine > 0 && remDiscount > 0) {
+          const discFine = Math.min(currentFine, remDiscount);
+          remDiscount -= discFine;
+          newTotalFine -= discFine;
         }
-        if (remainingDiscount > 0) {
-          newRemPrin = Math.max(0, newRemPrin - remainingDiscount);
+
+        if (newRemainingInterest > 0 && remDiscount > 0) {
+          const discInt = Math.min(newRemainingInterest, remDiscount);
+          remDiscount -= discInt;
+          newRemainingInterest -= discInt;
+          interestPaid = discInt;
         }
+
+        if (remDiscount > 0) {
+          principalPaid = Math.min(newRemPrin, remDiscount);
+          newRemPrin = Math.max(0, newRemPrin - principalPaid);
+        }
+
+        if (!noteText) noteText = `ให้ส่วนลด -${val}`;
+
+      } else if (paymentMode === 'เพิ่มปรับ') {
+        recordAmount = val; // นับเป็นการเพิ่มค่าปรับเข้ามาและรับชำระค่าปรับเพิ่ม
+        finePaid = val;
+        newTotalFine += val;
+
+        if (!noteText) noteText = `เพิ่มค่าปรับ +${val}`;
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
@@ -583,20 +586,18 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
-      const existingFine = Number(selectedPaymentLoan.fine_amount || 0);
-      const newTotalFine = existingFine + fineInputVal;
-
+      // บันทึกประวัติลงตาราง payments
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
-        amount: basePayVal + fineInputVal,
-        payment_amount: basePayVal,
+        amount: recordAmount,
+        payment_amount: paymentMode === 'ชำระยอดปกติ' ? recordAmount : 0,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
-        fine_amount: fineInputVal,
-        discount_amount: discountVal,
-        note: paymentNote || (fineInputVal > 0 && basePayVal === 0 ? `บันทึกค่าปรับ +${fineInputVal}` : 'รับชำระปกติ'),
+        fine_amount: finePaid,
+        discount_amount: paymentMode === 'ส่วนลด' ? val : 0,
+        note: noteText,
         created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
       }]);
 
@@ -626,12 +627,10 @@ export default function AdminDashboard() {
       if (loanErr) throw loanErr;
 
       setPaymentModalOpen(false);
-      setPaymentAmount('');
-      setFineAmount('');
-      setDiscountAmount('');
+      setActionAmount('');
       setPaymentNote('');
       fetchData();
-      alert('บันทึกข้อมูลและอัปเดตยอดเรียบร้อยแล้ว!');
+      alert('บันทึกรายการสำเร็จเรียบร้อยแล้ว!');
     } catch (err) {
       alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
     }
@@ -973,21 +972,9 @@ export default function AdminDashboard() {
                       
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {hasFine && (
-                          <div className="flex items-center gap-1">
-                            <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] shadow-sm animate-pulse">
-                              🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
-                            </span>
-                            {/* 📌 ปุ่มล้างค่าปรับเป็น 0 */}
-                            <button
-                              type="button"
-                              onClick={() => handleResetFine(loan.id, loan.bill_code)}
-                              className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 cursor-pointer transition-colors"
-                              title="ล้างค่าปรับให้เป็น 0"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              <span>ล้างค่าปรับ</span>
-                            </button>
-                          </div>
+                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] shadow-sm animate-pulse">
+                            🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                          </span>
                         )}
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                           loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
@@ -1057,9 +1044,8 @@ export default function AdminDashboard() {
                               type="button"
                               onClick={() => {
                                 setSelectedPaymentLoan(loan);
-                                setPaymentAmount('');
-                                setFineAmount('');
-                                setDiscountAmount('');
+                                setPaymentMode('ชำระยอดปกติ');
+                                setActionAmount('');
                                 setPaymentNote('');
                                 setPaymentModalOpen(true);
                               }}
@@ -1438,9 +1424,8 @@ export default function AdminDashboard() {
           onDeleteLoan={(loanId, billCode) => handleDeleteLoan(loanId, billCode)}
           onOpenPaymentModal={(l) => {
             setSelectedPaymentLoan(l);
-            setPaymentAmount('');
-            setFineAmount('');
-            setDiscountAmount('');
+            setPaymentMode('ชำระยอดปกติ');
+            setActionAmount('');
             setPaymentNote('');
             setPaymentModalOpen(true);
           }}
@@ -1693,7 +1678,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Payment Modal */}
+      {/* Payment Modal (ปรับใหม่: เลือก 3 ฟังก์ชัน และใส่ยอดเงิน) */}
       {paymentModalOpen && selectedPaymentLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
@@ -1724,55 +1709,46 @@ export default function AdminDashboard() {
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-3">
+              {/* ช่องที่ 1: เลือกเงื่อนไข / ฟังก์ชันการใช้งาน */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">ยอดเงินที่ชำระ (บาท)</label>
+                <label className="block text-slate-700 font-bold mb-1">1. เลือกฟังก์ชันการใช้งาน</label>
+                <select
+                  value={paymentMode}
+                  onChange={(e) => setPaymentMode(e.target.value)}
+                  className="w-full border border-purple-300 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-white font-bold text-purple-900"
+                >
+                  <option value="ชำระยอดปกติ">ชำระยอดปกติ (ตัด ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
+                  <option value="ส่วนลด">ส่วนลด (หักลดหนี้ ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
+                  <option value="เพิ่มปรับ">เพิ่มปรับ (เพิ่มยอดค่าปรับ)</option>
+                </select>
+              </div>
+
+              {/* ช่องที่ 2: ใส่ยอดเงินที่จะเพิ่มหรือจะตัดตามฟังก์ชัน */}
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  2. {paymentMode === 'ส่วนลด' ? 'ยอดส่วนลด (บาท)' : paymentMode === 'เพิ่มปรับ' ? 'ยอดค่าปรับที่ต้องการเพิ่ม (บาท)' : 'ยอดเงินที่รับชำระ (บาท)'}
+                </label>
                 <input 
                   type="number" 
                   step="any"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  required
+                  value={actionAmount}
+                  onChange={(e) => setActionAmount(e.target.value)}
                   placeholder="0"
                   className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold text-slate-900"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">ค่าปรับ</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={fineAmount}
-                    onChange={(e) => setFineAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">ส่วนลด</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={discountAmount}
-                    onChange={(e) => setDiscountAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono text-slate-900"
-                  />
-                </div>
-              </div>
-
+              {/* ช่องที่ 3: หมายเหตุ */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">หมายเหตุ</label>
+                <label className="block text-slate-700 font-bold mb-1">3. หมายเหตุ</label>
                 <input 
                   type="text" 
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder="ชำระงวดประจำวัน..."
+                  placeholder={paymentMode === 'ส่วนลด' ? 'ให้ส่วนลดพิเศษ...' : paymentMode === 'เพิ่มปรับ' ? 'ปรับค่าปรับล่าช้า...' : 'ชำระงวดประจำวัน...'}
                   className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 text-slate-900"
                 />
-                <p className="text-[10px] text-purple-700 font-medium mt-1">
-                  💡 หากต้องการใส่ส่วนลด/ลดหนี้อย่างเดียว ให้กรอกแค่ช่อง &quot;ส่วนลด&quot; โดยไม่ต้องใส่ช่อง &quot;ยอดเงินที่ชำระ&quot;
-                </p>
               </div>
 
               <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
@@ -1787,7 +1763,7 @@ export default function AdminDashboard() {
                   type="submit"
                   className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  ยืนยันรับชำระ
+                  ยืนยันทำรายการ
                 </button>
               </div>
             </form>
@@ -2058,7 +2034,7 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="font-semibold text-slate-700 block mb-0.5">จำนวนงวด</label>
-                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...e, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-base sm:text-xs text-slate-900 outline-none" />
+                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...approvalData, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-base sm:text-xs text-slate-900 outline-none" />
                   </div>
                 </div>
               )}
