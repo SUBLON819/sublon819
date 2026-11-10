@@ -19,7 +19,7 @@ function formatThaiDate(dateInput) {
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (ตรงกับหน้าแดชบอร์ด 100%)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (รองรับ calc_next_day 100%)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -48,6 +48,8 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+  // 🔍 ตรวจสอบเงื่อนไข: ถ้าเลือกเริ่มนับ "วันพรุ่งนี้" (calc_next_day = true) จะไม่บวก 1 เพิ่ม (เริ่มนับจากวันถัดไป)
+  // แต่ถ้าไม่ได้เลือก (calc_next_day = false/undefined) จะบวก 1 เพื่อให้นับวันทำรายการด้วย
   if (!loan.calc_next_day) {
     diffDays += 1;
   }
@@ -218,10 +220,10 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
         
-        {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ (ซ้าย) และ ออกบิลแจ้งยอด (ขวา) อยู่มุมขวาบน แบบกะทัดรัด */}
+        {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ (ซ้าย) และ ออกบิลแจ้งยอด (ขวา) */}
         <div className="bg-purple-50 p-3.5 sm:p-4 rounded-2xl border border-purple-200 space-y-3 shadow-sm relative">
           
-          {/* ปุ่มควบคุมมุมขวาบน (RECEIPT อยู่ซ้าย, NOTICE อยู่ขวา) */}
+          {/* ปุ่มควบคุมมุมขวาบน */}
           {customerLoans.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 justify-end sm:absolute sm:right-3.5 sm:top-3.5">
               <button
@@ -298,7 +300,6 @@ export default function CustomerDetail({
 
         {/* ยอดสรุปตัวเลข 3 ช่อง */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 justify-items-center py-2">
-          
           <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white border-2 border-purple-400 shadow-md rounded-full flex flex-col items-center justify-center text-center p-2">
             <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม (+ค่าปรับ)</div>
             <div className="font-mono font-bold text-[color:#ff007f] text-sm sm:text-lg mt-0.5 animate-pulse">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
@@ -313,7 +314,6 @@ export default function CustomerDetail({
             <div className="text-[10px] text-slate-500">ยอดชำระแล้ว</div>
             <div className="font-mono font-bold text-teal-600 text-sm sm:text-lg mt-0.5">฿{totalCustomerPaid.toLocaleString()}</div>
           </div>
-
         </div>
 
         {/* รายการสัญญาของลูกค้า */}
@@ -339,7 +339,7 @@ export default function CustomerDetail({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-xs font-bold text-purple-800">บิล: {loan.bill_code}</span>
-                          <span className="text-xs font-bold text-slate-800">- {loan.full_name}</span>
+                          <span className="text-xs font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] text-slate-500 mt-1 flex-wrap">
@@ -475,7 +475,7 @@ export default function CustomerDetail({
             </div>
 
             <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-[11px]">
-              <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name}</span></div>
+              <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name || selectedCustomerName}</span></div>
               <div className="flex justify-between items-center border-t border-rose-200/60 pt-1 mt-1">
                 <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
                 <input 
@@ -590,7 +590,7 @@ export default function CustomerDetail({
 
                 <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '14px', marginBottom: '14px', fontSize: '13px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.bill_code}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.full_name}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.full_name || selectedCustomerName}</span></div>
                   
                   <div style={{ borderTop: '1px solid #fecdd3', paddingTop: '10px', marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดชำระสุทธิ:</span>
