@@ -491,7 +491,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน (แก้ไขการคำนวณตัดดอกเบี้ย ค่าปรับ และส่วนลดให้ถูกต้องแม่นยำ)
+  // 📌 ฟังก์ชันรับชำระเงิน (ปรับปรุงใหม่ ตัดยอดตรงจุด ไม่โยกไปบวก/ลบผิดช่อง)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -509,17 +509,8 @@ export default function AdminDashboard() {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
 
-      // 1. จัดการส่วนลดและค่าปรับก่อน
-      let remainingDiscount = discountVal;
-      let effectiveFine = fineInputVal;
-      
-      let discountUsedForFine = Math.min(effectiveFine, remainingDiscount);
-      effectiveFine -= discountUsedForFine;
-      remainingDiscount -= discountUsedForFine;
-
       let remainingPayment = basePayVal;
-      let finePaid = Math.min(effectiveFine, remainingPayment);
-      remainingPayment -= finePaid;
+      let remainingDiscount = discountVal;
 
       let interestPaid = 0;
       let principalPaid = 0;
@@ -542,19 +533,17 @@ export default function AdminDashboard() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
-        // 2. นำเงินสดที่เหลือมาตัด "ดอกเบี้ยสะสม" (แก้ไขจุดที่เคยผิดพลาดเรียบร้อย)
+        // 1. นำเงินสดที่ชำระมาตัด "ดอกเบี้ยสะสม" ก่อน
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
-        
-        // ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย - ดอกเบี้ยที่จ่ายไป
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
-        // 3. นำเงินสดที่เหลือไปตัด "เงินต้น" (ถ้ามีเหลือ)
+        // 2. นำเงินสดที่เหลือมาตัด "เงินต้น"
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
-      // 4. หากยังมีส่วนลดเหลืออยู่ นำไปตัดดอกเบี้ยสะสมที่เหลือ หรือตัดเงินต้นเพิ่ม
+      // 3. หากมีส่วนลด นำไปตัดดอกเบี้ยสะสมที่เหลือ หรือตัดเงินต้นเพิ่ม
       if (remainingDiscount > 0) {
         if (newRemainingInterest > 0) {
           const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
@@ -574,7 +563,7 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
-      // บันทึกประวัติการชำระลงฐานข้อมูล
+      // บันทึกประวัติการชำระลงฐานข้อมูล payments
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -594,26 +583,20 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 🟢 ฟังก์ชันคำนวณวันพรุ่งนี้ (วันถัดไป)
       const getTomorrowDate = (dateStr) => {
         const baseDate = dateStr ? new Date(dateStr) : new Date();
         baseDate.setDate(baseDate.getDate() + 1);
         return baseDate.toISOString().split('T')[0];
       };
 
-      // 🟢 บังคับให้หลังตัดยอดหรือเพิ่มค่าปรับแล้ว ขยับวันเริ่มคิดดอกเบี้ยรอบถัดไปเป็น "วันพรุ่งนี้" เสมอ
       const nextInterestStartDate = getTomorrowDate(todayDateStr);
 
-      // อัปเดตข้อมูลตาราง loans
+      // อัปเดตข้อมูลตาราง loans (ตัดยอดเงินต้นและดอกเบี้ยสะสมให้ถูกต้อง)
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
         remaining_interest: newRemainingInterest,
         interest_start_date: nextInterestStartDate,
-        
-        // 🟢 แก้ไขตรงนี้เป็น fineAmount ให้ตรงกับชื่อ State ในระบบ
-        fine_amount: Math.max(0, Number(selectedPaymentLoan.fine_amount || 0) - Number(fineAmount || 0)),
-
         calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
