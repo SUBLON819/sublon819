@@ -1918,7 +1918,6 @@ export default function AdminDashboard() {
                   ? `${approvalData.schedule_start}-${approvalData.schedule_end}` 
                   : approvalData.payment_schedule;
 
-                // 📌 ล็อกให้ใช้ loan_date เดิมที่ลูกค้าเลือกมาอย่างถูกต้อง ไม่เขียนทับเป็นวันอื่น
                 const correctLoanDate = selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || getThaiTodayString();
 
                 const { error } = await supabase
