@@ -1334,7 +1334,7 @@ export default function AdminDashboard() {
               <div ref={hiddenCaptureRef} style={{ width: '400px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #f43f5e', paddingBottom: '12px', marginBottom: '16px' }}>
                   <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#881337', margin: 0 }}>แจ้งยอดค้างชำระ (NOTICE)</h2>
-                  <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>ระบบบริหารจัดการสินเชื่อออนไลน์</p>
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>SUBLON 819</p>
                 </div>
 
                 <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '12px', marginBottom: '14px', fontSize: '13px' }}>
@@ -1343,14 +1343,14 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>เบอร์โทร:</span> <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{noticeLoan.phone || '-'}</span></div>
                   
                   <div style={{ borderTop: '1px solid #fecdd3', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดค้างชำระคงเหลือ:</span>
+                    <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดชำระสุทธิ:</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#e11d48', fontSize: '18px' }}>฿{Number(customNoticeAmount || 0).toLocaleString()}</span>
                   </div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <div style={{ flex: 1, fontSize: '12px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>ข้อมูลบัญชีสำหรับโอนชำระ</div>
+                    <div style={{ fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>ช่องทางการชำระเงิน</div>
                     <div style={{ marginBottom: '4px' }}><span style={{ color: '#64748b' }}>ธนาคาร:</span> <strong style={{ color: '#0f172a' }}>{noticeForm.bank_name || '-'}</strong></div>
                     <div style={{ marginBottom: '4px' }}><span style={{ color: '#64748b' }}>เลขบัญชี:</span> <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{noticeForm.account_number || '-'}</strong></div>
                     <div><span style={{ color: '#64748b' }}>ชื่อบัญชี:</span> <strong style={{ color: '#0f172a' }}>{noticeForm.account_name || '-'}</strong></div>
