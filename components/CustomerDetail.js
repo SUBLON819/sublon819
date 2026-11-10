@@ -37,10 +37,9 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  if (!loan.calc_next_day) {
-    diffDays += 1;
-  }
-  
+  // 📌 ลบคำสั่ง if ออก แล้วใส่บรรทัดนี้บรรทัดเดียวเพื่อนับรวมวันเริ่มต้นด้วยเสมอ
+  diffDays += 1;
+
   const days = Math.max(0, diffDays);
   
   const origPrin = Number(loan.principal_amount || 0);
