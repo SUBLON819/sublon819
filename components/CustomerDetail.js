@@ -174,7 +174,7 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
         
-        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice มุมขวาบนตามที่คุณต้องการ */}
+        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice มุมขวาบน */}
         <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm relative">
           <div>
             <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
@@ -241,7 +241,7 @@ export default function CustomerDetail({
 
         </div>
 
-        {/* รายการสัญญาของลูกค้า (ดีไซน์เดียวกับหน้าแดชบอร์ด) */}
+        {/* รายการสัญญาของลูกค้า */}
         <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
           <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
           
@@ -408,7 +408,7 @@ export default function CustomerDetail({
               </button>
             </div>
 
-            {/* ส่วนของการ์ดที่จะถูกแปลงเป็นรูปภาพ */}
+            {/* ส่วนของการ์ดที่จะถูกแปลงเป็นรูปภาพ (แก้ไขใส่วงเล็บครอบ ?? และ || ให้เรียบร้อยแล้ว) */}
             <div ref={noticeCardRef} className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-white p-5 rounded-2xl shadow-xl space-y-4 border border-purple-400">
               <div className="text-center space-y-1 border-b border-purple-700 pb-3">
                 <div className="text-[10px] tracking-widest text-purple-300 uppercase font-semibold">ใบแจ้งยอดชำระ / NOTICE BILL</div>
@@ -434,7 +434,7 @@ export default function CustomerDetail({
               <div className="bg-white text-slate-900 p-3.5 rounded-xl space-y-2 font-mono shadow-inner">
                 <div className="flex justify-between text-xs border-b pb-1.5">
                   <span className="text-slate-600">เงินต้นคงเหลือ:</span>
-                  <span className="font-bold text-slate-900">฿{Number(selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount || 0).toLocaleString()}</span>
+                  <span className="font-bold text-slate-900">฿{Number((selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount) || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs border-b pb-1.5">
                   <span className="text-slate-600">ดอกเบี้ยสะสม (+ค่าปรับ):</span>
@@ -442,7 +442,7 @@ export default function CustomerDetail({
                 </div>
                 <div className="flex justify-between text-sm pt-1 bg-purple-50 p-2 rounded-lg font-bold text-purple-900">
                   <span>ยอดรวมต้องชำระทั้งหมด:</span>
-                  (selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount) || 0
+                  <span className="text-rose-600 text-base">฿{(Number((selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount) || 0) + calculateAccruedInterest(selectedNoticeLoan)).toLocaleString()}</span>
                 </div>
               </div>
 
