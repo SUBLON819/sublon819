@@ -948,13 +948,20 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                        loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                        loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                        'bg-amber-100 text-amber-800 border border-amber-300'
-                      }`}>
-                        {loan.status || 'รออนุมัติ'}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {Number(loan.fine_amount || 0) > 0 && (
+                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2 py-0.5 rounded font-mono font-bold text-[10px]">
+                            ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                          </span>
+                        )}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                          loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                          'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                          {loan.status || 'รออนุมัติ'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
