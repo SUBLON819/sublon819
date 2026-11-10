@@ -729,7 +729,7 @@ export default function AdminDashboard() {
                   setShowSearchSuggestions(true);
                 }}
                 onFocus={() => setShowSearchSuggestions(true)}
-                className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-sm text-white outline-none focus:border-white relative z-10 placeholder:text-purple-200/70"
+                className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-base text-white outline-none"
               />
 
               {showSearchSuggestions && matchingSuggestions.length > 0 && (
