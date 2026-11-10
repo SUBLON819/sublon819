@@ -258,7 +258,7 @@ export default function CustomerDetail({
                 className="px-2.5 py-1.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-[10px] shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <FileText className="w-3 h-3" />
-                <span>(NOTICE)</span>
+                <span>แจ้งยอด</span>
               </button>
             </div>
           )}
