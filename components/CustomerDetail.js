@@ -18,13 +18,23 @@ function formatThaiDate(dateInput) {
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (ตรงกับหน้าแดชบอร์ด)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
-  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
   
+  const currentFine = Number(loan.fine_amount || 0);
+
+  if (loan.loan_type === 'จบต้นดอก') {
+    return Number(loan.total_interest || 0) + currentFine;
+  }
+
+  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) {
+    return currentFine;
+  }
+  
+  const oldRemainingInterest = Number(loan.remaining_interest || 0);
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
-  if (!startDateStr) return 0;
+  if (!startDateStr) return oldRemainingInterest + currentFine;
 
   const cleanStartDate = startDateStr.split('T')[0];
   const [startYear, startMonth, startDay] = cleanStartDate.split('-').map(Number);
@@ -36,14 +46,11 @@ function calculateAccruedInterest(loan) {
   
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  // 📌 ลบคำสั่ง if ออก แล้วใส่บรรทัดนี้บรรทัดเดียวเพื่อนับรวมวันเริ่มต้นด้วยเสมอ
   diffDays += 1;
 
   const days = Math.max(0, diffDays);
-  
   const origPrin = Number(loan.principal_amount || 0);
-  const currentPrin = Number((loan.remaining_principal ?? origPrin) || 0);
+  const currentPrin = Number(loan.remaining_principal ?? origPrin);
   let dailyRate = Number(loan.daily_interest || 0);
 
   if (origPrin > 0 && loan.loan_type === 'ดอกลอย') {
@@ -51,10 +58,7 @@ function calculateAccruedInterest(loan) {
     dailyRate = (originalDailyInt * currentPrin) / origPrin;
   }
 
-  const newlyAccrued = days * dailyRate;
-  const oldRemainingInterest = Number(loan.remaining_interest || 0);
-
-  return newlyAccrued + oldRemainingInterest;
+  return (days * dailyRate) + oldRemainingInterest + currentFine;
 }
 
 export default function CustomerDetail({
@@ -71,6 +75,7 @@ export default function CustomerDetail({
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number((l.remaining_principal ?? l.principal_amount) || 0), 0);
   
+  // 📌 ใช้ฟังก์ชันคำนวณดอกเบี้ยสะสมรวมค่าปรับแบบเรียลไทม์เหมือนแดชบอร์ดหลัก
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
   
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
@@ -144,7 +149,7 @@ export default function CustomerDetail({
         <div className="grid grid-cols-3 gap-2 sm:gap-4 justify-items-center py-2">
           
           <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white border-2 border-purple-400 shadow-md rounded-full flex flex-col items-center justify-center text-center p-2">
-            <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม</div>
+            <div className="text-[10px] text-slate-500">ดอกเบี้ยสะสม (+ค่าปรับ)</div>
             <div className="font-mono font-bold text-[color:#ff007f] text-sm sm:text-lg mt-0.5 animate-pulse">฿{totalCustomerAccruedInterest.toLocaleString()}</div>
           </div>
 
@@ -168,10 +173,8 @@ export default function CustomerDetail({
           ) : (
             <div className="space-y-2">
               {customerLoans.map((l) => {
-                const paymentFineSum = customerPayments
-                  .filter(p => p.loan_id === l.id || !p.loan_id)
-                  .reduce((sum, p) => sum + Number(p.fine_amount || 0), 0);
-                const currentFine = Number(l.fine_amount || 0) > 0 ? Number(l.fine_amount) : paymentFineSum;
+                // 📌 ดึงค่าปรับจากฟิลด์ fine_amount ของบิลโดยตรง (ถูกต้องตรงกับหน้าแดชบอร์ด)
+                const currentFine = Number(l.fine_amount || 0);
 
                 return (
                   <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
@@ -235,7 +238,6 @@ export default function CustomerDetail({
               {customerPayments.map((p) => (
                 <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* 📌 เพิ่มการแสดงรหัสบิล (bill_code) ตรงนี้ */}
                     <span className="font-mono font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded text-[10px] border border-purple-300">
                       บิล: {p.bill_code || '-'}
                     </span>

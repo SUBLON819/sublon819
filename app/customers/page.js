@@ -14,20 +14,23 @@ function getThaiTodayString() {
   return formatter.format(new Date());
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (รองรับ remaining_interest สะสมต่อเนื่อง)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (ตรงกับหน้าแดชบอร์ด 100%)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
+  const currentFine = Number(loan.fine_amount || 0);
+
   if (loan.loan_type === 'จบต้นดอก') {
-    return Number(loan.total_interest || 0);
+    return Number(loan.total_interest || 0) + currentFine;
   }
 
-  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
+  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) {
+    return currentFine;
+  }
   
   const oldRemainingInterest = Number(loan.remaining_interest || 0);
-  
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
-  if (!startDateStr) return oldRemainingInterest;
+  if (!startDateStr) return oldRemainingInterest + currentFine;
 
   const cleanStartDate = startDateStr.split('T')[0];
   const [startYear, startMonth, startDay] = cleanStartDate.split('-').map(Number);
@@ -45,7 +48,6 @@ function calculateAccruedInterest(loan) {
   }
   
   const days = Math.max(0, diffDays);
-  
   const origPrin = Number(loan.principal_amount || 0);
   const currentPrin = Number(loan.remaining_principal ?? origPrin);
   let dailyRate = Number(loan.daily_interest || 0);
@@ -57,7 +59,7 @@ function calculateAccruedInterest(loan) {
 
   const newlyAccrued = days * dailyRate;
 
-  return newlyAccrued + oldRemainingInterest;
+  return newlyAccrued + oldRemainingInterest + currentFine;
 }
 
 export default function CustomersPage() {
@@ -217,7 +219,7 @@ export default function CustomersPage() {
       let principalPaid = 0;
       
       let newRemPrin = currentPrin;
-      let newRemainingInterest = totalAccruedBefore;
+      let newRemainingInterest = totalAccruedBefore - currentFine;
       let newTotalFine = currentFine;
 
       let recordAmount = 0;
@@ -234,13 +236,13 @@ export default function CustomersPage() {
           newTotalFine -= finePaid;
         }
 
-        if (totalAccruedBefore > 0 && rem > 0) {
+        if (newRemainingInterest > 0 && rem > 0) {
           if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
             interestPaid = 0;
           } else {
-            interestPaid = Math.min(totalAccruedBefore, rem);
+            interestPaid = Math.min(newRemainingInterest, rem);
             rem -= interestPaid;
-            newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+            newRemainingInterest = Math.max(0, newRemainingInterest - interestPaid);
           }
         }
 
@@ -308,7 +310,7 @@ export default function CustomersPage() {
 
       if (paymentError) throw paymentError;
 
-      const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
+      const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0 && newTotalFine === 0;
 
       const nextInterestStartDate = newRemainingInterest > 0 
         ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || getThaiTodayString())
