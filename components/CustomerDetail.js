@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Edit3, Trash2, ExternalLink } from 'lucide-react';
+import { User, Edit3, Trash2, ExternalLink, FileText, Clock } from 'lucide-react';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
 function getThaiTodayString() {
@@ -18,7 +18,7 @@ function formatThaiDate(dateInput) {
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (ตรงกับหน้าแดชบอร์ด)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (ตรงกับหน้าแดชบอร์ด 100%)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -46,8 +46,11 @@ function calculateAccruedInterest(loan) {
   
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  diffDays += 1;
 
+  if (!loan.calc_next_day) {
+    diffDays += 1;
+  }
+  
   const days = Math.max(0, diffDays);
   const origPrin = Number(loan.principal_amount || 0);
   const currentPrin = Number(loan.remaining_principal ?? origPrin);
@@ -58,7 +61,9 @@ function calculateAccruedInterest(loan) {
     dailyRate = (originalDailyInt * currentPrin) / origPrin;
   }
 
-  return (days * dailyRate) + oldRemainingInterest + currentFine;
+  const newlyAccrued = days * dailyRate;
+
+  return newlyAccrued + oldRemainingInterest + currentFine;
 }
 
 export default function CustomerDetail({
@@ -69,13 +74,13 @@ export default function CustomerDetail({
   onClose,
   onOpenEditModal,
   onDeleteLoan,
-  onOpenPaymentModal
+  onOpenPaymentModal,
+  onOpenNoticeModal // 📌 เพิ่มพรอพสำหรับเปิด Modal ออกบิล Notice (ถ้ามีในแดชบอร์ด)
 }) {
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number((l.remaining_principal ?? l.principal_amount) || 0), 0);
   
-  // 📌 ใช้ฟังก์ชันคำนวณดอกเบี้ยสะสมรวมค่าปรับแบบเรียลไทม์เหมือนแดชบอร์ดหลัก
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
   
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
@@ -165,62 +170,119 @@ export default function CustomerDetail({
 
         </div>
 
-        {/* รายการสัญญาของลูกค้า */}
-        <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
-          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
+        {/* 📌 รายการสัญญาของลูกค้า (ดีไซน์เดียวกับหน้าแดชบอร์ดหลัก) */}
+        <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
+          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
+          
           {customerLoans.length === 0 ? (
-            <div className="text-slate-400 text-center py-4 text-[11px]">ไม่พบประวัติสัญญา</div>
+            <div className="text-slate-400 text-center py-6 text-[11px]">ไม่พบประวัติสัญญา</div>
           ) : (
-            <div className="space-y-2">
-              {customerLoans.map((l) => {
-                // 📌 ดึงค่าปรับจากฟิลด์ fine_amount ของบิลโดยตรง (ถูกต้องตรงกับหน้าแดชบอร์ด)
-                const currentFine = Number(l.fine_amount || 0);
+            <div className="space-y-3">
+              {customerLoans.map((loan) => {
+                const accrued = calculateAccruedInterest(loan);
+                const currentRemaining = Number(loan.remaining_principal ?? loan.principal_amount ?? 0);
+                const hasFine = Number(loan.fine_amount || 0) > 0;
+
+                const loanPayments = customerPayments.filter(p => String(p.loan_id) === String(loan.id));
+                const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
 
                 return (
-                  <div key={l.id} className="bg-purple-50/40 p-3 rounded-xl border border-purple-100 space-y-2">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5">
-                      <div>
-                        <span className="font-mono font-bold text-purple-700 text-sm">{l.bill_code}</span> 
-                        <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-semibold">{l.loan_type}</span>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
-                          รอบจ่าย: {l.payment_schedule || 'จ่ายทุกวัน'} | สถานะ: <span className="text-emerald-700 font-bold">{l.status}</span>
+                  <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 transition-all">
+                    
+                    {/* ส่วนหัวของการ์ดบิล */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-purple-800">บิล: {loan.bill_code}</span>
+                          <span className="text-xs font-bold text-slate-800">- {loan.full_name}</span>
                         </div>
-                        <div className="text-[10px] text-amber-800 font-mono mt-0.5">
-                          วันกู้: <span className="font-bold">{formatThaiDate(l.loan_date || l.created_at) || '-'}</span> | ครบกำหนด: <span className="font-bold">{l.cycle_date || '-'}</span>
-                        </div>
-                      </div>
-                      <div className="text-left sm:text-right font-mono w-full sm:w-auto">
-                        <div className="font-bold text-slate-900 text-xs">ยอดตั้งต้น: ฿{Number(l.principal_amount || 0).toLocaleString()}</div>
-                        <div className="flex items-center sm:justify-end gap-2 mt-0.5">
-                          {currentFine > 0 && (
-                            <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-semibold">
-                              ค่าปรับ: ฿{currentFine.toLocaleString()}
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] text-slate-500 mt-1 flex-wrap">
+                          <span>ประเภท: {loan.loan_type}</span> | 
+                          <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
+                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
+                            <Clock className="w-3 h-3" />
+                            สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
+                          </span>
+                          | ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span>
+                          
+                          {latestPayment && (
+                            <span className="bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+                              🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
                             </span>
                           )}
-                          <span className="text-[10px] text-amber-600">คงเหลือ: ฿{Number((l.remaining_principal ?? l.principal_amount) || 0).toLocaleString()}</span>
                         </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {hasFine && (
+                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] shadow-sm animate-pulse">
+                            🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                          </span>
+                        )}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                          loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                          'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                          {loan.status || 'อนุมัติแล้ว'}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center">
+                    {/* กล่องแสดงตัวเลข 4 ช่อง (เงินต้น, คงเหลือ, ดอกเบี้ย/วัน, ดอกสะสมเรียลไทม์) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">เงินต้น / ยอดขอกู้:</span>
+                        <span className="font-mono font-bold text-emerald-600">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">คงเหลือ:</span>
+                        <span className="font-mono font-bold text-amber-600">฿{currentRemaining.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">ดอกเบี้ย/วัน:</span>
+                        <span className="font-mono font-bold text-teal-700">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">ดอกสะสมเรียลไทม์:</span>
+                        <span className="font-mono font-bold text-purple-800">฿{accrued.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* ปุ่มจัดการด้านล่างการ์ดบิล */}
+                    <div className="flex gap-2 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
                       <button
                         type="button"
-                        onClick={() => onDeleteLoan(l.id, l.bill_code)}
-                        className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                        onClick={() => onDeleteLoan(loan.id, loan.bill_code)}
+                        className="px-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1 shrink-0"
                         title="ลบรายการบิลนี้"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-3.5 h-3.5" />
                         <span>ลบบิลนี้</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => onOpenPaymentModal(l)}
-                        className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-[11px] shadow-sm transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        <span>💵 บันทึกรับชำระ</span>
-                      </button>
+                      <div className="flex gap-2 flex-1 sm:justify-end flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => onOpenPaymentModal(loan)}
+                          className="flex-1 sm:flex-initial px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer"
+                        >
+                          บันทึกรับชำระ
+                        </button>
+                        {onOpenNoticeModal && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenNoticeModal(loan)}
+                            className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>ออกบิลแจ้งยอด (NOTICE)</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
+
                   </div>
                 );
               })}
