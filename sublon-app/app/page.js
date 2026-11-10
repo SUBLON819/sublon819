@@ -1074,7 +1074,7 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center border-b border-rose-100 pb-3 shrink-0">
               <h3 className="text-sm sm:text-base font-black text-rose-900 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-rose-600" />
-                <span>ออกบิลแจ้งยอดค้างชำระ (NOTICE)</span>
+                <span>NOTICE</span>
               </h3>
               <button onClick={() => setNoticeModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             </div>
