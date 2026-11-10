@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { User, Edit3, Trash2, ExternalLink, FileText, Clock, Download, Share2 } from 'lucide-react';
+import { User, Edit3, Trash2, ExternalLink, FileText, Clock, Download, Share2, Printer } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
@@ -76,9 +76,9 @@ export default function CustomerDetail({
   onOpenEditModal,
   onDeleteLoan,
   onOpenPaymentModal,
-  adminBankList = [] // 📌 รับรายการบัญชีแอดมิน (ถ้ามีส่งมา)
+  adminBankList = []
 }) {
-  // 📌 State สำหรับ Notice Modal ที่ยกมา
+  // 📌 State สำหรับ Notice Modal
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
   const [noticeLoan, setNoticeLoan] = useState(null);
   const [customNoticeAmount, setCustomNoticeAmount] = useState('');
@@ -89,6 +89,11 @@ export default function CustomerDetail({
     qr_code_image: ''
   });
   const hiddenCaptureRef = useRef(null);
+
+  // 📌 State สำหรับ Receipt Modal (ใบเสร็จรับเงิน)
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [latestPaymentRecord, setLatestPaymentRecord] = useState(null);
+  const receiptCaptureRef = useRef(null);
 
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
@@ -137,6 +142,45 @@ export default function CustomerDetail({
     }
   };
 
+  // 📌 ฟังก์ชันดาวน์โหลดใบเสร็จรับเงิน (Receipt)
+  const handleDownloadReceiptImage = async () => {
+    if (!receiptCaptureRef.current) return;
+    try {
+      const canvas = await html2canvas(receiptCaptureRef.current, { scale: 2, useCORS: true });
+      const image = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = image;
+      a.download = `Receipt-${latestPaymentRecord?.bill_code || 'Customer'}.png`;
+      a.click();
+    } catch (err) {
+      console.error('Error generating receipt image:', err);
+      alert('เกิดข้อผิดพลาดในการสร้างใบเสร็จ');
+    }
+  };
+
+  // 📌 ฟังก์ชันแชร์ใบเสร็จรับเงิน (Receipt)
+  const handleShareReceiptImage = async () => {
+    if (!receiptCaptureRef.current) return;
+    try {
+      const canvas = await html2canvas(receiptCaptureRef.current, { scale: 2, useCORS: true });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `Receipt-${latestPaymentRecord?.bill_code || 'Customer'}.png`, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'ใบเสร็จรับเงิน',
+            text: `ใบเสร็จรับเงินของคุณ ${selectedCustomerName}`,
+          });
+        } else {
+          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง กรุณาใช้ปุ่มดาวน์โหลดรูปภาพแทนครับ');
+        }
+      });
+    } catch (err) {
+      console.error('Error sharing receipt image:', err);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800 touch-pan-y">
       
@@ -174,20 +218,39 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
         
-        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice มุมขวาบน */}
-        <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm relative">
-          <div>
-            <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
-            <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
-            <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
+        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice และพิมพ์ใบเสร็จ (Receipt) อยู่ใต้ข้อมูลลูกค้า */}
+        <div className="bg-purple-50 p-3.5 sm:p-4 rounded-2xl border border-purple-200 space-y-3 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
+              <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
+              <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
+            </div>
           </div>
 
-          {/* 📌 ปุ่มออกบิลแจ้งยอด (NOTICE) มุมขวาบน */}
-          <div className="flex sm:justify-end sm:items-center">
-            {customerLoans.length > 0 && (
+          <div className="flex items-center gap-2 pt-1 border-t border-purple-200/60">
+            <span className="text-slate-500 text-[10px]">Facebook:</span> 
+            {customerInfo.facebook_link ? (
+              <a 
+                href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              >
+                <span>🔗 ไปที่ Facebook ลูกค้า</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <span className="text-slate-400">ไม่มีข้อมูล</span>
+            )}
+          </div>
+
+          {/* 📌 แผงปุ่มกด: ออกบิล NOTICE และ พิมพ์ใบเสร็จ (RECEIPT) วางติดกัน */}
+          {customerLoans.length > 0 && (
+            <div className="pt-2 border-t border-purple-200/60 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -204,30 +267,30 @@ export default function CustomerDetail({
                   });
                   setNoticeModalOpen(true);
                 }}
-                className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
+                className="w-full py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-4 h-4" />
                 <span>ออกบิลแจ้งยอด (NOTICE)</span>
               </button>
-            )}
-          </div>
 
-          <div className="sm:col-span-3 flex items-center gap-2 border-t border-purple-200/60 pt-2 mt-1">
-            <span className="text-slate-500 text-[10px]">Facebook:</span> 
-            {customerInfo.facebook_link ? (
-              <a 
-                href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              <button
+                type="button"
+                onClick={() => {
+                  if (customerPayments.length === 0) {
+                    alert('ยังไม่มีประวัติการชำระเงินสำหรับออกใบเสร็จ');
+                    return;
+                  }
+                  // ดึงรายการชำระเงินล่าสุด
+                  setLatestPaymentRecord(customerPayments[0]);
+                  setReceiptModalOpen(true);
+                }}
+                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>🔗 ไปที่ Facebook ลูกค้า</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : (
-              <span className="text-slate-400">ไม่มีข้อมูล</span>
-            )}
-          </div>
+                <Printer className="w-4 h-4" />
+                <span>พิมพ์ใบเสร็จ (RECEIPT)</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ยอดสรุปตัวเลข 3 ช่อง */}
@@ -387,7 +450,7 @@ export default function CustomerDetail({
 
       </div>
 
-      {/* ================= 📌 Notice Bill Modal ที่ยกมา ================= */}
+      {/* ================= 📌 Notice Bill Modal ================= */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
@@ -416,7 +479,7 @@ export default function CustomerDetail({
                   type="number"
                   value={customNoticeAmount}
                   onChange={(e) => setCustomNoticeAmount(e.target.value)}
-                  className="w-28 text-right font-mono font-black text-rose-600 text-sm sm:text-base bg-white border border-rose-300 rounded-lg p-1.5 outline-none"
+                  className="w-32 text-right font-mono font-black text-rose-600 text-base bg-white border border-rose-300 rounded-lg p-1.5 outline-none"
                 />
               </div>
             </div>
@@ -431,7 +494,7 @@ export default function CustomerDetail({
                       setNoticeForm(adminBankList[idx]);
                     }
                   }}
-                  className="w-full border border-purple-300 rounded-lg p-2 text-base sm:text-xs bg-white font-semibold outline-none text-slate-800"
+                  className="w-full border border-purple-300 rounded-lg p-2.5 text-base bg-white font-semibold outline-none text-slate-800"
                 >
                   <option value="">-- คลิกเลือกบัญชี --</option>
                   {adminBankList.map((b, i) => (
@@ -452,7 +515,7 @@ export default function CustomerDetail({
                   <select
                     value={noticeForm.bank_name}
                     onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none text-slate-800"
+                    className="w-full border border-slate-300 rounded-lg p-2.5 text-base font-bold bg-white outline-none text-slate-800"
                   >
                     <option value="">-- เลือกธนาคาร --</option>
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -474,7 +537,7 @@ export default function CustomerDetail({
                     type="text" placeholder="xxx-x-xxxxx-x"
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-mono font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-lg p-2.5 text-base font-mono font-bold bg-white outline-none"
                   />
                 </div>
                 <div>
@@ -483,7 +546,7 @@ export default function CustomerDetail({
                     type="text" placeholder="ชื่อเจ้าของบัญชี"
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-lg p-2.5 text-base font-bold bg-white outline-none"
                   />
                 </div>
 
@@ -572,6 +635,102 @@ export default function CustomerDetail({
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>แชร์ภาพ</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ================= 📌 Receipt Modal (พิมพ์ใบเสร็จรับเงิน) ================= */}
+      {receiptModalOpen && latestPaymentRecord && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
+            
+            <div className="flex justify-between items-center border-b border-emerald-100 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">🧾</span>
+                <h3 className="font-black text-emerald-900 text-xs sm:text-sm">
+                  ใบเสร็จรับเงิน (RECEIPT): <span className="font-mono text-emerald-700">{latestPaymentRecord.bill_code}</span>
+                </h3>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setReceiptModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* แสดงตัวอย่างหน้าตาใบเสร็จใน Modal */}
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 space-y-2 text-slate-700 text-xs font-medium">
+              <div className="flex justify-between">
+                <span>ชื่อลูกค้า:</span>
+                <span className="font-bold text-slate-900">{selectedCustomerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>ยอดชำระล่าสุด:</span>
+                <span className="font-mono font-bold text-emerald-700 text-sm">฿{Number(latestPaymentRecord.payment_amount ?? latestPaymentRecord.amount ?? 0).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>หมายเหตุ:</span>
+                <span>{latestPaymentRecord.note || 'รับชำระปกติ'}</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-500 border-t border-emerald-200/60 pt-1.5">
+                <span>วันที่ชำระ:</span>
+                <span>{new Date(latestPaymentRecord.created_at).toLocaleString('th-TH')}</span>
+              </div>
+            </div>
+
+            {/* ส่วนซ่อนสำหรับจับภาพแปลงเป็นรูปใบเสร็จ */}
+            <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
+              <div ref={receiptCaptureRef} style={{ width: '420px', background: '#ffffff', padding: '28px 24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                <div style={{ textAlign: 'center', borderBottom: '2px solid #059669', paddingBottom: '14px', marginBottom: '16px' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#065f46', margin: 0 }}>ใบเสร็จรับเงิน / RECEIPT</h2>
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>SUBLON 819</p>
+                </div>
+
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '14px', marginBottom: '14px', fontSize: '13px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{latestPaymentRecord.bill_code}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{selectedCustomerName}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>วันที่ชำระ:</span> <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{new Date(latestPaymentRecord.created_at).toLocaleString('th-TH')}</span></div>
+                  
+                  <div style={{ borderTop: '1px solid #a7f3d0', paddingTop: '10px', marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>จำนวนเงินที่ชำระ:</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#059669', fontSize: '20px' }}>฿{Number(latestPaymentRecord.payment_amount ?? latestPaymentRecord.amount ?? 0).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', borderTop: '1px dashed #cbd5e1', paddingTop: '12px' }}>
+                  <p style={{ margin: 0 }}>ขอบคุณที่ใช้บริการครับ / ขอให้กิจการรุ่งเรือง</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-emerald-100 flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setReceiptModalOpen(false)}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadReceiptImage}
+                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>ดาวน์โหลดใบเสร็จ</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleShareReceiptImage}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>แชร์ใบเสร็จ</span>
               </button>
             </div>
 
