@@ -1076,7 +1076,7 @@ export default function AdminDashboard() {
                               className="px-4 py-2.5 sm:py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <FileText className="w-3.5 h-3.5" />
-                              <span>ออกบิลแจ้งยอด (NOTICE)</span>
+                              <span>แจ้งยอด</span>
                             </button>
                           </>
                         )}
@@ -1236,7 +1236,7 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 <span className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-xs">📄</span>
                 <h3 className="font-black text-rose-900 text-xs sm:text-sm">
-                  ออกบิลแจ้งยอด (NOTICE): <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
+                  แจ้งยอด: <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
                 </h3>
               </div>
               <button 
