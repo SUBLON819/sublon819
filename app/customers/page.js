@@ -587,9 +587,9 @@ export default function CustomersPage() {
                   onChange={(e) => setPaymentMode(e.target.value)}
                   className="w-full border border-purple-300 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-white font-bold text-purple-900"
                 >
-                  <option value="ชำระยอดปกติ">ชำระยอดปกติ (ตัด ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
-                  <option value="ส่วนลด">ส่วนลด (หักลดหนี้ ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
-                  <option value="เพิ่มปรับ">เพิ่มปรับ (เพิ่มยอดค่าปรับ)</option>
+                  <option value="ชำระยอดปกติ">ชำระยอดปกติ</option>
+                  <option value="ส่วนลด">ส่วนลด</option>
+                  <option value="เพิ่มปรับ">เพิ่มปรับ</option>
                 </select>
               </div>
 
