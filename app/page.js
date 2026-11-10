@@ -491,7 +491,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน (ปรับปรุงใหม่ ตัดยอดตรงจุด ไม่โยกไปบวก/ลบผิดช่อง)
+  // 📌 ฟังก์ชันรับชำระเงิน (ปรับปรุงใหม่ รองรับการบันทึกค่าปรับอย่างเดียว)
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -517,33 +517,33 @@ export default function AdminDashboard() {
       let newRemPrin = currentPrin;
       let newRemainingInterest = totalAccruedBefore;
 
-      if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-        interestPaid = 0;   
-        principalPaid = Math.min(remainingPayment, currentPrin);  
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
-      } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
-        const totalInt = Number(selectedPaymentLoan.total_interest || 0);
-        const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
-        const totalPayable = origPrin + totalInt;
-        
-        const netPrincipalPay = Math.max(0, remainingPayment);
-        const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
-        interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
-        principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
-        
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
-      } else {
-        // 1. นำเงินสดที่ชำระมาตัด "ดอกเบี้ยสะสม" ก่อน
-        interestPaid = Math.min(totalAccruedBefore, remainingPayment);
-        remainingPayment -= interestPaid;
-        newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+      // กรณีมีเงินชำระหลักเข้ามา ให้ตัดดอกเบี้ยและเงินต้นตามปกติ
+      if (basePayVal > 0) {
+        if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
+          interestPaid = 0;   
+          principalPaid = Math.min(remainingPayment, currentPrin);  
+          newRemPrin = Math.max(0, currentPrin - principalPaid);
+        } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
+          const totalInt = Number(selectedPaymentLoan.total_interest || 0);
+          const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
+          const totalPayable = origPrin + totalInt;
+          
+          const netPrincipalPay = Math.max(0, remainingPayment);
+          const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
+          interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
+          principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
+          
+          newRemPrin = Math.max(0, currentPrin - principalPaid);
+        } else {
+          interestPaid = Math.min(totalAccruedBefore, remainingPayment);
+          remainingPayment -= interestPaid;
+          newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
-        // 2. นำเงินสดที่เหลือมาตัด "เงินต้น"
-        principalPaid = Math.min(currentPrin, remainingPayment);
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
+          principalPaid = Math.min(currentPrin, remainingPayment);
+          newRemPrin = Math.max(0, currentPrin - principalPaid);
+        }
       }
 
-      // 3. หากมีส่วนลด นำไปตัดดอกเบี้ยสะสมที่เหลือ หรือตัดเงินต้นเพิ่ม
       if (remainingDiscount > 0) {
         if (newRemainingInterest > 0) {
           const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
@@ -563,7 +563,7 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
-      // บันทึกประวัติการชำระลงฐานข้อมูล payments
+      // บันทึกประวัติการชำระลงฐานข้อมูล payments (บันทึกค่าปรับแยกให้ชัดเจน)
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -574,7 +574,7 @@ export default function AdminDashboard() {
         principal_paid: principalPaid,
         fine_amount: fineInputVal,
         discount_amount: discountVal,
-        note: paymentNote || (discountVal > 0 ? `ให้ส่วนลด -${discountVal}` : 'รับชำระปกติ'),
+        note: paymentNote || (fineInputVal > 0 && basePayVal === 0 ? `บันทึกค่าปรับ +${fineInputVal}` : 'รับชำระปกติ'),
         created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
       }]);
 
@@ -591,7 +591,6 @@ export default function AdminDashboard() {
 
       const nextInterestStartDate = getTomorrowDate(todayDateStr);
 
-      // อัปเดตข้อมูลตาราง loans (ตัดยอดเงินต้นและดอกเบี้ยสะสมให้ถูกต้อง)
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
@@ -609,7 +608,7 @@ export default function AdminDashboard() {
       setDiscountAmount('');
       setPaymentNote('');
       fetchData();
-      alert('บันทึกข้อมูลและตัดยอดเรียบร้อยแล้ว!');
+      alert('บันทึกข้อมูลและอัปเดตยอดเรียบร้อยแล้ว!');
     } catch (err) {
       alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
     }
