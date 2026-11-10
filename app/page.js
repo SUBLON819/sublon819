@@ -179,6 +179,16 @@ export default function AdminDashboard() {
   const [adminBankList, setAdminBankList] = useState([]);
   const hiddenCaptureRef = useRef(null);
 
+  // Customer Detail Modal States
+  const [customerProfileModalOpen, setCustomerProfileModalOpen] = useState(false);
+  const [selectedCustomerName, setSelectedCustomerName] = useState('');
+  const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editFacebook, setEditFacebook] = useState('');
+  const [editBankName, setEditBankName] = useState('');
+  const [editAccountNumber, setEditAccountNumber] = useState('');
+
   // Daily Report Modal
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
   const reportRef = useRef(null);
@@ -218,7 +228,6 @@ export default function AdminDashboard() {
         });
         setCustomerSuggestions(uniqueCustomers);
         
-        // ดึงรายการบัญชีแอดมินสำหรับ Notice
         const banks = [];
         const seenBanks = new Set();
         loansData.forEach(l => {
@@ -315,7 +324,6 @@ export default function AdminDashboard() {
     }, 500);
   };
 
-  // 🗑️ ฟังก์ชันลบบิล (Soft Delete / Update Status เป็นถังขยะ)
   const handleDeleteLoan = async (loanId, billCode) => {
     if (!confirm(`คุณต้องการย้ายบิลรหัส "${billCode}" ไปที่ถังขยะใช่หรือไม่?`)) return;
 
@@ -333,7 +341,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -459,7 +466,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันสร้างบิลปล่อยกู้ใหม่
   const handleSaveNewLoan = async (e) => {
     e.preventDefault();
     if (!newLoanData.full_name || !newLoanData.principal_amount) {
@@ -514,6 +520,28 @@ export default function AdminDashboard() {
         account_number: '',
         calc_next_day: false,
       });
+      fetchData();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleSaveCustomerInfo = async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .update({
+          phone: editPhone,
+          facebook_link: editFacebook,
+          bank_name: editBankName,
+          account_number: editAccountNumber
+        })
+        .eq('full_name', selectedCustomerName);
+
+      if (error) throw error;
+      alert('อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว');
+      setEditCustomerModalOpen(false);
       fetchData();
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
@@ -616,6 +644,10 @@ export default function AdminDashboard() {
     const timeB = new Date(b.created_at || 0).getTime();
     return timeB - timeA;
   });
+
+  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName);
+  const customerPayments = payments.filter(p => customerLoans.some(l => String(l.id) === String(p.loan_id)));
+  const customerInfo = customerLoans.length > 0 ? customerLoans[0] : {};
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(147,51,234,0.35),rgba(255,255,255,0))] flex font-sans text-base box-border overflow-x-hidden">
@@ -851,7 +883,15 @@ export default function AdminDashboard() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-pink-400 font-mono text-xs">{loan.bill_code}</span>
-                        <span className="text-white font-bold text-sm">{loan.full_name}</span>
+                        <span 
+                          onClick={() => {
+                            setSelectedCustomerName(loan.full_name);
+                            setCustomerProfileModalOpen(true);
+                          }}
+                          className="text-white font-bold text-sm hover:text-purple-400 underline cursor-pointer"
+                        >
+                          {loan.full_name} 🔍
+                        </span>
                         <span className="text-[10px] px-2 py-0.5 rounded bg-purple-950 border border-purple-800 text-purple-300 font-semibold">{loan.loan_type}</span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-950 border border-emerald-800 text-emerald-300' :
@@ -865,11 +905,6 @@ export default function AdminDashboard() {
                         <span>📱 โทร: <strong className="text-slate-200">{loan.phone || '-'}</strong></span>
                         <span>💰 ต้นคงเหลือ: <strong className="text-amber-400 font-mono">฿{currentPrin.toLocaleString()}</strong></span>
                         <span>📈 ดอกสะสม: <strong className="text-pink-400 font-mono">฿{Math.round(accrued).toLocaleString()}</strong></span>
-                        {latestPayment && (
-                          <span className="text-emerald-400 font-mono">
-                            | ล่าสุด: ฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()}
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -1255,7 +1290,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Hidden capture element for image download */}
             <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
               <div ref={hiddenCaptureRef} style={{ width: '400px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #f43f5e', paddingBottom: '12px', marginBottom: '16px' }}>
@@ -1423,6 +1457,167 @@ export default function AdminDashboard() {
                 >
                   ❌ ปฏิเสธ
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Profile & History Modal */}
+      {customerProfileModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-slate-900 border border-purple-500/40 rounded-2xl p-4 sm:p-6 max-w-2xl w-full space-y-4 text-white shadow-2xl relative my-auto max-h-[85vh] flex flex-col text-xs">
+            
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2.5 shrink-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-purple-300">👤 ประวัติลูกค้า: {selectedCustomerName}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    setEditName(selectedCustomerName);
+                    setEditPhone(customerInfo.phone || '');
+                    setEditFacebook(customerInfo.facebook_link || '');
+                    setEditBankName(customerInfo.bank_name || '');
+                    setEditAccountNumber(customerInfo.account_number || '');
+                    setEditCustomerModalOpen(true);
+                  }}
+                  className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-xs cursor-pointer shadow"
+                >
+                  แก้ไขข้อมูล
+                </button>
+                <button onClick={() => setCustomerProfileModalOpen(false)} className="text-slate-400 hover:text-white font-bold text-base cursor-pointer">✕</button>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 grid grid-cols-2 gap-2 text-[11px]">
+              <div>เบอร์โทร: <strong className="text-white font-mono">{customerInfo.phone || '-'}</strong></div>
+              <div>Facebook: <strong className="text-blue-400 font-mono">{customerInfo.facebook_link || '-'}</strong></div>
+              <div>ธนาคาร: <strong className="text-white">{customerInfo.bank_name || '-'}</strong></div>
+              <div>เลขบัญชี: <strong className="text-amber-400 font-mono">{customerInfo.account_number || '-'}</strong></div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              <div>
+                <h4 className="font-bold text-slate-300 mb-1.5">รายการบิลของลูกค้า ({customerLoans.length} บิล)</h4>
+                {customerLoans.length === 0 ? (
+                  <div className="text-slate-500 text-center py-4 bg-slate-950 rounded-xl">ไม่พบประวัติบิลสินเชื่อ</div>
+                ) : (
+                  <div className="space-y-2">
+                    {customerLoans.map(l => (
+                      <div key={l.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center">
+                        <div>
+                          <div className="font-bold text-white flex items-center gap-2">
+                            <span className="font-mono text-pink-400">{l.bill_code}</span>
+                            <span>({l.loan_type})</span>
+                            <span className="text-[10px] text-slate-400">{l.status}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1">
+                            เงินต้น: ฿{Number(l.principal_amount || 0).toLocaleString()} | คงเหลือ: <strong className="text-amber-400 font-mono">฿{Number(l.remaining_principal ?? l.principal_amount ?? 0).toLocaleString()}</strong>
+                          </div>
+                        </div>
+                        {l.status === 'อนุมัติแล้ว' && (
+                          <button
+                            onClick={() => {
+                              setSelectedPaymentLoan(l);
+                              setPaymentAmount('');
+                              setFineAmount('');
+                              setDiscountAmount('');
+                              setPaymentNote('');
+                              setPaymentModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-xs cursor-pointer shadow"
+                          >
+                            รับชำระ
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 pt-2 border-t border-slate-800 flex justify-end">
+              <button 
+                onClick={() => setCustomerProfileModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs cursor-pointer"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Customer Modal */}
+      {editCustomerModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+          <div className="bg-slate-900 border border-purple-500/40 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-white text-xs max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
+              <h3 className="font-bold text-purple-300 text-sm">✏️ แก้ไขข้อมูลลูกค้า</h3>
+              <button onClick={() => setEditCustomerModalOpen(false)} className="text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">ชื่อ-นามสกุล *</label>
+                <input 
+                  type="text" required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs outline-none text-white font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">เบอร์โทรศัพท์</label>
+                <input 
+                  type="text" 
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs outline-none font-mono text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">ลิงก์ Facebook</label>
+                <input 
+                  type="text" 
+                  value={editFacebook}
+                  onChange={(e) => setEditFacebook(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs outline-none text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">ธนาคาร</label>
+                <select
+                  value={editBankName}
+                  onChange={(e) => setEditBankName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs outline-none text-white font-bold"
+                >
+                  <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                  <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                  <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                  <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">เลขบัญชี / พร้อมเพย์</label>
+                <input 
+                  type="text" 
+                  value={editAccountNumber}
+                  onChange={(e) => setEditAccountNumber(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs outline-none font-mono text-white"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex gap-2 justify-end">
+                <button type="button" onClick={() => setEditCustomerModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl cursor-pointer">ยกเลิก</button>
+                <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow cursor-pointer">บันทึก</button>
               </div>
             </form>
           </div>
