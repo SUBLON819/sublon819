@@ -62,20 +62,23 @@ function isDateInSchedule(scheduleStr, targetDateStr) {
   }
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับค้างชำระเรียลไทม์
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
+  const currentFine = Number(loan.fine_amount || 0);
+
   if (loan.loan_type === 'จบต้นดอก') {
-    return Number(loan.total_interest || 0);
+    return Number(loan.total_interest || 0) + currentFine;
   }
 
-  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
+  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) {
+    return currentFine;
+  }
   
   const oldRemainingInterest = Number(loan.remaining_interest || 0);
-  
   const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
-  if (!startDateStr) return oldRemainingInterest;
+  if (!startDateStr) return oldRemainingInterest + currentFine;
 
   const cleanStartDate = startDateStr.split('T')[0];
   const [startYear, startMonth, startDay] = cleanStartDate.split('-').map(Number);
@@ -87,11 +90,9 @@ function calculateAccruedInterest(loan) {
   
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
   diffDays += 1;
 
   const days = Math.max(0, diffDays);
-  
   const origPrin = Number(loan.principal_amount || 0);
   const currentPrin = Number(loan.remaining_principal ?? origPrin);
   let dailyRate = Number(loan.daily_interest || 0);
@@ -101,9 +102,7 @@ function calculateAccruedInterest(loan) {
     dailyRate = (originalDailyInt * currentPrin) / origPrin;
   }
 
-  const newlyAccrued = days * dailyRate;
-
-  return newlyAccrued + oldRemainingInterest;
+  return (days * dailyRate) + oldRemainingInterest + currentFine;
 }
 
 export default function AdminDashboard() {
@@ -276,7 +275,7 @@ export default function AdminDashboard() {
     return dateObj.toISOString().split('T')[0];
   };
 
-  // 📌 กรองเฉพาะรายการที่เป็นการรับเงินสดจริงๆ วันนี้ (ตัดส่วนลด และตัดรายการเพิ่มปรับออก)[cite: 7, 8, 9, 10]
+  // 📌 กรองเฉพาะรายการที่เป็นการรับเงินสดจริงๆ วันนี้ (ตัดส่วนลด และตัดรายการเพิ่มปรับออก)[cite: 7, 8]
   const todayPayments = payments.filter(p => {
     const payDate = formatThaiDate(p.created_at);
     const isToday = payDate === todayStr;
@@ -305,7 +304,13 @@ export default function AdminDashboard() {
     .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
   
   const totalInterestCollected = payments.reduce((sum, p) => {
-    const targetLoan = loans.find(l => l.id === p.loan_id);
+    const note = (p.note || '').toLowerCase();
+    const amt = Number(p.amount || 0);
+    if ((note.includes('เพิ่มค่าปรับ') && Number(p.principal_paid || 0) === 0 && Number(p.interest_paid || 0) === 0) || note.includes('ให้ส่วนลด') || amt === 0) {
+      return sum;
+    }
+
+    const targetLoan = loans.find(l => String(l.id) === String(p.loan_id));
     const isPendingClear = targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์');
     
     const profitFromThisPayment = isPendingClear 
@@ -503,7 +508,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก[cite: 7, 8, 9]
+  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก[cite: 7, 8]
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -524,7 +529,7 @@ export default function AdminDashboard() {
       let principalPaid = 0;
       
       let newRemPrin = currentPrin;
-      let newRemainingInterest = totalAccruedBefore;
+      let newRemainingInterest = totalAccruedBefore - currentFine;
       let newTotalFine = currentFine;
 
       let recordAmount = 0;
@@ -541,13 +546,13 @@ export default function AdminDashboard() {
           newTotalFine -= finePaid;
         }
 
-        if (totalAccruedBefore > 0 && rem > 0) {
+        if (newRemainingInterest > 0 && rem > 0) {
           if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
             interestPaid = 0;
           } else {
-            interestPaid = Math.min(totalAccruedBefore, rem);
+            interestPaid = Math.min(newRemainingInterest, rem);
             rem -= interestPaid;
-            newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+            newRemainingInterest = Math.max(0, newRemainingInterest - interestPaid);
           }
         }
 
@@ -556,13 +561,12 @@ export default function AdminDashboard() {
           newRemPrin = Math.max(0, currentPrin - principalPaid);
         }
 
-        if (!noteText) noteText = 'รับชำระปกติ (ตัด ค่าปรับ/ดอกเบี้ย/ต้น)';
+        if (!noteText) noteText = 'รับชำระปกติ';
 
       } else if (paymentMode === 'ส่วนลด') {
-        recordAmount = 0; // ส่วนลดไม่นับเป็นเงินสดรับเข้า
+        recordAmount = 0; 
         let remDiscount = val;
 
-        // ลำดับหักส่วนลด: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
         if (currentFine > 0 && remDiscount > 0) {
           const discFine = Math.min(currentFine, remDiscount);
           remDiscount -= discFine;
@@ -584,7 +588,7 @@ export default function AdminDashboard() {
         if (!noteText) noteText = `ให้ส่วนลด -${val}`;
 
       } else if (paymentMode === 'เพิ่มปรับ') {
-        recordAmount = val; // นับเป็นการเพิ่มค่าปรับเข้ามาและรับชำระค่าปรับเพิ่ม
+        recordAmount = val;
         finePaid = val;
         newTotalFine += val;
 
@@ -595,11 +599,9 @@ export default function AdminDashboard() {
       const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
       if (selectedPaymentLoan.loan_type === 'ดอกลอย' && origPrin > 0) {
         const originalDailyInt = Number(selectedPaymentLoan.daily_interest || 0);
-        const ratio = originalDailyInt / origPrin;
-        newDailyInterest = newRemPrin * ratio;
+        newDailyInterest = newRemPrin * (originalDailyInt / origPrin);
       }
 
-      // บันทึกประวัติลงตาราง payments
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -611,29 +613,19 @@ export default function AdminDashboard() {
         fine_amount: finePaid,
         discount_amount: paymentMode === 'ส่วนลด' ? val : 0,
         note: noteText,
-        created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
+        created_at: new Date().toISOString(),
       }]);
 
       if (payErr) throw payErr;
 
-      const todayDateStr = getThaiTodayString();
-      const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
-
-      const getTomorrowDate = (dateStr) => {
-        const baseDate = dateStr ? new Date(dateStr) : new Date();
-        baseDate.setDate(baseDate.getDate() + 1);
-        return baseDate.toISOString().split('T')[0];
-      };
-
-      const nextInterestStartDate = getTomorrowDate(todayDateStr);
+      const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0 && newTotalFine === 0;
 
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
         remaining_interest: newRemainingInterest,
         fine_amount: newTotalFine,
-        interest_start_date: nextInterestStartDate,
-        calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
+        interest_start_date: calculateInterestStartDate(getThaiTodayString(), true),
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
 
@@ -730,7 +722,7 @@ export default function AdminDashboard() {
               <h1 className="text-base sm:text-2xl font-black text-white drop-shadow-sm">
                 แผงควบคุมการบันทึกข้อมูลด่วน
               </h1>
-              <p className="text-[10px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์[cite: 7, 8, 9, 10]</p>
+              <p className="text-[10px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์[cite: 7, 8]</p>
             </div>
           </div>
 
@@ -811,10 +803,11 @@ export default function AdminDashboard() {
               <div className="text-lg sm:text-2xl font-black font-mono text-emerald-600 truncate">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
+            {/* 📌 ดอกเบี้ยและค่าปรับสะสมรอเก็บ (รวมค่าปรับในนี้เรียบร้อยแล้ว) */}
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: ดอกเบี้ยสะสมรอเก็บ (เรียลไทม์)');
-                const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว' && (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก' || (l.loan_type && l.loan_type.includes('รอเคลียร์')))).map(l => ({
+                setStatModalTitle('ที่มาของยอด: ดอกเบี้ยและค่าปรับสะสมรอเก็บ');
+                const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว').map(l => ({
                   ...l,
                   calculated_accrued: calculateAccruedInterest(l)
                 })).filter(l => l.calculated_accrued > 0);
@@ -824,7 +817,7 @@ export default function AdminDashboard() {
               className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
             >
               <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
-                <span>ดอกเบี้ยสะสมรอเก็บ</span>
+                <span>ดอกเบี้ยและค่าปรับสะสมรอเก็บ</span>
                 <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
               </div>
               <div className="text-lg sm:text-2xl font-black font-mono text-[color:#ff007f] truncate animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
@@ -866,8 +859,15 @@ export default function AdminDashboard() {
 
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: ประวัติการเก็บดอกเบี้ยและค่าปรับทั้งหมด');
-                setStatModalData(payments);
+                setStatModalTitle('ที่มาของยอด: กำไรสะสม');
+                const validPays = payments.filter(p => {
+                  const note = (p.note || '').toLowerCase();
+                  const amt = Number(p.amount || p.payment_amount || 0);
+                  if (amt <= 0 || note.includes('ให้ส่วนลด')) return false;
+                  if (note.includes('เพิ่มค่าปรับ') && Number(p.principal_paid || 0) === 0 && Number(p.interest_paid || 0) === 0) return false;
+                  return true;
+                });
+                setStatModalData(validPays);
                 setStatModalOpen(true);
               }}
               className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
@@ -967,7 +967,6 @@ export default function AdminDashboard() {
                           <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
                           <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
                             <Clock className="w-3 h-3" />
-                            {/* 📌 ยึดตาม loan_date หรือวันที่คำขอเดิม */}
                             สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
                           </span>
                           {!isPending && (
@@ -1929,7 +1928,6 @@ export default function AdminDashboard() {
                   ? `${approvalData.schedule_start}-${approvalData.schedule_end}` 
                   : approvalData.payment_schedule;
 
-                // 📌 ยึดวันที่ตามคำขอเดิม (loan_date หรือ created_at เดิม)
                 const correctLoanDate = selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || getThaiTodayString();
 
                 const { error } = await supabase
@@ -1944,7 +1942,7 @@ export default function AdminDashboard() {
                     calc_next_day: approvalData.calc_next_day,
                     loan_date: correctLoanDate,
                     interest_start_date: correctLoanDate,
-                    created_at: selectedLoanForApproval.created_at || new Date().toISOString(), // 📌 รักษาเวลา/วันที่สร้างเดิมไว้
+                    created_at: selectedLoanForApproval.created_at || new Date().toISOString(),
                   })
                   .eq('id', selectedLoanForApproval.id);
 
