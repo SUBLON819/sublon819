@@ -276,10 +276,25 @@ export default function AdminDashboard() {
     return dateObj.toISOString().split('T')[0];
   };
 
+  // 📌 กรองเฉพาะรายการที่เป็นการรับเงินสดจริงๆ วันนี้ (ตัดส่วนลด และตัดรายการเพิ่มปรับออก)[cite: 7, 8, 9, 10]
   const todayPayments = payments.filter(p => {
     const payDate = formatThaiDate(p.created_at);
-    return payDate === todayStr;
+    const isToday = payDate === todayStr;
+    if (!isToday) return false;
+
+    const note = (p.note || '').toLowerCase();
+    const amt = Number(p.amount || p.payment_amount || 0);
+
+    // ตัดส่วนลดหรือยอด 0 ออก
+    if (amt <= 0 || note.includes('ให้ส่วนลด')) return false;
+    // ตัดรายการเพิ่มค่าปรับออก (เพราะยังไม่ได้จ่ายเงินสดเข้ามาจริง)
+    if (note.includes('เพิ่มค่าปรับ') && Number(p.principal_paid || 0) === 0 && Number(p.interest_paid || 0) === 0) {
+      return false;
+    }
+
+    return true;
   });
+
   const todayCollectedCash = todayPayments.reduce((sum, p) => sum + Number(p.amount || p.payment_amount || 0), 0);
   
   const totalAccruedInterestAll = loans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
@@ -490,7 +505,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก
+  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก[cite: 7, 8, 9]
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -717,7 +732,7 @@ export default function AdminDashboard() {
               <h1 className="text-base sm:text-2xl font-black text-white drop-shadow-sm">
                 แผงควบคุมการบันทึกข้อมูลด่วน
               </h1>
-              <p className="text-[10px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์</p>
+              <p className="text-[10px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์[cite: 7, 8, 9, 10]</p>
             </div>
           </div>
 
