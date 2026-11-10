@@ -917,7 +917,7 @@ export default function AdminDashboard() {
                             className="px-4 py-2.5 sm:py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <FileText className="w-3.5 h-3.5" />
-                            <span>ออกบิลแจ้งยอด (NOTICE)</span>
+                            <span>NOTICE</span>
                           </button>
                         </>
                       )}
