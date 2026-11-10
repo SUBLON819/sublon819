@@ -3,12 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell, RotateCcw
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
-
-// 📌 นำเข้า Component กลางสำหรับแสดงประวัติลูกค้า
-import CustomerDetail from '@/components/CustomerDetail';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
 function getThaiTodayString() {
@@ -23,14 +20,6 @@ function formatThaiDate(dateInput) {
   const dateObj = new Date(dateInput);
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
-}
-
-// 📌 ฟังก์ชันดึงเวลา (HH:mm) ตามเวลาไทย
-function formatThaiTime(dateInput) {
-  if (!dateInput) return '';
-  const dateObj = new Date(dateInput);
-  const options = { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false };
-  return new Intl.DateTimeFormat('en-GB', options).format(dateObj);
 }
 
 // 📌 ฟังก์ชันตรวจสอบรอบวันที่เก็บเงิน
@@ -116,21 +105,9 @@ export default function AdminDashboard() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  
-  const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
-  const [editingLoanId, setEditingLoanId] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editFacebook, setEditFacebook] = useState('');
-  const [editBankName, setEditBankName] = useState('');
-  const [editAccountNumber, setEditAccountNumber] = useState('');
 
   const [filterTab, setFilterTab] = useState('บิลรอเก็บ');
   const [selectedReportDate, setSelectedReportDate] = useState('');
-
-  const [statModalOpen, setStatModalOpen] = useState(false);
-  const [statModalTitle, setStatModalTitle] = useState('');
-  const [statModalData, setStatModalData] = useState([]);
 
   const [selectedLoanForApproval, setSelectedLoanForApproval] = useState(null);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
@@ -174,24 +151,8 @@ export default function AdminDashboard() {
   const [discountAmount, setDiscountAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
 
-  const [customerProfileModalOpen, setCustomerProfileModalOpen] = useState(false);
-  const [selectedCustomerName, setSelectedCustomerName] = useState('');
-
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
   const reportRef = useRef(null);
-
-  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
-  const [noticeLoan, setNoticeLoan] = useState(null);
-  const [customNoticeAmount, setCustomNoticeAmount] = useState('');
-  const [adminBankList, setAdminBankList] = useState([]);
-  const [noticeForm, setNoticeForm] = useState({
-    bank_name: '',
-    account_number: '',
-    account_name: '',
-    qr_code_image: ''
-  });
-  
-  const hiddenCaptureRef = useRef(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -240,34 +201,8 @@ export default function AdminDashboard() {
     setTodayStr(todayStrThai);
     setSelectedReportDate(todayStrThai);
     setNewLoanData(prev => ({ ...prev, loan_date: todayStrThai, cycle_date: todayStrThai }));
-    
-    const savedBanks = localStorage.getItem('admin_saved_banks');
-    if (savedBanks) {
-      try {
-        const parsed = JSON.parse(savedBanks);
-        setAdminBankList(parsed);
-        if (parsed.length > 0) {
-          setNoticeForm(parsed[0]);
-        }
-      } catch (e) { console.error(e); }
-    }
-
     fetchData();
   }, []);
-
-  const handleNameChange = (val) => {
-    setNewLoanData(prev => ({ ...prev, full_name: val }));
-    const found = customerSuggestions.find(c => c.full_name.toLowerCase() === val.toLowerCase());
-    if (found) {
-      setNewLoanData(prev => ({
-        ...prev,
-        phone: found.phone,
-        facebook_link: found.facebook_link,
-        bank_name: found.bank_name || prev.bank_name,
-        account_number: found.account_number
-      }));
-    }
-  };
 
   const calculateInterestStartDate = (txDate, isNextDay) => {
     if (!txDate) return txDate;
@@ -284,25 +219,9 @@ export default function AdminDashboard() {
   });
   const todayCollectedCash = todayPayments.reduce((sum, p) => sum + Number(p.amount || p.payment_amount || 0), 0);
   
-  const totalAccruedInterestAll = loans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
-  const totalActivePrincipal = loans
-    .filter(l => (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก') && l.status === 'อนุมัติแล้ว')
-    .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
-  
-  const totalPendingBalance = loans
-    .filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && l.status !== 'ปฏิเสธคำขอ')
-    .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
-  
-  const totalInterestCollected = payments.reduce((sum, p) => {
-    const targetLoan = loans.find(l => l.id === p.loan_id);
-    const isPendingClear = targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์');
-    
-    const profitFromThisPayment = isPendingClear 
-      ? Number(p.payment_amount || p.amount || 0) 
-      : (Number(p.interest_paid || 0) + Number(p.fine_amount || 0));
-
-    return sum + profitFromThisPayment;
-  }, 0);
+  const totalAccruedInterestAll = loans
+    .filter(l => l.status !== 'ถังขยะ' && l.status !== 'ปฏิเสธคำขอ')
+    .reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
 
   const pendingApprovalCount = loans.filter(l => l.status === 'รออนุมัติ' || l.status === 'รอตรวจสอบ').length;
 
@@ -336,163 +255,59 @@ export default function AdminDashboard() {
     }, 500);
   };
 
-  const handleDownloadNoticeImage = async () => {
-    const element = hiddenCaptureRef.current;
-    if (!element) return;
+  // 🗑️ ฟังก์ชันย้ายบิลไปถังขยะ (Soft Delete)
+  const handleMoveToTrash = async (loanId, billCode) => {
+    if (!confirm(`คุณต้องการย้ายบิลรหัส "${billCode}" ไปที่ถังขยะใช่หรือไม่?`)) return;
 
-    if (noticeForm.bank_name || noticeForm.account_number) {
-      const existing = [...adminBankList];
-      const index = existing.findIndex(b => b.account_number === noticeForm.account_number && b.bank_name === noticeForm.bank_name);
-      if (index >= 0) {
-        existing[index] = noticeForm;
-      } else {
-        existing.unshift(noticeForm);
-      }
-      setAdminBankList(existing);
-      localStorage.setItem('admin_saved_banks', JSON.stringify(existing));
-    }
-
-    try {
-      const canvas = await html2canvas(element, { 
-        scale: 3, 
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 400,
-      });
-      const image = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = image;
-      link.download = `Notice-${noticeLoan?.bill_code || 'Bill'}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการดาวน์โหลดภาพ: ' + err.message);
-    }
-  };
-
-  const handleShareNoticeImage = async () => {
-    const element = hiddenCaptureRef.current;
-    if (!element) return;
-    try {
-      const canvas = await html2canvas(element, { 
-        scale: 3, 
-        useCORS: true, 
-        backgroundColor: '#ffffff',
-        windowWidth: 400,
-      });
-      
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], `Notice-${noticeLoan?.bill_code || 'Bill'}.png`, { type: 'image/png' });
-        
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: 'แจ้งยอดค้างชำระ (NOTICE)',
-              text: `รหัสบิล: ${noticeLoan?.bill_code} ยอดชำระ: ${customNoticeAmount} บาท`,
-            });
-          } catch (error) {
-            if (error.name !== 'AbortError') console.log('Share error:', error);
-          }
-        } else {
-          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง แนะนำให้กดดาวน์โหลดรูปภาพแทนครับ');
-        }
-      }, 'image/png');
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการสร้างภาพสำหรับแชร์: ' + err.message);
-    }
-  };
-
-  const handleSaveNewLoan = async (e) => {
-    e.preventDefault();
-    try {
-      const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
-      const principal = Number(newLoanData.principal_amount || 0);
-      const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
-        ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
-        : newLoanData.payment_schedule;
-
-      const { error } = await supabase.from('loans').insert([{
-        bill_code: 'LN-' + Math.floor(10000 + Math.random() * 90000),
-        full_name: newLoanData.full_name,
-        phone: String(newLoanData.phone || '').trim(),
-        facebook_link: newLoanData.facebook_link,
-        loan_type: newLoanData.loan_type,
-        principal_amount: principal,
-        remaining_principal: principal,
-        remaining_interest: 0,
-        status: 'อนุมัติแล้ว',
-        bank_name: newLoanData.bank_name,
-        account_number: newLoanData.account_number,
-        loan_date: newLoanData.loan_date || todayStr,
-        cycle_date: newLoanData.cycle_date || null,
-        interest_start_date: interestStartDate,
-        calc_next_day: newLoanData.calc_next_day,
-        daily_interest: newLoanData.loan_type === 'ดอกลอย' ? Number(newLoanData.daily_interest || 0) : 0,
-        total_interest: newLoanData.loan_type === 'จบต้นดอก' ? Number(newLoanData.total_interest || 0) : 0,
-        installment_amount: Number(newLoanData.installment_amount || 0),
-        total_installments: Number(newLoanData.installment_count || 0),
-        payment_schedule: scheduleStr,
-        created_at: new Date().toISOString(),
-      }]);
-
-      if (error) throw error;
-      alert('บันทึกรายการปล่อยกู้ใหม่เรียบร้อยแล้ว!');
-      setNewLoanModalOpen(false);
-      fetchData();
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
-    }
-  };
-
-  const handleSaveCustomerInfo = async (e) => {
-    e.preventDefault();
-    if (!editingLoanId) return;
     try {
       const { error } = await supabase
         .from('loans')
-        .update({
-          full_name: editName.trim(),
-          phone: String(editPhone || '').trim(),
-          facebook_link: editFacebook.trim(),
-          bank_name: editBankName,
-          account_number: String(editAccountNumber || '').trim()
-        })
-        .eq('id', editingLoanId);
+        .update({ status: 'ถังขยะ' })
+        .eq('id', loanId);
 
       if (error) throw error;
-
-      alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
-      setEditCustomerModalOpen(false);
+      alert('ย้ายบิลไปยังถังขยะเรียบร้อยแล้ว!');
       fetchData();
     } catch (err) {
-      console.error('Error updating customer:', err.message);
-      alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
+      alert('เกิดข้อผิดพลาด: ' + err.message);
     }
   };
 
-  const handleDeleteLoan = async (loanId, billCode) => {
-    if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
-      return;
+  // ♻️ ฟังก์ชันกู้คืนบิลจากถังขยะ (Restore)
+  const handleRestoreLoan = async (loanId, billCode) => {
+    if (!confirm(`คุณต้องการกู้คืนบิลรหัส "${billCode}" กลับมาใช้งานใช่หรือไม่?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .update({ status: 'อนุมัติแล้ว' })
+        .eq('id', loanId);
+
+      if (error) throw error;
+      alert('กู้คืนบิลสำเร็จ!');
+      fetchData();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
     }
+  };
+
+  // ❌ ฟังก์ชันลบทิ้งถาวรจากถังขยะ
+  const handlePermanentDelete = async (loanId, billCode) => {
+    if (!confirm(`⚠️ คำเตือน: คุณต้องการลบบิลรหัส "${billCode}" ออกจากระบบอย่างถาวรใช่หรือไม่? (ไม่สามารถกู้คืนได้)`)) return;
 
     try {
       await supabase.from('payments').delete().eq('loan_id', loanId);
       const { error } = await supabase.from('loans').delete().eq('id', loanId);
       if (error) throw error;
 
-      alert('ลบบิลรายการออกจากระบบเรียบร้อยแล้ว!');
+      alert('ลบบิลออกจากระบบอย่างถาวรแล้ว!');
       fetchData();
     } catch (err) {
-      console.error('Error deleting loan:', err.message);
-      alert('เกิดข้อผิดพลาดในการลบบิล: ' + err.message);
+      alert('เกิดข้อผิดพลาด: ' + err.message);
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน (แก้ไขการคำนวณตัดดอกเบี้ย ค่าปรับ และส่วนลดให้ถูกต้องแม่นยำ)
+  // 📌 ฟังก์ชันรับชำระเงิน
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -510,7 +325,6 @@ export default function AdminDashboard() {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
 
-      // 1. จัดการส่วนลดและค่าปรับก่อน
       let remainingDiscount = discountVal;
       let effectiveFine = fineInputVal;
       
@@ -543,19 +357,14 @@ export default function AdminDashboard() {
         
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       } else {
-        // 2. นำเงินสดที่เหลือมาตัด "ดอกเบี้ยสะสม" (แก้ไขจุดที่เคยผิดพลาดเรียบร้อย)
         interestPaid = Math.min(totalAccruedBefore, remainingPayment);
         remainingPayment -= interestPaid;
-        
-        // ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย - ดอกเบี้ยที่จ่ายไป
         newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
 
-        // 3. นำเงินสดที่เหลือไปตัด "เงินต้น" (ถ้ามีเหลือ)
         principalPaid = Math.min(currentPrin, remainingPayment);
         newRemPrin = Math.max(0, currentPrin - principalPaid);
       }
 
-      // 4. หากยังมีส่วนลดเหลืออยู่ นำไปตัดดอกเบี้ยสะสมที่เหลือ หรือตัดเงินต้นเพิ่ม
       if (remainingDiscount > 0) {
         if (newRemainingInterest > 0) {
           const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
@@ -575,7 +384,6 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
-      // บันทึกประวัติการชำระลงฐานข้อมูล
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -595,26 +403,18 @@ export default function AdminDashboard() {
       const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 🟢 ฟังก์ชันคำนวณวันพรุ่งนี้ (วันถัดไป)
       const getTomorrowDate = (dateStr) => {
         const baseDate = dateStr ? new Date(dateStr) : new Date();
         baseDate.setDate(baseDate.getDate() + 1);
         return baseDate.toISOString().split('T')[0];
       };
-
-      // 🟢 บังคับให้หลังตัดยอดหรือเพิ่มค่าปรับแล้ว ขยับวันเริ่มคิดดอกเบี้ยรอบถัดไปเป็น "วันพรุ่งนี้" เสมอ
       const nextInterestStartDate = getTomorrowDate(todayDateStr);
 
-      // อัปเดตข้อมูลตาราง loans
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
         remaining_interest: newRemainingInterest,
         interest_start_date: nextInterestStartDate,
-        
-        // 🟢 แก้ไขตรงนี้เป็น fineAmount ให้ตรงกับชื่อ State ในระบบ
-        fine_amount: Math.max(0, Number(selectedPaymentLoan.fine_amount || 0) - Number(fineAmount || 0)),
-
         calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
@@ -647,6 +447,14 @@ export default function AdminDashboard() {
 
     const status = loan.status || 'รออนุมัติ';
     const targetCheckDate = selectedReportDate || todayStr;
+
+    // 🗑️ เงื่อนไขกรองบิลในถังขยะ
+    if (filterTab === 'ถังขยะ') {
+      return status === 'ถังขยะ';
+    }
+
+    // หากอยู่แท็บอื่นๆ ให้ซ่อนบิลที่เป็นถังขยะออกไป
+    if (status === 'ถังขยะ') return false;
 
     if (filterTab === 'บิลรอเก็บ') {
       if (status !== 'อนุมัติแล้ว') return false;
@@ -694,18 +502,14 @@ export default function AdminDashboard() {
     return timeB - timeA;
   });
 
-  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName && l.status !== 'ปฏิเสธคำขอ');
-  const customerLoanIds = new Set(customerLoans.map(l => l.id));
-  const customerPayments = payments.filter(p => customerLoanIds.has(p.loan_id));
-  const customerInfo = customerLoans[0] || {};
+  const trashCount = loans.filter(l => l.status === 'ถังขยะ').length;
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
-      
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(147,51,234,0.35),rgba(255,255,255,0))] flex font-sans text-base box-border overflow-x-hidden">
       <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-6">
 
         {/* Header Control Panel */}
-        <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
+        <div className="bg-gradient-to-r from-purple-900 via-fuchsia-900 to-pink-900 border border-purple-500/40 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -776,6 +580,235 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full">
+          <div className="bg-slate-900/90 border border-slate-800 p-3 sm:p-4 rounded-xl shadow-md">
+            <div className="text-slate-400 text-[11px] sm:text-xs font-semibold">ยอดเก็บสดวันนี้</div>
+            <div className="text-sm sm:text-lg font-bold font-mono text-emerald-400 mt-0.5">฿{todayCollectedCash.toLocaleString()}</div>
+          </div>
+          <div className="bg-slate-900/90 border border-slate-800 p-3 sm:p-4 rounded-xl shadow-md">
+            <div className="text-slate-400 text-[11px] sm:text-xs font-semibold">ดอกเบี้ยค้างสะสมรวม</div>
+            <div className="text-sm sm:text-lg font-bold font-mono text-pink-400 mt-0.5">฿{Math.round(totalAccruedInterestAll).toLocaleString()}</div>
+          </div>
+        </div>
+
+        {/* Tab Filters (รวมแท็บถังขยะ) */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด', 'ถังขยะ'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilterTab(tab)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                filterTab === tab 
+                  ? 'bg-purple-600 text-white shadow-lg' 
+                  : 'bg-slate-900/80 text-slate-400 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              {tab} 
+              {tab === 'รออนุมัติ' && pendingApprovalCount > 0 ? `(${pendingApprovalCount})` : ''}
+              {tab === 'ถังขยะ' && trashCount > 0 ? `(${trashCount})` : ''}
+            </button>
+          ))}
+        </div>
+
+        {/* Loans Table / Content Area */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+            <h3 className="font-bold text-xs sm:text-sm text-purple-300">
+              {filterTab === 'ถังขยะ' ? '🗑️ รายการบิลในถังขยะ' : `รายการสินเชื่อ`} ({filteredLoans.length})
+            </h3>
+            <span className="text-xs text-slate-400 font-mono">วันที่ตรวจสอบ: {selectedReportDate || todayStr}</span>
+          </div>
+
+          <div className="divide-y divide-slate-800">
+            {loading ? (
+              <div className="p-8 text-center text-xs text-slate-500">กำลังโหลดข้อมูล...</div>
+            ) : filteredLoans.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500">ไม่พบรายการสินเชื่อในหมวดหมู่นี้</div>
+            ) : (
+              filteredLoans.map((loan) => {
+                const accrued = calculateAccruedInterest(loan);
+                const currentPrin = Number(loan.remaining_principal ?? loan.principal_amount ?? 0);
+                
+                return (
+                  <div key={loan.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-800/40 transition-colors">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-pink-400 font-mono text-xs">{loan.bill_code}</span>
+                        <span className="text-white font-bold text-sm">{loan.full_name}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-950 border border-purple-800 text-purple-300 font-semibold">{loan.loan_type}</span>
+                        {loan.status === 'ถังขยะ' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-red-950 border border-red-800 text-red-300 font-bold">อยู่ในถังขยะ</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400 space-x-3">
+                        <span>📱 โทร: <strong className="text-slate-200">{loan.phone || '-'}</strong></span>
+                        <span>💰 ต้นคงเหลือ: <strong className="text-amber-400 font-mono">฿{currentPrin.toLocaleString()}</strong></span>
+                        <span>📈 ดอกสะสม: <strong className="text-pink-400 font-mono">฿{Math.round(accrued).toLocaleString()}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      {loan.status === 'ถังขยะ' ? (
+                        <>
+                          <button
+                            onClick={() => handleRestoreLoan(loan.id, loan.bill_code)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer shadow flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>กู้คืน</span>
+                          </button>
+                          <button
+                            onClick={() => handlePermanentDelete(loan.id, loan.bill_code)}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold cursor-pointer shadow flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>ลบถาวร</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {loan.status === 'รออนุมัติ' ? (
+                            <button
+                              onClick={() => {
+                                setSelectedLoanForApproval(loan);
+                                setApprovalModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold cursor-pointer shadow"
+                            >
+                              ตรวจสอบ/อนุมัติ
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedPaymentLoan(loan);
+                                setPaymentAmount('');
+                                setFineAmount('');
+                                setDiscountAmount('');
+                                setPaymentNote('');
+                                setPaymentModalOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold cursor-pointer shadow"
+                            >
+                              รับชำระเงิน
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleMoveToTrash(loan.id, loan.bill_code)}
+                            className="p-1.5 bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                            title="ย้ายไปถังขยะ"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* 🟢 Payment Modal */}
+      {paymentModalOpen && selectedPaymentLoan && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full space-y-4 text-white shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-sm text-pink-400">บันทึกรับชำระเงิน ({selectedPaymentLoan.bill_code})</h3>
+              <button onClick={() => setPaymentModalOpen(false)} className="font-bold cursor-pointer text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <form onSubmit={handleSavePayment} className="space-y-3">
+              <div className="text-xs bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                <div>ลูกค้า: <span className="font-bold text-white">{selectedPaymentLoan.full_name}</span></div>
+                <div>ประเภท: <span className="text-pink-400 font-bold">{selectedPaymentLoan.loan_type}</span></div>
+                <div>ยอดต้นคงเหลือ: <span className="font-mono font-bold text-amber-400">฿{Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0).toLocaleString()}</span></div>
+                <div>ดอกเบี้ยสะสมปัจจุบัน: <span className="font-mono font-bold text-pink-400">฿{Math.round(calculateAccruedInterest(selectedPaymentLoan)).toLocaleString()}</span></div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-xs text-purple-300">ยอดชำระเงินสดหลัก (บาท)</label>
+                <input 
+                  type="number" placeholder="0"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm font-mono font-bold text-emerald-400 outline-none focus:border-pink-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-xs text-amber-300">⚡ ค่าปรับ (บาท)</label>
+                <input 
+                  type="number" placeholder="0"
+                  value={fineAmount}
+                  onChange={(e) => setFineAmount(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm font-mono font-bold text-amber-400 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-semibold text-xs text-purple-300">ส่วนลด (-) บาท</label>
+                  <input 
+                    type="number" placeholder="0"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-white outline-none focus:border-pink-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-xs text-purple-300">หมายเหตุ</label>
+                  <input 
+                    type="text" placeholder="ระบุหมายเหตุ..."
+                    value={paymentNote}
+                    onChange={(e) => setPaymentNote(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white outline-none focus:border-pink-500"
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-bold rounded-lg text-xs cursor-pointer shadow-lg mt-2">
+                ยืนยันการรับชำระ
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🟢 Daily Report Modal */}
+      {dailyReportModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-purple-500/40 rounded-2xl p-6 max-w-2xl w-full space-y-4 text-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-sm text-purple-300">รายงานสรุปประจำวัน</h3>
+              <div className="flex items-center gap-2">
+                <button onClick={handlePrintReport} className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold cursor-pointer">พิมพ์รายงาน</button>
+                <button onClick={() => setDailyReportModalOpen(false)} className="font-bold cursor-pointer text-slate-400 hover:text-white">✕</button>
+              </div>
+            </div>
+
+            <div ref={reportRef} className="bg-white text-slate-800 p-6 rounded-xl space-y-4 text-xs font-sans">
+              <div className="text-center border-b pb-3">
+                <h2 className="text-base font-bold text-purple-900">รายงานสรุปยอดประจำวัน วังทองล้น</h2>
+                <p className="text-[11px] text-slate-500">วันที่ออกรายงาน: {selectedReportDate || todayStr}</p>
+              </div>
+              <div>
+                <p><strong>ยอดเก็บสดรวมวันนี้:</strong> ฿{todayCollectedCash.toLocaleString()}</p>
+                <p><strong>จำนวนรายการรับชำระวันนี้:</strong> {todayPayments.length} รายการ</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
 
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
