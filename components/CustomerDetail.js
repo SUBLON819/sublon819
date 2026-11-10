@@ -75,7 +75,7 @@ export default function CustomerDetail({
   onOpenEditModal,
   onDeleteLoan,
   onOpenPaymentModal,
-  onOpenNoticeModal // 📌 เพิ่มพรอพสำหรับเปิด Modal ออกบิล Notice (ถ้ามีในแดชบอร์ด)
+  onOpenNoticeModal
 }) {
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
@@ -122,8 +122,8 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
         
-        {/* ข้อมูลติดต่อ */}
-        <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm">
+        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice มุมขวาบน */}
+        <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm relative">
           <div>
             <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
             <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
@@ -132,7 +132,25 @@ export default function CustomerDetail({
             <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
             <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
           </div>
-          <div className="sm:col-span-3 flex items-center gap-2">
+
+          {/* 📌 ปุ่มออกบิลแจ้งยอด (NOTICE) มุมขวาบน */}
+          <div className="flex sm:justify-end sm:items-center">
+            {onOpenNoticeModal && customerLoans.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  // ส่งบิลแรกหรือยอดรวมทั้งหมดไปออก Notice
+                  onOpenNoticeModal(customerLoans[0], totalCustomerRemaining + totalCustomerAccruedInterest);
+                }}
+                className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>ออกบิลแจ้งยอดรวม (NOTICE)</span>
+              </button>
+            )}
+          </div>
+
+          <div className="sm:col-span-3 flex items-center gap-2 border-t border-purple-200/60 pt-2 mt-1">
             <span className="text-slate-500 text-[10px]">Facebook:</span> 
             {customerInfo.facebook_link ? (
               <a 
@@ -170,7 +188,7 @@ export default function CustomerDetail({
 
         </div>
 
-        {/* 📌 รายการสัญญาของลูกค้า (ดีไซน์เดียวกับหน้าแดชบอร์ดหลัก) */}
+        {/* รายการสัญญาของลูกค้า */}
         <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
           <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
           
@@ -189,7 +207,6 @@ export default function CustomerDetail({
                 return (
                   <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 transition-all">
                     
-                    {/* ส่วนหัวของการ์ดบิล */}
                     <div className="flex justify-between items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -230,7 +247,6 @@ export default function CustomerDetail({
                       </div>
                     </div>
 
-                    {/* กล่องแสดงตัวเลข 4 ช่อง (เงินต้น, คงเหลือ, ดอกเบี้ย/วัน, ดอกสะสมเรียลไทม์) */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
                       <div>
                         <span className="text-slate-400 block text-[10px]">เงินต้น / ยอดขอกู้:</span>
@@ -250,7 +266,6 @@ export default function CustomerDetail({
                       </div>
                     </div>
 
-                    {/* ปุ่มจัดการด้านล่างการ์ดบิล */}
                     <div className="flex gap-2 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
                       <button
                         type="button"
