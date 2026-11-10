@@ -1225,7 +1225,6 @@ export default function AdminDashboard() {
 
             <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-[11px]">
               <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name}</span></div>
-              <div>เบอร์โทร: <span className="font-mono text-slate-900">{noticeLoan.phone || '-'}</span></div>
               <div className="flex justify-between items-center border-t border-rose-200/60 pt-1 mt-1">
                 <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
                 <input 
