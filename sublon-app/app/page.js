@@ -475,6 +475,7 @@ export default function AdminDashboard() {
 
       const netPrincipalPay = Math.max(0, basePayVal - discountVal);
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
+      const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
 
       let interestPaid = 0;
       let principalPaid = 0;
@@ -486,7 +487,6 @@ export default function AdminDashboard() {
         newRemPrin = Math.max(0, currentPrin - netPrincipalPay);
       } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
         const totalInt = Number(selectedPaymentLoan.total_interest || 0);
-        const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
         const totalPayable = origPrin + totalInt;
         
         const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
@@ -506,12 +506,13 @@ export default function AdminDashboard() {
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
-      const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
       if (selectedPaymentLoan.loan_type === 'ดอกลอย' && origPrin > 0) {
         const originalDailyInt = Number(selectedPaymentLoan.daily_interest || 0);
         const ratio = originalDailyInt / origPrin;
         newDailyInterest = newRemPrin * ratio;
       }
+
+      // ส่วนบันทึกข้อมูลลง Supabase ต่อตามเดิม...
 
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
