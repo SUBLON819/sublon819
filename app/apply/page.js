@@ -2,645 +2,718 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { FileText, Search, User } from 'lucide-react';
+import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle } from 'lucide-react';
 
-// 📌 นำเข้า Component กลางสำหรับแสดงประวัติลูกค้า
-import CustomerDetail from '@/components/CustomerDetail';
-
-// 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
+// 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบเรียลไทม์
 function getThaiTodayString() {
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   const formatter = new Intl.DateTimeFormat('en-CA', options);
   return formatter.format(new Date());
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสมเรียลไทม์ (รองรับ remaining_interest สะสมต่อเนื่อง)
-function calculateAccruedInterest(loan) {
-  if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
-  
-  if (loan.loan_type === 'จบต้นดอก') {
-    return Number(loan.total_interest || 0);
-  }
-
-  if (loan.loan_type !== 'ดอกลอย' && (!loan.loan_type || !loan.loan_type.includes('รอเคลียร์'))) return 0;
-  
-  const oldRemainingInterest = Number(loan.remaining_interest || 0);
-  
-  const startDateStr = loan.interest_start_date || loan.loan_date || loan.created_at;
-  if (!startDateStr) return oldRemainingInterest;
-
-  const cleanStartDate = startDateStr.split('T')[0];
-  const [startYear, startMonth, startDay] = cleanStartDate.split('-').map(Number);
-  const startDate = new Date(startYear, startMonth - 1, startDay);
-
-  const thaiTodayStr = getThaiTodayString();
-  const [todayYear, todayMonth, todayDay] = thaiTodayStr.split('-').map(Number);
-  const today = new Date(todayYear, todayMonth - 1, todayDay);
-  
-  const diffTime = today - startDate;
-  let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (!loan.calc_next_day) {
-    diffDays += 1;
-  }
-  
-  const days = Math.max(0, diffDays);
-  
-  const origPrin = Number(loan.principal_amount || 0);
-  const currentPrin = Number(loan.remaining_principal ?? origPrin);
-  let dailyRate = Number(loan.daily_interest || 0);
-
-  if (origPrin > 0 && loan.loan_type === 'ดอกลอย') {
-    const originalDailyInt = Number(loan.daily_interest || 0);
-    dailyRate = (originalDailyInt * currentPrin) / origPrin;
-  }
-
-  const newlyAccrued = days * dailyRate;
-
-  return newlyAccrued + oldRemainingInterest;
+// 📌 ฟังก์ชันดึงวันที่และเวลาปัจจุบันแบบ ISO / เรียลไทม์ตามเวลาประเทศไทย สำหรับบันทึกส่งเข้าหลังบ้าน
+function getThaiCurrentTimestamp() {
+  const now = new Date();
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(now).replace(' ', 'T');
 }
 
-export default function CustomersPage() {
-  const [loans, setLoans] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+export default function ApplyPage() {
+  const [step, setStep] = useState('otp'); // 'otp', 'verify_otp', 'gps', 'form'
+  const [phone, setPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  
+  const [isOldCustomer, setIsOldCustomer] = useState(false);
+  const [location, setLocation] = useState({ lat: null, lng: null, status: 'ยังไม่ได้ระบุพิกัด' });
+  const [locationError, setLocationError] = useState(false);
 
-  // State สำหรับเปิด-ปิด Modal ดูประวัติรายบุคคล
-  const [customerProfileModalOpen, setCustomerProfileModalOpen] = useState(false);
-  const [selectedCustomerName, setSelectedCustomerName] = useState('');
+  // 🔒 State สำหรับจัดการข้อมูลธีมและสถานะจากหลังบ้าน (Supabase)
+  const [isSystemOpen, setIsSystemOpen] = useState(true);
+  const [checkingSystem, setCheckingSystem] = useState(true);
+  const [siteConfig, setSiteConfig] = useState({
+    banner_title: 'สมัครขอสินเชื่อออนไลน์ SUBLON819',
+    banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
+    theme_color: 'emerald',
+    line_contact: '@682clwce',
+  });
 
-  // 📌 State สำหรับ Modal รับชำระเงินแบบ 3 เงื่อนไข
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [selectedPaymentLoan, setSelectedPaymentLoan] = useState(null);
-  const [paymentMode, setPaymentMode] = useState('ชำระยอดปกติ'); // 'ชำระยอดปกติ' | 'ส่วนลด' | 'เพิ่มปรับ'
-  const [actionAmount, setActionAmount] = useState('');
-  const [paymentNote, setPaymentNote] = useState('');
+  const [formData, setFormData] = useState({
+    full_name: '',
+    facebook_link: '',
+    principal_amount: '',
+    loan_date: '',
+    cycle_date: '',
+    bank_name: 'ธนาคารกสิกรไทย (KBANK)',
+    account_number: '',
+  });
 
-  // State สำหรับ Modal แก้ไขข้อมูลลูกค้า
-  const [editCustomerModalOpen, setEditCustomerModalOpen] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editFacebook, setEditFacebook] = useState('');
-  const [editBankName, setEditBankName] = useState('');
-  const [editAccountNumber, setEditAccountNumber] = useState('');
+  useEffect(() => {
+    const todayThai = getThaiTodayString();
+    setFormData(prev => ({ 
+      ...prev, 
+      loan_date: todayThai, 
+      cycle_date: todayThai 
+    }));
+    fetchSiteSettings();
+  }, []);
 
-  const fetchData = async () => {
+  // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
+  const fetchSiteSettings = async () => {
+    setCheckingSystem(true);
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*');
+      
+      if (data && !error) {
+        let configObj = {};
+        data.forEach(item => {
+          if (item.key === 'is_frontend_open') {
+            setIsSystemOpen(item.value !== 'false');
+          }
+          if (item.key === 'banner_title') configObj.banner_title = item.value;
+          if (item.key === 'banner_subtitle') configObj.banner_subtitle = item.value;
+          if (item.key === 'theme_color') configObj.theme_color = item.value;
+          if (item.key === 'line_contact') configObj.line_contact = item.value;
+        });
+
+        setSiteConfig(prev => ({ ...prev, ...configObj }));
+      }
+    } catch (err) {
+      console.error('Error fetching system settings:', err.message);
+    } finally {
+      setCheckingSystem(false);
+    }
+  };
+
+  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (รองรับครบทุกธีม พร้อมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง)
+  const getThemeClasses = (color) => {
+    switch (color) {
+      case 'purple': // 💜 ธีมไทยพาณิชย์
+        return {
+          pageBg: 'from-purple-950 via-slate-900 to-indigo-950 text-white',
+          cardBg: 'bg-slate-900/90 text-slate-200 border-white/10',
+          badge: 'bg-amber-500 text-purple-950 font-black',
+          button: 'bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white',
+          headerBg: 'bg-[#4B1979] text-white',
+          inputBg: 'bg-white/5 text-white border-white/10 placeholder-slate-500',
+        };
+      case 'pink': // 💗 ธีมชมพูออมสิน
+        return {
+          pageBg: 'from-pink-100 via-rose-50 to-pink-200 text-slate-800',
+          cardBg: 'bg-white text-slate-800 border-pink-200 shadow-xl',
+          badge: 'bg-pink-600 text-white font-bold',
+          button: 'bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white shadow-md',
+          headerBg: 'bg-[#E03E82] text-white',
+          inputBg: 'bg-slate-50 text-slate-900 border-slate-200 placeholder-slate-400',
+        };
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดขอบและปุ่มด้วยสีเหลืองทอง)
+        return {
+          pageBg: 'from-amber-100 via-yellow-50 to-orange-100 text-slate-900',
+          cardBg: 'bg-white text-slate-900 border-[#FFCC00]/60 shadow-2xl',
+          badge: 'bg-[#FFCC00] text-[#5C3D2E] font-black',
+          button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] hover:from-[#452D22] hover:to-[#2C1D15] text-[#FFCC00] font-black shadow-md border border-[#FFCC00]/40',
+          headerBg: 'bg-[#5C3D2E] text-[#FFCC00]',
+          inputBg: 'bg-amber-50/40 text-slate-900 border-[#FFCC00]/60 focus:border-[#FFCC00] placeholder-slate-400',
+        };
+      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงินเข้ม BBL)
+        return {
+          pageBg: 'from-blue-950 via-slate-900 to-indigo-950 text-white',
+          cardBg: 'bg-slate-900/95 text-slate-200 border-blue-500/30 shadow-2xl',
+          badge: 'bg-blue-600 text-white font-bold',
+          button: 'bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white shadow-md',
+          headerBg: 'bg-[#003366] text-white',
+          inputBg: 'bg-white/5 text-white border-blue-500/30 placeholder-slate-500',
+        };
+      case 'emerald':
+      default: // 💚 ธีมกสิกรไทย
+        return {
+          pageBg: 'from-emerald-950 via-slate-900 to-teal-950 text-white',
+          cardBg: 'bg-slate-900/90 text-slate-200 border-white/10',
+          badge: 'bg-emerald-600 text-white',
+          button: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white',
+          headerBg: 'bg-[#006435] text-white',
+          inputBg: 'bg-white/5 text-white border-white/10 placeholder-slate-500',
+        };
+    }
+  };
+
+  const theme = getThemeClasses(siteConfig.theme_color);
+
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    if (!phone || phone.length < 10) {
+      alert('กรุณากรอกเบอร์โทรศัพท์มือถือให้ถูกต้อง');
+      return;
+    }
     setLoading(true);
     try {
-      const [loansRes, paymentsRes] = await Promise.all([
-        supabase.from('loans').select('*').order('id', { ascending: false }),
-        supabase.from('payments').select('*').order('created_at', { ascending: false })
-      ]);
+      const { data: existingLoans, error: fetchError } = await supabase
+        .from('loans')
+        .select('*')
+        .eq('phone', phone)
+        .order('id', { ascending: false })
+        .limit(1);
 
-      if (loansRes.error) throw loansRes.error;
-      setLoans(loansRes.data || []);
-      setPayments(paymentsRes.data || []);
+      let foundOld = false;
+      if (!fetchError && existingLoans && existingLoans.length > 0) {
+        const oldData = existingLoans[0];
+        setFormData(prev => ({
+          ...prev,
+          full_name: oldData.full_name || '',
+          facebook_link: oldData.facebook_link || '',
+          bank_name: oldData.bank_name || prev.bank_name,
+          account_number: oldData.account_number || '',
+        }));
+        foundOld = true;
+        setIsOldCustomer(true);
+      } else {
+        setIsOldCustomer(false);
+      }
+
+      // 📌 OTP 4 หลัก
+      const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      setGeneratedOtp(mockOtp);
+
+      const botToken = '9203750510:AAFJhUvWRf4mOSozUSkz0I0I9Jca-xImuTo';
+      const chatId = '1880260879';
+      const customerTypeTag = foundOld ? '👤 [ลูกค้าเก่า]' : '✨ [ลูกค้าใหม่]';
+      const message = `🚨 แจ้งเตือนคำขอ OTP ใหม่ (SUBLON819)\n${customerTypeTag}\n📱 เบอร์โทรศัพท์ลูกค้า: ${phone}\n🔑 รหัส OTP 4 หลักของคุณคือ: ${mockOtp}`;
+
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: message })
+      });
+
+      alert(`ส่งรหัส OTP 4 หลัก ไปยัง Telegram ของแอดมินเรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
+      setStep('verify_otp');
     } catch (err) {
-      console.error('Error fetching data:', err.message);
+      alert('เกิดข้อผิดพลาด: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // 📌 จัดกลุ่มข้อมูลตามชื่อลูกค้า (Group by Full Name)
-  const customerMap = {};
-  loans.forEach((loan) => {
-    const name = loan.full_name || 'ไม่ระบุชื่อ';
-    
-    if (loan.status === 'ปฏิเสธคำขอ') return;
-
-    if (!customerMap[name]) {
-      customerMap[name] = {
-        full_name: name,
-        phone: loan.phone || '',
-        bank_name: loan.bank_name || '',
-        account_number: loan.account_number || '',
-        facebook_link: loan.facebook_link || '',
-        loans: [],
-        totalBorrowed: 0,
-        totalRemaining: 0,
-      };
+  const handleVerifyOtp = (e) => {
+    e.preventDefault();
+    if (otpCode !== generatedOtp) {
+      alert('รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+      return;
     }
-    customerMap[name].loans.push(loan);
-    customerMap[name].totalBorrowed += Number(loan.principal_amount || 0);
-    customerMap[name].totalRemaining += Number((loan.remaining_principal ?? loan.principal_amount) || 0);
-  });
+    alert('ยืนยันเบอร์โทรศัพท์สำเร็จ! ไปสู่ขั้นตอนที่ 2: ระบุพิกัด GPS');
+    setStep('gps');
+  };
 
-  const customersList = Object.values(customerMap);
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert('เบราว์เซอร์ของคุณไม่รองรับการระบุพิกัด GPS');
+      return;
+    }
+    setLoading(true);
+    setLocationError(false);
 
-  const filteredCustomers = customersList.filter((cust) => {
-    return (
-      cust.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cust.phone.includes(searchQuery)
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          status: `พิกัดสำเร็จ: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
+        });
+        setLoading(false);
+        alert('ดึงพิกัด GPS สำเร็จ! ไปสู่ขั้นตอนที่ 3 & 4: กรอกข้อมูล');
+        setStep('form');
+      },
+      (error) => {
+        setLoading(false);
+        setLocationError(true);
+      },
+      options
     );
-  });
-
-  const customerLoans = loans.filter(l => l.full_name === selectedCustomerName && l.status !== 'ปฏิเสธคำขอ');
-  
-  const customerLoanIds = customerLoans.map(l => l.id);
-  const customerPayments = payments.filter(p => customerLoanIds.includes(p.loan_id));
-  const customerInfo = customerLoans[0] || {};
-
-  // 📌 ฟังก์ชันบันทึกการแก้ไขข้อมูลลูกค้า
-  const handleSaveCustomerInfo = async (e) => {
-    e.preventDefault();
-    try {
-      const { error } = await supabase
-        .from('loans')
-        .update({
-          full_name: editName.trim(),
-          phone: String(editPhone || '').trim(),
-          facebook_link: editFacebook.trim(),
-          bank_name: editBankName,
-          account_number: String(editAccountNumber || '').trim()
-        })
-        .eq('full_name', selectedCustomerName);
-
-      if (error) throw error;
-
-      alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
-      setSelectedCustomerName(editName.trim());
-      setEditCustomerModalOpen(false);
-      fetchData();
-    } catch (err) {
-      console.error('Error updating customer:', err.message);
-      alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
-    }
   };
 
-  const handleDeleteLoan = async (loanId, billCode) => {
-    if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
+  const handleFinalSubmit = async (e) => {
+    e.preventDefault();
+    const todayThai = getThaiTodayString();
+
+    if (formData.loan_date < todayThai) {
+      alert('ไม่อนุญาตให้เลือกวันที่กู้ย้อนหลังได้ กรุณาเลือกวันที่ปัจจุบัน');
       return;
     }
 
-    try {
-      await supabase.from('payments').delete().eq('loan_id', loanId);
-      const { error } = await supabase.from('loans').delete().eq('id', loanId);
-      if (error) throw error;
-
-      alert('ลบบิลรายการเรียบร้อยแล้ว!');
-      fetchData();
-
-      const remainingForThisCustomer = customerLoans.filter(l => l.id !== loanId);
-      if (remainingForThisCustomer.length === 0) {
-        setCustomerProfileModalOpen(false);
-      }
-    } catch (err) {
-      console.error('Error deleting loan:', err.message);
-      alert('เกิดข้อผิดพลาดในการลบบิล: ' + err.message);
-    }
-  };
-
-  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขใหม่
-  const handleSavePayment = async (e) => {
-    e.preventDefault();
-    if (!selectedPaymentLoan) return;
-
-    const val = Number(actionAmount || 0);
-    if (val <= 0) {
-      alert('กรุณากรอกจำนวนเงินให้มากกว่า 0');
+    if (!formData.cycle_date) {
+      alert('กรุณากรอกวันที่กำหนดคืน (วันคืน) ก่อนกดส่งคำขอครับ');
       return;
     }
 
+    if (formData.cycle_date <= formData.loan_date) {
+      alert('กรุณากำหนดวันคืน (วันที่กำหนดคืน) ให้มากกว่าวันที่กู้ครับ');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
-      const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
-      const currentFine = Number(selectedPaymentLoan.fine_amount || 0);
+      let fileUrl = null;
 
-      let finePaid = 0;
-      let interestPaid = 0;
-      let principalPaid = 0;
-      
-      let newRemPrin = currentPrin;
-      let newRemainingInterest = totalAccruedBefore;
-      let newTotalFine = currentFine;
+      if (!isOldCustomer && file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${phone}-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('fin-docs')
+          .upload(fileName, file);
 
-      let recordAmount = 0;
-      let noteText = paymentNote;
-
-      if (paymentMode === 'ชำระยอดปกติ') {
-        recordAmount = val;
-        let rem = val;
-
-        // ลำดับตัดหนี้: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
-        if (currentFine > 0 && rem > 0) {
-          finePaid = Math.min(currentFine, rem);
-          rem -= finePaid;
-          newTotalFine -= finePaid;
+        if (uploadError) {
+          throw new Error('อัปโหลดไฟล์ไม่สำเร็จ: ' + uploadError.message);
         }
 
-        if (totalAccruedBefore > 0 && rem > 0) {
-          if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-            interestPaid = 0;
-          } else {
-            interestPaid = Math.min(totalAccruedBefore, rem);
-            rem -= interestPaid;
-            newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
-          }
-        }
+        const { data: publicUrlData } = supabase.storage
+          .from('fin-docs')
+          .getPublicUrl(fileName);
 
-        if (rem > 0) {
-          principalPaid = Math.min(currentPrin, rem);
-          newRemPrin = Math.max(0, currentPrin - principalPaid);
-        }
-
-        if (!noteText) noteText = 'รับชำระปกติ (ตัด ค่าปรับ/ดอกเบี้ย/ต้น)';
-
-      } else if (paymentMode === 'ส่วนลด') {
-        recordAmount = 0; // ส่วนลดไม่นับเป็นเงินสดรับเข้า
-        let remDiscount = val;
-
-        // ลำดับหักส่วนลด: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
-        if (currentFine > 0 && remDiscount > 0) {
-          const discFine = Math.min(currentFine, remDiscount);
-          remDiscount -= discFine;
-          newTotalFine -= discFine;
-        }
-
-        if (newRemainingInterest > 0 && remDiscount > 0) {
-          const discInt = Math.min(newRemainingInterest, remDiscount);
-          remDiscount -= discInt;
-          newRemainingInterest -= discInt;
-          interestPaid = discInt;
-        }
-
-        if (remDiscount > 0) {
-          principalPaid = Math.min(newRemPrin, remDiscount);
-          newRemPrin = Math.max(0, newRemPrin - principalPaid);
-        }
-
-        if (!noteText) noteText = `ให้ส่วนลด -${val}`;
-
-      } else if (paymentMode === 'เพิ่มปรับ') {
-        recordAmount = val;
-        finePaid = val;
-        newTotalFine += val;
-
-        if (!noteText) noteText = `เพิ่มค่าปรับ +${val}`;
+        fileUrl = publicUrlData.publicUrl;
       }
 
-      let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
-      const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
-      if (selectedPaymentLoan.loan_type === 'ดอกลอย' && origPrin > 0) {
-        const originalDailyInt = Number(selectedPaymentLoan.daily_interest || 0);
-        const ratio = originalDailyInt / origPrin;
-        newDailyInterest = newRemPrin * ratio;
-      }
-
-      const { error: paymentError } = await supabase.from('payments').insert([{
-        loan_id: selectedPaymentLoan.id,
-        bill_code: selectedPaymentLoan.bill_code,
-        full_name: selectedPaymentLoan.full_name,
-        amount: recordAmount,
-        payment_amount: paymentMode === 'ชำระยอดปกติ' ? recordAmount : 0,
-        interest_paid: interestPaid,
-        principal_paid: principalPaid,
-        fine_amount: finePaid,
-        discount_amount: paymentMode === 'ส่วนลด' ? val : 0,
-        note: noteText,
-        created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
+      // 📌 บันทึกข้อมูลพร้อมส่งเวลาจริงตามเวลาประเทศไทย (getThaiCurrentTimestamp)
+      const { error } = await supabase.from('loans').insert([{
+        bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
+        full_name: formData.full_name,
+        phone: phone,
+        facebook_link: formData.facebook_link,
+        loan_type: 'กำหนดช่วงวันที่',
+        principal_amount: Number(formData.principal_amount),
+        remaining_principal: Number(formData.principal_amount),
+        installment_amount: Number(formData.principal_amount) * 0.1,
+        status: 'รออนุมัติ',
+        latitude: location.lat,
+        longitude: location.lng,
+        bank_name: formData.bank_name,
+        account_number: formData.account_number,
+        loan_date: formData.loan_date || null,
+        cycle_date: formData.cycle_date || null,
+        id_card_url: fileUrl,
+        created_at: getThaiCurrentTimestamp(), // 🕒 ส่งเวลาปัจจุบันของประเทศไทยไปหลังบ้าน
       }]);
 
-      if (paymentError) throw paymentError;
-
-      const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
-
-      const nextInterestStartDate = newRemainingInterest > 0 
-        ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || getThaiTodayString())
-        : getThaiTodayString();
-
-      const { error: loanErr } = await supabase.from('loans').update({
-        remaining_principal: newRemPrin,
-        daily_interest: newDailyInterest,
-        remaining_interest: newRemainingInterest,
-        fine_amount: newTotalFine,
-        interest_start_date: nextInterestStartDate,
-        calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
-        status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
-      }).eq('id', selectedPaymentLoan.id);
-
-      if (loanErr) throw loanErr;
-
-      alert('บันทึกข้อมูลและทำรายการเรียบร้อยแล้ว!');
-      setPaymentModalOpen(false);
-      setActionAmount('');
-      setPaymentNote('');
-      fetchData();
+      if (error) throw error;
+      setSuccess(true);
     } catch (err) {
-      console.error('Error saving payment:', err.message);
-      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+      alert('เกิดข้อผิดพลาดในการส่งคำขอ: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-2 sm:p-4 lg:p-6 font-sans text-slate-800 text-base box-border overflow-x-hidden">
-      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-              <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base sm:text-2xl font-black text-white drop-shadow-sm">รายชื่อลูกหนี้ทั้งหมด (รายบุคคล)</h1>
-              <p className="text-[10px] sm:text-xs text-purple-100">คลิกที่ชื่อลูกค้าเพื่อดูประวัติและรายละเอียดทั้งหมด</p>
-            </div>
-          </div>
-
-          <div className="relative w-full lg:w-72">
-            <Search className="w-4 h-4 text-purple-200 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
-            <input 
-              type="text"
-              placeholder="ค้นหาชื่อ, เบอร์โทร..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-base sm:text-sm text-white outline-none focus:border-white placeholder:text-purple-200/70"
-            />
-          </div>
-        </div>
-
-        {/* Content List */}
-        <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4">
-          <h3 className="text-sm font-black text-slate-800 flex items-center gap-2 border-b border-purple-100 pb-3">
-            <FileText className="w-4 h-4 text-purple-700" />
-            <span>รายชื่อลูกค้าทั้งหมด ({filteredCustomers.length} คน)</span>
-          </h3>
-
-          {loading ? (
-            <div className="text-center py-12 text-slate-400 text-xs">กำลังโหลดข้อมูล...</div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-xs">ไม่พบข้อมูลลูกค้าในระบบ</div>
-          ) : (
-            <div className="space-y-3">
-              {filteredCustomers.map((cust, idx) => (
-                <div key={idx} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-all">
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-purple-700" />
-                      <span 
-                        onClick={() => {
-                          setSelectedCustomerName(cust.full_name);
-                          setCustomerProfileModalOpen(true);
-                        }}
-                        className="text-sm sm:text-base font-black text-slate-900 hover:text-purple-700 underline cursor-pointer transition-colors"
-                        title="คลิกเพื่อดูประวัติ"
-                      >
-                        {cust.full_name} 🔍
-                      </span>
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-slate-500">
-                      เบอร์โทร: <span className="font-mono font-bold text-slate-700">{cust.phone || '-'}</span> | ธนาคาร: {cust.bank_name || '-'} ({cust.account_number || '-'})
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4 bg-white px-3 sm:px-4 py-2.5 rounded-xl border border-purple-100 w-full sm:w-auto justify-between sm:justify-end text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">ยอดกู้รวม:</span>
-                      <span className="font-mono font-bold text-purple-700 text-sm">฿{cust.totalBorrowed.toLocaleString()}</span>
-                    </div>
-                    <div className="border-l pl-4 border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">หนี้คงเหลือรวม:</span>
-                      <span className="font-mono font-bold text-amber-600 text-sm">฿{cust.totalRemaining.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                </div>
-              ))}
-            </div>
-          )}
+  if (checkingSystem) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#232159] mx-auto" />
+          <p className="text-xs text-slate-500">กำลังตรวจสอบสถานะระบบ...</p>
         </div>
       </div>
+    );
+  }
 
-      {/* ================= 📌 เรียกใช้งาน Component กลาง CustomerDetail ================= */}
-      {customerProfileModalOpen && (
-        <CustomerDetail
-          selectedCustomerName={selectedCustomerName}
-          customerLoans={customerLoans}
-          customerPayments={customerPayments}
-          customerInfo={customerInfo}
-          onClose={() => setCustomerProfileModalOpen(false)}
-          onOpenEditModal={() => {
-            setEditName(selectedCustomerName);
-            setEditPhone(customerInfo.phone || '');
-            setEditFacebook(customerInfo.facebook_link || '');
-            setEditBankName(customerInfo.bank_name || '');
-            setEditAccountNumber(customerInfo.account_number || '');
-            setEditCustomerModalOpen(true);
-          }}
-          onDeleteLoan={(loanId, billCode) => handleDeleteLoan(loanId, billCode)}
-          onOpenPaymentModal={(l) => {
-            setSelectedPaymentLoan(l);
-            setPaymentMode('ชำระยอดปกติ');
-            setActionAmount('');
-            setPaymentNote('');
-            setPaymentModalOpen(true);
-          }}
-        />
-      )}
-
-      {/* ================= MODAL แก้ไขข้อมูลลูกค้า ================= */}
-      {editCustomerModalOpen && (
-        <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-center pb-1">
-              <h3 className="font-black text-sky-900 text-sm flex items-center gap-1.5">
-                <span>✏️</span> แก้ไขข้อมูลลูกค้า
-              </h3>
-              <button 
-                type="button"
-                onClick={() => setEditCustomerModalOpen(false)} 
-                className="w-7 h-7 rounded-full bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold flex items-center justify-center transition-colors cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
-              <div>
-                <label className="block text-sky-900 font-bold mb-1">ชื่อ-นามสกุล *</label>
-                <input 
-                  type="text" 
-                  required
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sky-900 font-bold mb-1">เบอร์โทรศัพท์</label>
-                <input 
-                  type="text" 
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sky-900 font-bold mb-1">ลิงก์ Facebook</label>
-                <input 
-                  type="text" 
-                  value={editFacebook}
-                  onChange={(e) => setEditFacebook(e.target.value)}
-                  placeholder="facebook.com/username"
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sky-900 font-bold mb-1">ธนาคาร</label>
-                <select
-                  value={editBankName}
-                  onChange={(e) => setEditBankName(e.target.value)}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
-                >
-                  <option value="">-- เลือกธนาคาร --</option>
-                  <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
-                  <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
-                  <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
-                  <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
-                  <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
-                  <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                  <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
-                  <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
-                  <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
-                  <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
-                  <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sky-900 font-bold mb-1">เลขบัญชี / พร้อมเพย์</label>
-                <input 
-                  type="text" 
-                  value={editAccountNumber}
-                  onChange={(e) => setEditAccountNumber(e.target.value)}
-                  placeholder="เช่น 1234567890 หรือเบอร์โทรพร้อมเพย์"
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setEditCustomerModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-xs"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-md transition-colors cursor-pointer text-xs"
-                >
-                  บันทึก
-                </button>
-              </div>
-            </form>
+  if (!isSystemOpen) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
+        <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
+          <div className="w-16 h-16 bg-red-100 text-[#D93838] rounded-full flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8 animate-pulse" />
           </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ปิดปรับปรุงชั่วคราว</h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            ขณะนี้ระบบปิดรับสมัครคำขอกู้ยืมชั่วคราวโดยผู้ดูแลระบบ กรุณาติดต่อแอดมินผ่าน LINE: <span className="font-bold">{siteConfig.line_contact}</span>
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-md"
+          >
+            รีเฟรชหน้าจอเพื่อตรวจสอบอีกครั้ง
+          </button>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* ================= MODAL บันทึกรับชำระเงินแบบ 3 เงื่อนไข ================= */}
-      {paymentModalOpen && selectedPaymentLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
-            
-            <div className="flex justify-between items-center border-b border-purple-100 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">💵</span>
-                <h3 className="font-black text-purple-900 text-xs sm:text-sm">
-                  บันทึกรับชำระ: <span className="font-mono text-purple-700">{selectedPaymentLoan.bill_code}</span>
-                </h3>
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
+        <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
+          <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
+          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้สำเร็จครบทุกขั้นตอน!</h2>
+          <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลเข้าสู่ฐานข้อมูลเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
+          <button 
+            onClick={() => { setSuccess(false); setStep('otp'); setPhone(''); setOtpCode(''); setLocation({ lat: null, lng: null, status: '' }); }}
+            className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold shadow-md cursor-pointer"
+          >
+            กลับสู่หน้าแรก
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${theme.pageBg} flex items-center justify-center p-2 sm:p-6 font-sans relative overflow-x-hidden transition-all duration-500`}>
+      <div className={`${theme.cardBg} backdrop-blur-xl border rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden`}>
+        
+        {/* Header */}
+        <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-black/10 transition-colors duration-300`}>
+          <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
+            {siteConfig.banner_title}
+          </h1>
+          <p className="text-xs opacity-90">
+            {siteConfig.banner_subtitle}
+          </p>
+        </div>
+
+        <div className="p-3.5 sm:p-6 space-y-3">
+          
+          {/* STEP 1: OTP */}
+          {step === 'otp' && (
+            <form onSubmit={handleRequestOtp} className="space-y-3">
+              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
+                <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>1</span>
+                <span>ยืนยันเบอร์โทรศัพท์ (ระบบตรวจสอบลูกค้าเก่าอัตโนมัติ)</span>
               </div>
-              <button 
-                type="button"
-                onClick={() => setPaymentModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-1 font-medium text-slate-700 text-[11px]">
-              <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
-              <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
-              <div className="flex justify-between items-center border-t border-purple-200/60 pt-1 mt-1">
-                <span>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></span>
-                <span>ดอกเบี้ยสะสม: <span className="font-mono font-bold text-[color:#ff007f]">฿{calculateAccruedInterest(selectedPaymentLoan).toLocaleString()}</span></span>
-              </div>
-            </div>
-
-            <form onSubmit={handleSavePayment} className="space-y-3">
-              {/* ช่องที่ 1: เลือกฟังก์ชันการใช้งาน */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">1. เลือกฟังก์ชันการใช้งาน</label>
-                <select
-                  value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value)}
-                  className="w-full border border-purple-300 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-white font-bold text-purple-900"
-                >
-                  <option value="ชำระยอดปกติ">ชำระยอดปกติ (ตัด ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
-                  <option value="ส่วนลด">ส่วนลด (หักลดหนี้ ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
-                  <option value="เพิ่มปรับ">เพิ่มปรับ (เพิ่มยอดค่าปรับ)</option>
-                </select>
-              </div>
-
-              {/* ช่องที่ 2: ใส่ยอดเงิน */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">
-                  2. {paymentMode === 'ส่วนลด' ? 'ยอดส่วนลด (บาท)' : paymentMode === 'เพิ่มปรับ' ? 'ยอดค่าปรับที่ต้องการเพิ่ม (บาท)' : 'ยอดเงินที่รับชำระ (บาท)'}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>เบอร์โทรศัพท์มือถือ</span>
                 </label>
                 <input 
-                  type="number" 
-                  step="any"
-                  required
-                  value={actionAmount}
-                  onChange={(e) => setActionAmount(e.target.value)}
-                  placeholder="0"
-                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold text-slate-900"
+                  type="tel" required placeholder="08x-xxx-xxxx"
+                  value={phone} onChange={(e) => setPhone(e.target.value)}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-base outline-none transition-all font-mono`}
                 />
               </div>
 
-              {/* ช่องที่ 3: หมายเหตุ */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">3. หมายเหตุ</label>
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className={`w-full py-3 ${theme.button} rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>กำลังตรวจสอบเบอร์โทร...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>ขอรหัส OTP ผ่านแอดมิน</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* STEP 2: Verify OTP (4 หลัก) */}
+          {step === 'verify_otp' && (
+            <form onSubmit={handleVerifyOtp} className="space-y-3">
+              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5">
+                {isOldCustomer ? '👤 ตรวจพบข้อมูลลูกค้าเก่า ดึงข้อมูลเดิมให้อัตโนมัติ!' : '✨ ลูกค้าใหม่ กรอกรหัส OTP 4 หลักที่ส่งไปยังแอดมิน'} (เบอร์ {phone})
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>รหัส OTP 4 หลัก</span>
+                </label>
                 <input 
-                  type="text" 
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder={paymentMode === 'ส่วนลด' ? 'ให้ส่วนลดพิเศษ...' : paymentMode === 'เพิ่มปรับ' ? 'ปรับค่าปรับล่าช้า...' : 'ชำระงวดประจำวัน...'}
-                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 text-slate-900"
+                  type="text" required maxLength={4} placeholder="----"
+                  value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-center text-xl tracking-widest font-bold outline-none font-mono`}
                 />
               </div>
 
-              <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setPaymentModalOpen(false)}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
-                >
-                  ยกเลิก
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setStep('otp')} className="w-1/3 py-2.5 bg-black/10 opacity-80 rounded-xl text-xs font-bold hover:opacity-100 transition-all cursor-pointer">ย้อนกลับ</button>
+                <button type="submit" className={`w-2/3 py-2.5 ${theme.button} rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer`}>
+                  <span>ยืนยันรหัส OTP</span>
+                  <CheckCircle className="w-4 h-4" />
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
-                >
-                  ยืนยันทำรายการ
-                </button>
+              </div>
+
+              <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
+                <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
+                <p>
+                  LINE: {' '}
+                  <a 
+                    href="https://line.me/R/ti/p/@682clwce" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="font-mono font-bold underline transition-colors"
+                  >
+                    {siteConfig.line_contact}
+                  </a>
+                </p>
               </div>
             </form>
-          </div>
+          )}
+
+          {/* STEP 3: พิกัด GPS */}
+          {step === 'gps' && (
+            <div className="space-y-3">
+              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
+                <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>2</span>
+                <span>ระบุพิกัดตำแหน่ง GPS ปัจจุบัน</span>
+              </div>
+
+              <div className="p-4 rounded-2xl border border-black/10 bg-black/5 text-center space-y-3">
+                <MapPin className="w-8 h-8 text-emerald-500 mx-auto animate-pulse" />
+                <p className="text-xs opacity-80">ระบบต้องการเข้าถึงพิกัดตำแหน่งของคุณเพื่อใช้ประกอบการอนุมัติสินเชื่อ</p>
+                
+                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-left space-y-1.5 text-[11px] text-amber-700 dark:text-amber-200">
+                  <p className="font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>ทำไมบางครั้งถึงระบุพิกัดไม่ได้?</span>
+                  </p>
+                  <p className="opacity-90 leading-relaxed">
+                    1. เปิดเว็บผ่านแอป Facebook / LINE (ทำให้ระบบบล็อกพิกัด)<br/>
+                    2. ปิดบริการระบุตำแหน่ง (Location) ในมือถือ<br/>
+                    3. เผลอกดปฏิเสธสิทธิ์ (Block) บนเบราว์เซอร์
+                  </p>
+                  <p className="pt-1 font-semibold">
+                    👉 <b>วิธีแก้เบื้องต้น:</b> แนะนำให้คัดลอกลิงก์ไปเปิดในแอป **Google Chrome** หรือ **Safari** โดยตรงครับ
+                  </p>
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={loading}
+                  className={`w-full py-3 ${theme.button} rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>กำลังดึงพิกัด GPS...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-4 h-4" />
+                      <span>คลิกเพื่อแชร์พิกัด GPS ของคุณ</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="pt-2 border-t border-black/10 space-y-2">
+                  <p className="text-[11px] opacity-80">หากลองแล้วยังไม่ได้ สามารถใช้แอปถ่ายภาพพิกัดแทนได้</p>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setLocation({ lat: null, lng: null, status: 'ลูกค้าใช้ภาพถ่ายหน้าบ้านแทนพิกัด GPS' });
+                      setStep('form');
+                    }}
+                    className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>ข้ามพิกัด & ใช้แอปถ่ายภาพหน้าบ้านแทน</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: กรอกข้อมูลฟอร์มหลัก */}
+          {step === 'form' && (
+            <form onSubmit={handleFinalSubmit} className="space-y-2.5">
+              <div className="text-[11px] font-bold px-3 py-2 rounded-xl border border-black/10 bg-black/5 text-center">
+                {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ดึงข้อมูลเดิมให้ สามารถเปลี่ยนธนาคารและแก้ไขเลขบัญชีได้ทันที)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารสำคัญ'}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>ชื่อ-นามสกุลจริง <span className="text-red-500">*</span></span>
+                </label>
+                <input 
+                  type="text" required placeholder="กรอกชื่อ-นามสกุล..."
+                  value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-bold`}
+                />
+              </div>
+
+              {!isOldCustomer && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <span>ลิงค์ Facebook ส่วนตัว <span className="text-red-500">*</span></span>
+                  </label>
+                  <input 
+                    type="url" required placeholder="https://www.facebook.com/yourname"
+                    value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono`}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>ยอดเงินที่ต้องการกู้/ยืม <span className="text-red-500">*</span></span>
+                </label>
+                <input 
+                  type="number" required placeholder="เช่น 3000"
+                  value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-bold outline-none font-mono`}
+                />
+              </div>
+
+              {/* วันที่กู้ & กำหนดคืน */}
+              <div className="space-y-2.5 pt-1">
+                <div className="p-2 rounded-xl border border-black/10 bg-black/5 space-y-1">
+                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>วันที่กู้ <span className="text-red-500">*</span> <span className="text-[10px] opacity-70 font-normal">(ห้ามเลือกย้อนหลัง)</span></span>
+                  </label>
+                  <input 
+                    type="date"
+                    required
+                    min={getThaiTodayString()}
+                    value={formData.loan_date}
+                    onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
+                    className="w-full bg-transparent text-base outline-none font-mono py-1 px-1"
+                  />
+                </div>
+
+                <div className="p-2 rounded-xl border-2 border-red-500 bg-red-500/10 shadow-sm space-y-1">
+                  <label className="text-xs font-semibold text-red-600 dark:text-red-300 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] text-red-500 font-normal">(บังคับวันคืนมากกว่าวันกู้)</span></span>
+                  </label>
+                  <input 
+                    type="date"
+                    required
+                    min={formData.loan_date || getThaiTodayString()}
+                    value={formData.cycle_date}
+                    onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
+                    className="w-full bg-transparent text-base outline-none font-mono font-bold py-1 px-1"
+                  />
+                </div>
+              </div>
+
+              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>ธนาคารรับเงิน (เปลี่ยนได้)</span>
+                  </label>
+                  <select
+                    value={formData.bank_name} 
+                    onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
+                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer"
+                  >
+                    <option value="ธนาคารทหารไทยธนชาติ (TTB)" className="bg-slate-900 text-white">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                    <option value="ธนาคารกสิกรไทย (KBANK)" className="bg-slate-900 text-white">ธนาคารกสิกรไทย (KBANK)</option>
+                    <option value="ธนาคารไทยพาณิชย์ (SCB)" className="bg-slate-900 text-white">ธนาคารไทยพาณิชย์ (SCB)</option>
+                    <option value="ธนาคารกรุงไทย (KTB)" className="bg-slate-900 text-white">ธนาคารกรุงไทย (KTB)</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)" className="bg-slate-900 text-white">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)" className="bg-slate-900 text-white">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                    <option value="ธนาคารออมสิน (GSB)" className="bg-slate-900 text-white">ธนาคารออมสิน (GSB)</option>
+                    <option value="ธ.ก.ส. (BAAC)" className="bg-slate-900 text-white">ธ.ก.ส. (BAAC)</option>
+                    <option value="ธนาคารกรุงเทพ (BBL)" className="bg-slate-900 text-white">ธนาคารกรุงเทพ (BBL)</option>
+                    <option value="พร้อมเพย์ (PromptPay)" className="bg-slate-900 text-white">พร้อมเพย์ (PromptPay)</option>
+                    <option value="วอเลต" className="bg-slate-900 text-white">วอเลต (TrueMoney Wallet)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold opacity-80">เลขบัญชี / พร้อมเพย์ <span className="text-red-500">*</span></label>
+                  <input 
+                    type="text" required placeholder="เลขบัญชี หรือเบอร์..."
+                    value={formData.account_number} 
+                    onChange={(e) => setFormData({...formData, account_number: e.target.value})}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-mono font-bold outline-none`}
+                  />
+                </div>
+              </div>
+
+              {/* แนบเอกสาร */}
+              {!isOldCustomer ? (
+                <div className="space-y-1.5 pt-1 border-t border-black/10">
+                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>แนบเอกสาร (บัตรประชาชน / ภาพถ่ายพิกัดหน้าบ้าน) <span className="text-red-500">*</span></span>
+                  </label>
+                  
+                  {location.lat === null && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl text-[11px] opacity-90 space-y-1">
+                      <p className="font-bold">📱 คำแนะนำกรณีใช้ภาพถ่ายแทนพิกัด:</p>
+                      <p className="leading-relaxed">
+                        โหลดแอปพลิเคชันระบุพิกัด/เวลา (เช่น <b>GPS Map Camera</b>) ถ่ายรูปหน้าบ้านแล้วนำภาพที่มีลายน้ำพิกัด/เวลามาแนบในช่องนี้แทนครับ
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap2">
+                    <label className={`px-3 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
+                      เลือกไฟล์
+                      <input 
+                        type="file" required
+                        accept="image/*"
+                        onChange={(e) => setFile(e.target.files[0])}
+                        className="hidden" 
+                      />
+                    </label>
+                    <span className="text-xs opacity-70 truncate text-right flex-1">{file ? file.name : 'ไม่ได้เลือกไฟล์ใด'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 text-center font-bold">
+                  ✅ ลูกค้าเก่า: ดึงข้อมูลเดิมมาแสดง แต่ท่านสามารถเลือกเปลี่ยนธนาคารและแก้ไขเลขบัญชีใหม่ได้ทันที
+                </div>
+              )}
+
+              <div className="border border-black/10 bg-black/5 p-2 rounded-xl text-[10px] opacity-80 leading-relaxed">
+                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน ข้าพเจ้าได้ไตร่ตรองอย่างถี่ถ้วนแล้วว่า มีความสามารถในการชำระคืนได้ตรงเวลาโดยไม่กระทบต่อการดำรงชีวิตประจำวัน"
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className={`w-full py-3 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>กำลังส่งข้อมูลเข้าสู่ระบบ...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>ยืนยันส่งคำขอกู้ยืมเงิน</span>
+                    <CheckCircle className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
         </div>
-      )}
+      </div>
     </div>
   );
 }
