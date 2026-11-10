@@ -50,7 +50,7 @@ export default function ApplyPage() {
     full_name: '',
     facebook_link: '',
     principal_amount: '',
-    loan_date: '',
+    loan_date: getThaiTodayString(), // 🔒 ล็อกค่าเริ่มต้นเป็นวันนี้ทันที
     cycle_date: '',
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
@@ -60,8 +60,8 @@ export default function ApplyPage() {
     const todayThai = getThaiTodayString();
     setFormData(prev => ({ 
       ...prev, 
-      loan_date: todayThai, 
-      cycle_date: todayThai 
+      loan_date: todayThai, // บังคับเซ็ตเป็นวันนี้ป้องกันค่าเคลื่อน
+      cycle_date: prev.cycle_date || todayThai 
     }));
     fetchSiteSettings();
   }, []);
@@ -95,10 +95,10 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร (รองรับครบทุกธีม พร้อมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง)
+  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร
   const getThemeClasses = (color) => {
     switch (color) {
-      case 'purple': // 💜 ธีมไทยพาณิชย์
+      case 'purple':
         return {
           pageBg: 'from-purple-950 via-slate-900 to-indigo-950 text-white',
           cardBg: 'bg-slate-900/90 text-slate-200 border-white/10',
@@ -107,7 +107,7 @@ export default function ApplyPage() {
           headerBg: 'bg-[#4B1979] text-white',
           inputBg: 'bg-white/5 text-white border-white/10 placeholder-slate-500',
         };
-      case 'pink': // 💗 ธีมชมพูออมสิน
+      case 'pink':
         return {
           pageBg: 'from-pink-100 via-rose-50 to-pink-200 text-slate-800',
           cardBg: 'bg-white text-slate-800 border-pink-200 shadow-xl',
@@ -116,7 +116,7 @@ export default function ApplyPage() {
           headerBg: 'bg-[#E03E82] text-white',
           inputBg: 'bg-slate-50 text-slate-900 border-slate-200 placeholder-slate-400',
         };
-      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดขอบและปุ่มด้วยสีเหลืองทอง)
+      case 'yellow':
         return {
           pageBg: 'from-amber-100 via-yellow-50 to-orange-100 text-slate-900',
           cardBg: 'bg-white text-slate-900 border-[#FFCC00]/60 shadow-2xl',
@@ -125,7 +125,7 @@ export default function ApplyPage() {
           headerBg: 'bg-[#5C3D2E] text-[#FFCC00]',
           inputBg: 'bg-amber-50/40 text-slate-900 border-[#FFCC00]/60 focus:border-[#FFCC00] placeholder-slate-400',
         };
-      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงินเข้ม BBL)
+      case 'BangkokBank':
         return {
           pageBg: 'from-blue-950 via-slate-900 to-indigo-950 text-white',
           cardBg: 'bg-slate-900/95 text-slate-200 border-blue-500/30 shadow-2xl',
@@ -135,7 +135,7 @@ export default function ApplyPage() {
           inputBg: 'bg-white/5 text-white border-blue-500/30 placeholder-slate-500',
         };
       case 'emerald':
-      default: // 💚 ธีมกสิกรไทย
+      default:
         return {
           pageBg: 'from-emerald-950 via-slate-900 to-teal-950 text-white',
           cardBg: 'bg-slate-900/90 text-slate-200 border-white/10',
@@ -184,7 +184,6 @@ export default function ApplyPage() {
         setIsOldCustomer(false);
       }
 
-      // 📌 OTP 4 หลัก
       const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedOtp(mockOtp);
 
@@ -255,17 +254,15 @@ export default function ApplyPage() {
     e.preventDefault();
     const todayThai = getThaiTodayString();
 
-    if (formData.loan_date < todayThai) {
-      alert('ไม่อนุญาตให้เลือกวันที่กู้ย้อนหลังได้ กรุณาเลือกวันที่ปัจจุบัน');
-      return;
-    }
+    // 🔒 บังคับล็อกวันกู้ให้เป็นวันนี้เสมอ ป้องกันปัญหาเผลอเลือกวันผิด
+    const fixedLoanDate = todayThai;
 
     if (!formData.cycle_date) {
       alert('กรุณากรอกวันที่กำหนดคืน (วันคืน) ก่อนกดส่งคำขอครับ');
       return;
     }
 
-    if (formData.cycle_date <= formData.loan_date) {
+    if (formData.cycle_date <= fixedLoanDate) {
       alert('กรุณากำหนดวันคืน (วันที่กำหนดคืน) ให้มากกว่าวันที่กู้ครับ');
       return;
     }
@@ -293,7 +290,6 @@ export default function ApplyPage() {
         fileUrl = publicUrlData.publicUrl;
       }
 
-      // 📌 บันทึกข้อมูลพร้อมส่งเวลาจริงตามเวลาประเทศไทย (getThaiCurrentTimestamp)
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -308,10 +304,10 @@ export default function ApplyPage() {
         longitude: location.lng,
         bank_name: formData.bank_name,
         account_number: formData.account_number,
-        loan_date: formData.loan_date || null,
+        loan_date: fixedLoanDate, // 🔒 บันทึกวันที่ปัจจุบันเสมอ
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
-        created_at: getThaiCurrentTimestamp(), // 🕒 ส่งเวลาปัจจุบันของประเทศไทยไปหลังบ้าน
+        created_at: getThaiCurrentTimestamp(),
       }]);
 
       if (error) throw error;
@@ -585,18 +581,18 @@ export default function ApplyPage() {
 
               {/* วันที่กู้ & กำหนดคืน */}
               <div className="space-y-2.5 pt-1">
+                {/* 🔒 ล็อกวันที่กู้เป็นปัจจุบัน ป้องกันการเปลี่ยนผิด */}
                 <div className="p-2 rounded-xl border border-black/10 bg-black/5 space-y-1">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span>วันที่กู้ <span className="text-red-500">*</span> <span className="text-[10px] opacity-70 font-normal">(ห้ามเลือกย้อนหลัง)</span></span>
+                    <span>วันที่กู้ <span className="text-red-500">*</span> <span className="text-[10px] text-emerald-600 font-bold">(ล็อกวันที่ปัจจุบันอัตโนมัติ)</span></span>
                   </label>
                   <input 
                     type="date"
                     required
-                    min={getThaiTodayString()}
+                    readOnly
                     value={formData.loan_date}
-                    onChange={(e) => setFormData({...formData, loan_date: e.target.value})}
-                    className="w-full bg-transparent text-base outline-none font-mono py-1 px-1"
+                    className="w-full bg-transparent text-base outline-none font-mono py-1 px-1 font-bold opacity-90 cursor-not-allowed"
                   />
                 </div>
 
