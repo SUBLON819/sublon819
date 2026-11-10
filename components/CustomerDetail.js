@@ -235,11 +235,16 @@ export default function CustomerDetail({
             <div className="space-y-1.5">
               {customerPayments.map((p) => (
                 <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
-                  <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* 📌 เพิ่มการแสดงรหัสบิล (bill_code) ตรงนี้ */}
+                    <span className="font-mono font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded text-[10px] border border-purple-300">
+                      บิล: {p.bill_code || '-'}
+                    </span>
+
                     <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? p.amount ?? 0).toLocaleString()}</span>
-                    <span className="text-slate-600 sm:ml-2 block sm:inline bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
-                    {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 ml-1 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
-                    {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 ml-1 font-bold">(ส่วนลด -{p.discount_amount})</span>}
+                    <span className="text-slate-600 bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
+                    {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
+                    {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 font-bold">(ส่วนลด -{p.discount_amount})</span>}
                   </div>
                   <div className="text-[10px] text-slate-500 font-mono">
                     {new Date(p.created_at).toLocaleString('th-TH')}
