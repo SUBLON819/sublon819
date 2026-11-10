@@ -442,7 +442,7 @@ export default function CustomerDetail({
                 </div>
                 <div className="flex justify-between text-sm pt-1 bg-purple-50 p-2 rounded-lg font-bold text-purple-900">
                   <span>ยอดรวมต้องชำระทั้งหมด:</span>
-                  <span className="text-rose-600 text-base">฿{(Number(selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount || 0) + calculateAccruedInterest(selectedNoticeLoan)).toLocaleString()}</span>
+                  (selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount) || 0
                 </div>
               </div>
 
