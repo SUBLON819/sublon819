@@ -975,7 +975,8 @@ export default function AdminDashboard() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
+                    {/* กล่องแสดงข้อมูลตัวเลข (เพิ่มช่อง ค้างค่าปรับ เป็นช่องที่ 5) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
                       <div>
                         <span className="text-slate-400 block text-[10px]">เงินต้น / ยอดขอกู้:</span>
                         <span className="font-mono font-bold text-emerald-600">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
@@ -991,6 +992,12 @@ export default function AdminDashboard() {
                       <div>
                         <span className="text-slate-400 block text-[10px]">ดอกสะสมเรียลไทม์:</span>
                         <span className="font-mono font-bold text-purple-800">฿{accrued.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">ค้างค่าปรับ:</span>
+                        <span className={`font-mono font-bold ${Number(loan.fine_amount || 0) > 0 ? 'text-rose-600 font-black' : 'text-slate-600'}`}>
+                          ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
@@ -1065,8 +1072,6 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
-
-      </div>
 
       {/* ================= MODALS ================= */}
 
