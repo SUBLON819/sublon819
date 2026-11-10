@@ -962,7 +962,6 @@ export default function AdminDashboard() {
                           {loan.status || 'รออนุมัติ'}
                         </span>
                       </div>
-                    </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
                       <div>
