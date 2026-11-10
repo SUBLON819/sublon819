@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell, RotateCcw
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -88,7 +88,6 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  // 📌 เปลี่ยนเป็นบรรทัดนี้เพื่อนับรวมวันเริ่มต้นด้วยเสมอ
   diffDays += 1;
 
   const days = Math.max(0, diffDays);
@@ -491,7 +490,29 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันรับชำระเงิน (ปรับปรุงใหม่ รองรับการบันทึกค่าปรับอย่างเดียว)
+  // 📌 ฟังก์ชันสำหรับรีเซ็ต/ล้างค่าปรับของบิลให้เป็น 0
+  const handleResetFine = async (loanId, billCode) => {
+    if (!confirm(`คุณต้องการล้างค่าปรับของบิล "${billCode}" ให้กลับเป็น 0 ใช่หรือไม่?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .update({ fine_amount: 0 })
+        .eq('id', loanId);
+
+      if (error) throw error;
+
+      alert('ล้างค่าปรับเป็น 0 เรียบร้อยแล้ว!');
+      fetchData();
+    } catch (err) {
+      console.error('Error resetting fine:', err.message);
+      alert('เกิดข้อผิดพลาดในการล้างค่าปรับ: ' + err.message);
+    }
+  };
+
+  // 📌 ฟังก์ชันรับชำระเงิน
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -517,7 +538,6 @@ export default function AdminDashboard() {
       let newRemPrin = currentPrin;
       let newRemainingInterest = totalAccruedBefore;
 
-      // กรณีมีเงินชำระหลักเข้ามา ให้ตัดดอกเบี้ยและเงินต้นตามปกติ
       if (basePayVal > 0) {
         if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
           interestPaid = 0;   
@@ -563,7 +583,9 @@ export default function AdminDashboard() {
         newDailyInterest = newRemPrin * ratio;
       }
 
-      // บันทึกประวัติการชำระลงฐานข้อมูล payments (บันทึกค่าปรับแยกให้ชัดเจน)
+      const existingFine = Number(selectedPaymentLoan.fine_amount || 0);
+      const newTotalFine = existingFine + fineInputVal;
+
       const { error: payErr } = await supabase.from('payments').insert([{
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
@@ -595,6 +617,7 @@ export default function AdminDashboard() {
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
         remaining_interest: newRemainingInterest,
+        fine_amount: newTotalFine,
         interest_start_date: nextInterestStartDate,
         calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
@@ -907,6 +930,7 @@ export default function AdminDashboard() {
                 
                 const loanPayments = payments.filter(p => String(p.loan_id) === String(loan.id));
                 const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
+                const hasFine = Number(loan.fine_amount || 0) > 0;
 
                 return (
                   <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 transition-all">
@@ -947,11 +971,23 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 shrink-0">
-                        {Number(loan.fine_amount || 0) > 0 && (
-                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2 py-0.5 rounded font-mono font-bold text-[10px]">
-                            ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
-                          </span>
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {hasFine && (
+                          <div className="flex items-center gap-1">
+                            <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] shadow-sm animate-pulse">
+                              🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                            </span>
+                            {/* 📌 ปุ่มล้างค่าปรับเป็น 0 */}
+                            <button
+                              type="button"
+                              onClick={() => handleResetFine(loan.id, loan.bill_code)}
+                              className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 cursor-pointer transition-colors"
+                              title="ล้างค่าปรับให้เป็น 0"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>ล้างค่าปรับ</span>
+                            </button>
+                          </div>
                         )}
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                           loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
@@ -993,7 +1029,7 @@ export default function AdminDashboard() {
                         <span>ลบบิลนี้</span>
                       </button>
 
-                      <div className="flex gap-2 flex-1 sm:justify-end">
+                      <div className="flex gap-2 flex-1 sm:justify-end flex-wrap">
                         {isPending ? (
                           <button
                             type="button"
@@ -2022,7 +2058,7 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="font-semibold text-slate-700 block mb-0.5">จำนวนงวด</label>
-                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...approvalData, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-base sm:text-xs text-slate-900 outline-none" />
+                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...e, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 font-mono text-base sm:text-xs text-slate-900 outline-none" />
                   </div>
                 </div>
               )}
