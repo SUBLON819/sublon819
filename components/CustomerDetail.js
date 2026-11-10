@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { User, Edit3, Trash2, ExternalLink, FileText, Clock } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { User, Edit3, Trash2, ExternalLink, FileText, Clock, Download, Share2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
 function getThaiTodayString() {
@@ -74,9 +75,15 @@ export default function CustomerDetail({
   onClose,
   onOpenEditModal,
   onDeleteLoan,
-  onOpenPaymentModal,
-  onOpenNoticeModal
+  onOpenPaymentModal
 }) {
+  // 📌 State สำหรับเปิด-ปิด Modal ออกบิล Notice (และฟังก์ชันแปลงภาพ)
+  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
+  const [selectedNoticeLoan, setSelectedNoticeLoan] = useState(null);
+  const [noticeCustomMessage, setNoticeCustomMessage] = useState('');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const noticeCardRef = useRef(null);
+
   const totalCustomerRemaining = customerLoans
     .filter(l => l.status === 'อนุมัติแล้ว')
     .reduce((sum, l) => sum + Number((l.remaining_principal ?? l.principal_amount) || 0), 0);
@@ -84,6 +91,51 @@ export default function CustomerDetail({
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
   
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
+
+  // 📌 ฟังก์ชันดาวน์โหลดบิลเป็นรูปภาพ
+  const handleDownloadNoticeImage = async () => {
+    if (!noticeCardRef.current) return;
+    setIsGeneratingImage(true);
+    try {
+      const canvas = await html2canvas(noticeCardRef.current, { scale: 2, useCORS: true });
+      const image = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = image;
+      a.download = `Notice-${selectedNoticeLoan?.bill_code || 'Customer'}.png`;
+      a.click();
+    } catch (err) {
+      console.error('Error generating image:', err);
+      alert('เกิดข้อผิดพลาดในการสร้างรูปภาพ');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  // 📌 ฟังก์ชันแชร์รูปภาพบิล
+  const handleShareNoticeImage = async () => {
+    if (!noticeCardRef.current) return;
+    setIsGeneratingImage(true);
+    try {
+      const canvas = await html2canvas(noticeCardRef.current, { scale: 2, useCORS: true });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `Notice-${selectedNoticeLoan?.bill_code || 'Customer'}.png`, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'บิลแจ้งยอดชำระ',
+            text: `แจ้งยอดชำระของคุณ ${selectedCustomerName}`,
+          });
+        } else {
+          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง กรุณาใช้ปุ่มดาวน์โหลดรูปภาพแทนครับ');
+        }
+      });
+    } catch (err) {
+      console.error('Error sharing image:', err);
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800 touch-pan-y">
@@ -122,7 +174,7 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
         
-        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice มุมขวาบน */}
+        {/* ข้อมูลติดต่อ + ปุ่มออกบิล Notice มุมขวาบนตามที่คุณต้องการ */}
         <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-200 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm relative">
           <div>
             <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
@@ -133,19 +185,20 @@ export default function CustomerDetail({
             <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
           </div>
 
-          {/* 📌 ปุ่มออกบิลแจ้งยอด (NOTICE) มุมขวาบน */}
+          {/* 📌 ปุ่มออกบิลแจ้งยอด (NOTICE) บริเวณมุมขวาบนของกล่องข้อมูลติดต่อ */}
           <div className="flex sm:justify-end sm:items-center">
-            {onOpenNoticeModal && customerLoans.length > 0 && (
+            {customerLoans.length > 0 && (
               <button
                 type="button"
                 onClick={() => {
-                  // ส่งบิลแรกหรือยอดรวมทั้งหมดไปออก Notice
-                  onOpenNoticeModal(customerLoans[0], totalCustomerRemaining + totalCustomerAccruedInterest);
+                  setSelectedNoticeLoan(customerLoans[0]);
+                  setNoticeCustomMessage('');
+                  setNoticeModalOpen(true);
                 }}
                 className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>ออกบิลแจ้งยอดรวม (NOTICE)</span>
+                <span>ออกบิลแจ้งยอด (NOTICE)</span>
               </button>
             )}
           </div>
@@ -188,7 +241,7 @@ export default function CustomerDetail({
 
         </div>
 
-        {/* รายการสัญญาของลูกค้า */}
+        {/* รายการสัญญาของลูกค้า (ดีไซน์เดียวกับหน้าแดชบอร์ด) */}
         <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
           <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
           
@@ -285,16 +338,18 @@ export default function CustomerDetail({
                         >
                           บันทึกรับชำระ
                         </button>
-                        {onOpenNoticeModal && (
-                          <button
-                            type="button"
-                            onClick={() => onOpenNoticeModal(loan)}
-                            className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span>ออกบิลแจ้งยอด (NOTICE)</span>
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedNoticeLoan(loan);
+                            setNoticeCustomMessage('');
+                            setNoticeModalOpen(true);
+                          }}
+                          className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>ออกบิลแจ้งยอด (NOTICE)</span>
+                        </button>
                       </div>
                     </div>
 
@@ -334,6 +389,112 @@ export default function CustomerDetail({
         </div>
 
       </div>
+
+      {/* ================= 📌 MODAL ออกบิลแจ้งยอด (NOTICE) ================= */}
+      {noticeModalOpen && selectedNoticeLoan && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[95vh] overflow-y-auto text-xs">
+            
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="font-black text-rose-700 text-sm flex items-center gap-1.5">
+                <FileText className="w-4 h-4" /> ตัวอย่างบิลแจ้งยอด (NOTICE)
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setNoticeModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* ส่วนของการ์ดที่จะถูกแปลงเป็นรูปภาพ */}
+            <div ref={noticeCardRef} className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-white p-5 rounded-2xl shadow-xl space-y-4 border border-purple-400">
+              <div className="text-center space-y-1 border-b border-purple-700 pb-3">
+                <div className="text-[10px] tracking-widest text-purple-300 uppercase font-semibold">ใบแจ้งยอดชำระ / NOTICE BILL</div>
+                <div className="text-lg font-black text-white">บิลรหัส: {selectedNoticeLoan.bill_code}</div>
+                <div className="text-xs text-purple-200">วันที่ออกบิล: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              </div>
+
+              <div className="space-y-1.5 bg-purple-950/50 p-3 rounded-xl border border-purple-700/60 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-purple-300">ชื่อลูกค้า:</span>
+                  <span className="font-bold text-white">{selectedNoticeLoan.full_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-purple-300">เบอร์โทรศัพท์:</span>
+                  <span className="font-mono text-white">{customerInfo.phone || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-purple-300">ประเภทสัญญา:</span>
+                  <span className="font-bold text-amber-300">{selectedNoticeLoan.loan_type}</span>
+                </div>
+              </div>
+
+              <div className="bg-white text-slate-900 p-3.5 rounded-xl space-y-2 font-mono shadow-inner">
+                <div className="flex justify-between text-xs border-b pb-1.5">
+                  <span className="text-slate-600">เงินต้นคงเหลือ:</span>
+                  <span className="font-bold text-slate-900">฿{Number(selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs border-b pb-1.5">
+                  <span className="text-slate-600">ดอกเบี้ยสะสม (+ค่าปรับ):</span>
+                  <span className="font-bold text-pink-600">฿{calculateAccruedInterest(selectedNoticeLoan).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm pt-1 bg-purple-50 p-2 rounded-lg font-bold text-purple-900">
+                  <span>ยอดรวมต้องชำระทั้งหมด:</span>
+                  <span className="text-rose-600 text-base">฿{(Number(selectedNoticeLoan.remaining_principal ?? selectedNoticeLoan.principal_amount || 0) + calculateAccruedInterest(selectedNoticeLoan)).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {noticeCustomMessage && (
+                <div className="bg-amber-100 text-amber-900 p-2.5 rounded-xl text-center font-bold text-xs">
+                  {noticeCustomMessage}
+                </div>
+              )}
+
+              <div className="text-center pt-2 border-t border-purple-700 text-[10px] text-purple-300">
+                โอนเข้าบัญชี: <span className="font-bold text-white">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
+              </div>
+            </div>
+
+            {/* ช่องกรอกข้อความเพิ่มเติม */}
+            <div>
+              <label className="block text-slate-700 font-bold mb-1">ข้อความเพิ่มเติมในบิล (ถ้ามี)</label>
+              <input 
+                type="text"
+                value={noticeCustomMessage}
+                onChange={(e) => setNoticeCustomMessage(e.target.value)}
+                placeholder="เช่น ครบกำหนดชำระภายในวันนี้..."
+                className="w-full border border-purple-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600 text-slate-900"
+              />
+            </div>
+
+            {/* ปุ่มดาวน์โหลด / แชร์ */}
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleDownloadNoticeImage}
+                disabled={isGeneratingImage}
+                className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                <span>{isGeneratingImage ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleShareNoticeImage}
+                disabled={isGeneratingImage}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>แชร์รูปภาพ</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
