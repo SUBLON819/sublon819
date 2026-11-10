@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle } from 'lucide-react';
 
-// 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบเรียลไทม์
+// 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบปลอดภัย
 function getThaiTodayString() {
+  if (typeof window === 'undefined') return ''; // ป้องกัน Error ตอน Build บน Server
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   const formatter = new Intl.DateTimeFormat('en-CA', options);
   return formatter.format(new Date());
 }
 
-// 📌 ฟังก์ชันดึงวันที่และเวลาปัจจุบันแบบ ISO / เรียลไทม์ตามเวลาประเทศไทย สำหรับบันทึกส่งเข้าหลังบ้าน
+// 📌 ฟังก์ชันดึงวันที่และเวลาปัจจุบันแบบ ISO / เรียลไทม์ตามเวลาประเทศไทย
 function getThaiCurrentTimestamp() {
+  if (typeof window === 'undefined') return new Date().toISOString();
   const now = new Date();
   return new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Asia/Bangkok',
@@ -46,11 +48,12 @@ export default function ApplyPage() {
     line_contact: '@682clwce',
   });
 
+  // ✅ กำหนดค่าเริ่มต้นเป็นค่าว่าง ป้องกัน Prerender Error บน Vercel
   const [formData, setFormData] = useState({
     full_name: '',
     facebook_link: '',
     principal_amount: '',
-    loan_date: getThaiTodayString(), // 🔒 ล็อกค่าเริ่มต้นเป็นวันนี้ทันที
+    loan_date: '',
     cycle_date: '',
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
@@ -60,7 +63,7 @@ export default function ApplyPage() {
     const todayThai = getThaiTodayString();
     setFormData(prev => ({ 
       ...prev, 
-      loan_date: todayThai, // บังคับเซ็ตเป็นวันนี้ป้องกันค่าเคลื่อน
+      loan_date: todayThai, 
       cycle_date: prev.cycle_date || todayThai 
     }));
     fetchSiteSettings();
@@ -253,8 +256,6 @@ export default function ApplyPage() {
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     const todayThai = getThaiTodayString();
-
-    // 🔒 บังคับล็อกวันกู้ให้เป็นวันนี้เสมอ ป้องกันปัญหาเผลอเลือกวันผิด
     const fixedLoanDate = todayThai;
 
     if (!formData.cycle_date) {
@@ -304,7 +305,7 @@ export default function ApplyPage() {
         longitude: location.lng,
         bank_name: formData.bank_name,
         account_number: formData.account_number,
-        loan_date: fixedLoanDate, // 🔒 บันทึกวันที่ปัจจุบันเสมอ
+        loan_date: fixedLoanDate,
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
         created_at: getThaiCurrentTimestamp(),
@@ -581,7 +582,6 @@ export default function ApplyPage() {
 
               {/* วันที่กู้ & กำหนดคืน */}
               <div className="space-y-2.5 pt-1">
-                {/* 🔒 ล็อกวันที่กู้เป็นปัจจุบัน ป้องกันการเปลี่ยนผิด */}
                 <div className="p-2 rounded-xl border border-black/10 bg-black/5 space-y-1">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -604,7 +604,7 @@ export default function ApplyPage() {
                   <input 
                     type="date"
                     required
-                    min={formData.loan_date || getThaiTodayString()}
+                    min={formData.loan_date || ''}
                     value={formData.cycle_date}
                     onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
                     className="w-full bg-transparent text-base outline-none font-mono font-bold py-1 px-1"
