@@ -1918,6 +1918,9 @@ export default function AdminDashboard() {
                   ? `${approvalData.schedule_start}-${approvalData.schedule_end}` 
                   : approvalData.payment_schedule;
 
+                // 📌 ล็อกให้ใช้ loan_date เดิมที่ลูกค้าเลือกมาอย่างถูกต้อง ไม่เขียนทับเป็นวันอื่น
+                const correctLoanDate = selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || getThaiTodayString();
+
                 const { error } = await supabase
                   .from('loans')
                   .update({
@@ -1928,8 +1931,8 @@ export default function AdminDashboard() {
                     total_installments: approvalData.installment_count ? Number(approvalData.installment_count) : null,
                     payment_schedule: scheduleStr,
                     calc_next_day: approvalData.calc_next_day,
-                    loan_date: selectedLoanForApproval.loan_date || new Date().toISOString().split('T')[0],
-                    interest_start_date: new Date().toISOString().split('T')[0],
+                    loan_date: correctLoanDate,
+                    interest_start_date: correctLoanDate,
                   })
                   .eq('id', selectedLoanForApproval.id);
 
