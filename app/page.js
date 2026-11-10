@@ -285,9 +285,7 @@ export default function AdminDashboard() {
     const note = (p.note || '').toLowerCase();
     const amt = Number(p.amount || p.payment_amount || 0);
 
-    // ตัดส่วนลดหรือยอด 0 ออก
     if (amt <= 0 || note.includes('ให้ส่วนลด')) return false;
-    // ตัดรายการเพิ่มค่าปรับออก (เพราะยังไม่ได้จ่ายเงินสดเข้ามาจริง)
     if (note.includes('เพิ่มค่าปรับ') && Number(p.principal_paid || 0) === 0 && Number(p.interest_paid || 0) === 0) {
       return false;
     }
@@ -969,7 +967,8 @@ export default function AdminDashboard() {
                           <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
                           <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
                             <Clock className="w-3 h-3" />
-                            สร้าง: {loan.created_at ? `${formatThaiDate(loan.created_at)} ${formatThaiTime(loan.created_at)}` : (loan.loan_date || '-')}
+                            {/* 📌 ยึดตาม loan_date หรือวันที่คำขอเดิม */}
+                            สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
                           </span>
                           {!isPending && (
                             <>
@@ -1693,7 +1692,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Payment Modal (ปรับใหม่: เลือก 3 ฟังก์ชัน และใส่ยอดเงิน) */}
+      {/* Payment Modal */}
       {paymentModalOpen && selectedPaymentLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
@@ -1724,7 +1723,6 @@ export default function AdminDashboard() {
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-3">
-              {/* ช่องที่ 1: เลือกเงื่อนไข / ฟังก์ชันการใช้งาน */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">1. เลือกฟังก์ชันการใช้งาน</label>
                 <select
@@ -1738,7 +1736,6 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              {/* ช่องที่ 2: ใส่ยอดเงินที่จะเพิ่มหรือจะตัดตามฟังก์ชัน */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">
                   2. {paymentMode === 'ส่วนลด' ? 'ยอดส่วนลด (บาท)' : paymentMode === 'เพิ่มปรับ' ? 'ยอดค่าปรับที่ต้องการเพิ่ม (บาท)' : 'ยอดเงินที่รับชำระ (บาท)'}
@@ -1754,7 +1751,6 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* ช่องที่ 3: หมายเหตุ */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">3. หมายเหตุ</label>
                 <input 
@@ -1933,6 +1929,7 @@ export default function AdminDashboard() {
                   ? `${approvalData.schedule_start}-${approvalData.schedule_end}` 
                   : approvalData.payment_schedule;
 
+                // 📌 ยึดวันที่ตามคำขอเดิม (loan_date หรือ created_at เดิม)
                 const correctLoanDate = selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || getThaiTodayString();
 
                 const { error } = await supabase
@@ -1947,6 +1944,7 @@ export default function AdminDashboard() {
                     calc_next_day: approvalData.calc_next_day,
                     loan_date: correctLoanDate,
                     interest_start_date: correctLoanDate,
+                    created_at: selectedLoanForApproval.created_at || new Date().toISOString(), // 📌 รักษาเวลา/วันที่สร้างเดิมไว้
                   })
                   .eq('id', selectedLoanForApproval.id);
 
