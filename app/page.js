@@ -1204,195 +1204,195 @@ export default function AdminDashboard() {
       )}
 
       {/* Notice Bill Modal */}
-      {noticeModalOpen && noticeLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
-            
-            <div className="flex justify-between items-center border-b border-rose-100 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-xs">📄</span>
-                <h3 className="font-black text-rose-900 text-xs sm:text-sm">
-                  ออกบิลแจ้งยอด (NOTICE): <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
-                </h3>
-              </div>
-              <button 
-                onClick={() => setNoticeModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
+{noticeModalOpen && noticeLoan && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
+      
+      <div className="flex justify-between items-center border-b border-rose-100 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-xs">📄</span>
+          <h3 className="font-black text-rose-900 text-xs sm:text-sm">
+            ออกบิลแจ้งยอด (NOTICE): <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
+          </h3>
+        </div>
+        <button 
+          onClick={() => setNoticeModalOpen(false)}
+          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
 
-            <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-[11px]">
-              <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name}</span></div>
-              <div className="flex justify-between items-center border-t border-rose-200/60 pt-1 mt-1">
-                <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
-                <input 
-                  type="number"
-                  value={customNoticeAmount}
-                  onChange={(e) => setCustomNoticeAmount(e.target.value)}
-                  className="w-28 text-right font-mono font-black text-rose-600 text-sm sm:text-base bg-white border border-rose-300 rounded-lg p-1.5 outline-none"
-                />
-              </div>
-            </div>
+      <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-[11px]">
+        <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name}</span></div>
+        <div className="flex justify-between items-center border-t border-rose-200/60 pt-1 mt-1">
+          <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
+          <input 
+            type="number"
+            value={customNoticeAmount}
+            onChange={(e) => setCustomNoticeAmount(e.target.value)}
+            className="w-28 text-right font-mono font-black text-rose-600 text-sm sm:text-base bg-white border border-rose-300 rounded-lg p-1.5 outline-none"
+          />
+        </div>
+      </div>
 
-            {adminBankList.length > 0 && (
-              <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
-                <label className="text-[10px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
-                <select
-                  onChange={(e) => {
-                    const idx = e.target.value;
-                    if (idx !== '') {
-                      setNoticeForm(adminBankList[idx]);
-                    }
-                  }}
-                  className="w-full border border-purple-300 rounded-lg p-2 text-base sm:text-xs bg-white font-semibold outline-none text-slate-800"
-                >
-                  <option value="">-- คลิกเลือกบัญชี --</option>
-                  {adminBankList.map((b, i) => (
-                    <option key={i} value={i}>
-                      {b.bank_name} ({b.account_number})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <div className="text-[11px] font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
-              
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[10px] text-slate-500 font-semibold">ธนาคาร:</label>
-                  <select
-                    value={noticeForm.bank_name}
-                    onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none text-slate-800"
-                  >
-                    <option value="">-- เลือกธนาคาร --</option>
-                    <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
-                    <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
-                    <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
-                    <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
-                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
-                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                    <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
-                    <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
-                    <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
-                    <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
-                    <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-semibold">เลขบัญชี:</label>
-                  <input 
-                    type="text" placeholder="xxx-x-xxxxx-x"
-                    value={noticeForm.account_number}
-                    onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-mono font-bold bg-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-semibold">ชื่อบัญชี:</label>
-                  <input 
-                    type="text" placeholder="ชื่อเจ้าของบัญชี"
-                    value={noticeForm.account_name}
-                    onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="w-10 h-10 border border-dashed border-slate-300 rounded-lg overflow-hidden bg-white flex items-center justify-center relative shrink-0">
-                    {noticeForm.qr_code_image ? (
-                      <img src={noticeForm.qr_code_image} alt="QR Code" className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="text-center p-0.5 text-[8px] text-slate-400">QR</div>
-                    )}
-                  </div>
-                  <label className="px-3 py-2 bg-white border border-rose-300 text-rose-700 font-bold rounded-lg text-xs hover:bg-rose-50 cursor-pointer text-center flex-1">
-                    📁 อัปโหลด QR Code
-                    <input 
-                      type="file" accept="image/*" className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setNoticeForm(prev => ({ ...prev, qr_code_image: reader.result }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
-              <div ref={hiddenCaptureRef} style={{ width: '400px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b' }}>
-                <div style={{ textAlign: 'center', borderBottom: '2px solid #f43f5e', paddingBottom: '12px', marginBottom: '16px' }}>
-                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#881337', margin: 0 }}>แจ้งยอดค้างชำระ (NOTICE)</h2>
-                  <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>SUBLON 819</p>
-                </div>
-
-                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '12px', marginBottom: '14px', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.bill_code}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.full_name}</span></div>
-                  
-                  <div style={{ borderTop: '1px solid #fecdd3', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดชำระสุทธิ:</span>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#e11d48', fontSize: '18px' }}>฿{Number(customNoticeAmount || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div style={{ flex: 1, fontSize: '12px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>ช่องทางการชำระเงิน</div>
-                    <div style={{ marginBottom: '4px' }}><span style={{ color: '#64748b' }}>ธนาคาร:</span> <strong style={{ color: '#0f172a' }}>{noticeForm.bank_name || '-'}</strong></div>
-                    <div style={{ marginBottom: '4px' }}><span style={{ color: '#64748b' }}>เลขบัญชี:</span> <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{noticeForm.account_number || '-'}</strong></div>
-                    <div><span style={{ color: '#64748b' }}>ชื่อบัญชี:</span> <strong style={{ color: '#0f172a' }}>{noticeForm.account_name || '-'}</strong></div>
-                  </div>
-
-                  {noticeForm.qr_code_image && (
-                    <div style={{ width: '80px', height: '80px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                      <img src={noticeForm.qr_code_image} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-rose-100 flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => setNoticeModalOpen(false)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadNoticeImage}
-                className="px-3 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>ดาวน์โหลดรูป</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleShareNoticeImage}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>แชร์ภาพ</span>
-              </button>
-            </div>
-
-          </div>
+      {adminBankList.length > 0 && (
+        <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
+          <label className="text-[10px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
+          <select
+            onChange={(e) => {
+              const idx = e.target.value;
+              if (idx !== '') {
+                setNoticeForm(adminBankList[idx]);
+              }
+            }}
+            className="w-full border border-purple-300 rounded-lg p-2 text-base sm:text-xs bg-white font-semibold outline-none text-slate-800"
+          >
+            <option value="">-- คลิกเลือกบัญชี --</option>
+            {adminBankList.map((b, i) => (
+              <option key={i} value={i}>
+                {b.bank_name} ({b.account_number})
+              </option>
+            ))}
+          </select>
         </div>
       )}
+
+      <div className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <div className="text-[11px] font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
+        
+        <div className="space-y-2">
+          <div>
+            <label className="text-[10px] text-slate-500 font-semibold">ธนาคาร:</label>
+            <select
+              value={noticeForm.bank_name}
+              onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
+              className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none text-slate-800"
+            >
+              <option value="">-- เลือกธนาคาร --</option>
+              <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
+              <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+              <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+              <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+              <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+              <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+              <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+              <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+              <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+              <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+              <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 font-semibold">เลขบัญชี:</label>
+            <input 
+              type="text" placeholder="xxx-x-xxxxx-x"
+              value={noticeForm.account_number}
+              onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
+              className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-mono font-bold bg-white outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 font-semibold">ชื่อบัญชี:</label>
+            <input 
+              type="text" placeholder="ชื่อเจ้าของบัญชี"
+              value={noticeForm.account_name}
+              onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
+              className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <div className="w-10 h-10 border border-dashed border-slate-300 rounded-lg overflow-hidden bg-white flex items-center justify-center relative shrink-0">
+              {noticeForm.qr_code_image ? (
+                <img src={noticeForm.qr_code_image} alt="QR Code" className="w-full h-full object-contain" />
+              ) : (
+                <div className="text-center p-0.5 text-[8px] text-slate-400">QR</div>
+              )}
+            </div>
+            <label className="px-3 py-2 bg-white border border-rose-300 text-rose-700 font-bold rounded-lg text-xs hover:bg-rose-50 cursor-pointer text-center flex-1">
+              📁 อัปโหลด QR Code
+              <input 
+                type="file" accept="image/*" className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setNoticeForm(prev => ({ ...prev, qr_code_image: reader.result }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
+        <div ref={hiddenCaptureRef} style={{ width: '420px', background: '#ffffff', padding: '28px 24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+          <div style={{ textAlign: 'center', borderBottom: '2px solid #f43f5e', paddingBottom: '14px', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#881337', margin: 0 }}>แจ้งยอดค้างชำระ (NOTICE)</h2>
+            <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>SUBLON 819</p>
+          </div>
+
+          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '14px', marginBottom: '14px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.bill_code}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.full_name}</span></div>
+            
+            <div style={{ borderTop: '1px solid #fecdd3', paddingTop: '10px', marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดชำระสุทธิ:</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#e11d48', fontSize: '20px' }}>฿{Number(customNoticeAmount || 0).toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '14px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ flex: 1, fontSize: '12px' }}>
+              <div style={{ fontWeight: 'bold', color: '#334155', marginBottom: '8px' }}>ช่องทางการชำระเงิน</div>
+              <div style={{ marginBottom: '6px' }}><span style={{ color: '#64748b' }}>ธนาคาร:</span> <strong style={{ color: '#0f172a' }}>{noticeForm.bank_name || '-'}</strong></div>
+              <div style={{ marginBottom: '6px' }}><span style={{ color: '#64748b' }}>เลขบัญชี:</span> <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{noticeForm.account_number || '-'}</strong></div>
+              <div><span style={{ color: '#64748b' }}>ชื่อบัญชี:</span> <strong style={{ color: '#0f172a' }}>{noticeForm.account_name || '-'}</strong></div>
+            </div>
+
+            {noticeForm.qr_code_image && (
+              <div style={{ width: '90px', height: '90px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                <img src={noticeForm.qr_code_image} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-rose-100 flex gap-2 justify-end">
+        <button
+          type="button"
+          onClick={() => setNoticeModalOpen(false)}
+          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadNoticeImage}
+          className="px-3 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>ดาวน์โหลดรูป</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleShareNoticeImage}
+          className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+          <span>แชร์ภาพ</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
 
       {/* CustomerDetail Modal */}
       {customerProfileModalOpen && (
