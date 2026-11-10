@@ -19,7 +19,7 @@ function formatThaiDate(dateInput) {
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (รองรับ calc_next_day 100%)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (นับรวมวันทำรายการด้วยเสมอ)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -48,11 +48,8 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  // 🔍 ตรวจสอบเงื่อนไข: ถ้าเลือกเริ่มนับ "วันพรุ่งนี้" (calc_next_day = true) จะไม่บวก 1 เพิ่ม (เริ่มนับจากวันถัดไป)
-  // แต่ถ้าไม่ได้เลือก (calc_next_day = false/undefined) จะบวก 1 เพื่อให้นับวันทำรายการด้วย
-  if (!loan.calc_next_day) {
-    diffDays += 1;
-  }
+  // 🔍 บังคับนับรวมวันทำรายการด้วยเสมอ (บวก 1 วัน) เพื่อให้ยอดตรงกัน
+  diffDays += 1;
   
   const days = Math.max(0, diffDays);
   const origPrin = Number(loan.principal_amount || 0);

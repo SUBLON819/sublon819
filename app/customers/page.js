@@ -14,7 +14,7 @@ function getThaiTodayString() {
   return formatter.format(new Date());
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (รองรับ calc_next_day 100%)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (นับรวมวันทำรายการด้วยเสมอ)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -43,10 +43,8 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  // 🔍 ตรวจสอบเงื่อนไข: ถ้าเลือกเริ่มนับ "วันพรุ่งนี้" (calc_next_day = true) จะไม่บวก 1 เพิ่ม
-  if (!loan.calc_next_day) {
-    diffDays += 1;
-  }
+  // 🔍 บังคับนับรวมวันทำรายการด้วยเสมอ (บวก 1 วัน) เพื่อให้ยอดตรงกัน
+  diffDays += 1;
   
   const days = Math.max(0, diffDays);
   const origPrin = Number(loan.principal_amount || 0);
@@ -322,7 +320,7 @@ export default function CustomersPage() {
         remaining_interest: newRemainingInterest,
         fine_amount: newTotalFine,
         interest_start_date: nextInterestStartDate,
-        calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
+        calc_next_day: false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
       }).eq('id', selectedPaymentLoan.id);
 
