@@ -70,12 +70,11 @@ export default function CustomersPage() {
   const [customerProfileModalOpen, setCustomerProfileModalOpen] = useState(false);
   const [selectedCustomerName, setSelectedCustomerName] = useState('');
 
-  // State สำหรับเปิด Modal รับชำระเงิน
+  // 📌 State สำหรับ Modal รับชำระเงินแบบ 3 เงื่อนไข
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPaymentLoan, setSelectedPaymentLoan] = useState(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [fineAmount, setFineAmount] = useState('');
-  const [discountAmount, setDiscountAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState('ชำระยอดปกติ'); // 'ชำระยอดปกติ' | 'ส่วนลด' | 'เพิ่มปรับ'
+  const [actionAmount, setActionAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
 
   // State สำหรับ Modal แก้ไขข้อมูลลูกค้า
@@ -197,74 +196,92 @@ export default function CustomersPage() {
     }
   };
 
+  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขใหม่
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
 
-    const basePayVal = Number(paymentAmount || 0);
-    const fineInputVal = Number(fineAmount || 0);
-    const discountVal = Number(discountAmount || 0);
-
-    if (basePayVal <= 0 && fineInputVal <= 0 && discountVal <= 0) {
-      alert('กรุณากรอกจำนวนเงินที่ชำระ, ค่าปรับ หรือส่วนลดอย่างน้อย 1 อย่าง');
+    const val = Number(actionAmount || 0);
+    if (val <= 0) {
+      alert('กรุณากรอกจำนวนเงินให้มากกว่า 0');
       return;
     }
 
     try {
       const currentPrin = Number(selectedPaymentLoan.remaining_principal ?? selectedPaymentLoan.principal_amount ?? 0);
       const totalAccruedBefore = calculateAccruedInterest(selectedPaymentLoan);
+      const currentFine = Number(selectedPaymentLoan.fine_amount || 0);
 
-      let remainingFine = fineInputVal;
-      let discountUsedForFine = Math.min(remainingFine, discountVal);
-      remainingFine -= discountUsedForFine;
-      let remainingDiscount = discountVal - discountUsedForFine;
-
-      let remainingPayment = basePayVal;
-      let cashUsedForFine = Math.min(remainingFine, remainingPayment);
-      remainingPayment -= cashUsedForFine;
-
+      let finePaid = 0;
       let interestPaid = 0;
       let principalPaid = 0;
+      
       let newRemPrin = currentPrin;
       let newRemainingInterest = totalAccruedBefore;
+      let newTotalFine = currentFine;
 
-      if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
-        interestPaid = Math.min(remainingPayment, remainingPayment);   
-        principalPaid = Math.min(remainingPayment, currentPrin);  
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
-      } else if (selectedPaymentLoan.loan_type === 'จบต้นดอก') {
-        const totalInt = Number(selectedPaymentLoan.total_interest || 0);
-        const origPrin = Number(selectedPaymentLoan.principal_amount || 0);
-        const totalPayable = origPrin + totalInt;
-        
-        const netPrincipalPay = Math.max(0, remainingPayment);
-        const interestRatio = totalPayable > 0 ? (totalInt / totalPayable) : 0;
-        interestPaid = netPrincipalPay > 0 ? netPrincipalPay * interestRatio : 0; 
-        principalPaid = netPrincipalPay > 0 ? netPrincipalPay - interestPaid : 0; 
-        
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
-      } else {
-        // 1. นำเงินที่จ่ายมาตัดดอกเบี้ยสะสมก่อน
-        interestPaid = Math.min(totalAccruedBefore, remainingPayment);
-        remainingPayment -= interestPaid;
-        
-        // 2. ดอกเบี้ยสะสมที่เหลือ = ดอกเบี้ยก่อนจ่าย หักด้วยดอกเบี้ยที่จ่ายไป
-        newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+      let recordAmount = 0;
+      let noteText = paymentNote;
 
-        // 3. เงินที่เหลือค่อยนำไปตัดเงินต้น
-        principalPaid = Math.min(currentPrin, remainingPayment);
-        newRemPrin = Math.max(0, currentPrin - principalPaid);
-      }
+      if (paymentMode === 'ชำระยอดปกติ') {
+        recordAmount = val;
+        let rem = val;
 
-      if (remainingDiscount > 0) {
-        if (newRemainingInterest > 0) {
-          const discountForInt = Math.min(newRemainingInterest, remainingDiscount);
-          newRemainingInterest -= discountForInt;
-          remainingDiscount -= discountForInt;
+        // ลำดับตัดหนี้: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
+        if (currentFine > 0 && rem > 0) {
+          finePaid = Math.min(currentFine, rem);
+          rem -= finePaid;
+          newTotalFine -= finePaid;
         }
-        if (remainingDiscount > 0) {
-          newRemPrin = Math.max(0, newRemPrin - remainingDiscount);
+
+        if (totalAccruedBefore > 0 && rem > 0) {
+          if (selectedPaymentLoan.loan_type && selectedPaymentLoan.loan_type.includes('รอเคลียร์')) {
+            interestPaid = 0;
+          } else {
+            interestPaid = Math.min(totalAccruedBefore, rem);
+            rem -= interestPaid;
+            newRemainingInterest = Math.max(0, totalAccruedBefore - interestPaid);
+          }
         }
+
+        if (rem > 0) {
+          principalPaid = Math.min(currentPrin, rem);
+          newRemPrin = Math.max(0, currentPrin - principalPaid);
+        }
+
+        if (!noteText) noteText = 'รับชำระปกติ (ตัด ค่าปรับ/ดอกเบี้ย/ต้น)';
+
+      } else if (paymentMode === 'ส่วนลด') {
+        recordAmount = 0; // ส่วนลดไม่นับเป็นเงินสดรับเข้า
+        let remDiscount = val;
+
+        // ลำดับหักส่วนลด: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
+        if (currentFine > 0 && remDiscount > 0) {
+          const discFine = Math.min(currentFine, remDiscount);
+          remDiscount -= discFine;
+          newTotalFine -= discFine;
+        }
+
+        if (newRemainingInterest > 0 && remDiscount > 0) {
+          const discInt = Math.min(newRemainingInterest, remDiscount);
+          remDiscount -= discInt;
+          newRemainingInterest -= discInt;
+          interestPaid = discInt;
+        }
+
+        if (remDiscount > 0) {
+          principalPaid = Math.min(newRemPrin, remDiscount);
+          newRemPrin = Math.max(0, newRemPrin - principalPaid);
+        }
+
+        if (!noteText) noteText = `ให้ส่วนลด -${val}`;
+
+      } else if (paymentMode === 'เพิ่มปรับ') {
+        recordAmount = val;
+        finePaid = val;
+        newTotalFine += val;
+
+        if (!noteText) noteText = `เพิ่มค่าปรับ +${val}`;
       }
 
       let newDailyInterest = Number(selectedPaymentLoan.daily_interest || 0);
@@ -279,30 +296,29 @@ export default function CustomersPage() {
         loan_id: selectedPaymentLoan.id,
         bill_code: selectedPaymentLoan.bill_code,
         full_name: selectedPaymentLoan.full_name,
-        amount: basePayVal + fineInputVal,
-        payment_amount: basePayVal,
+        amount: recordAmount,
+        payment_amount: paymentMode === 'ชำระยอดปกติ' ? recordAmount : 0,
         interest_paid: interestPaid,
         principal_paid: principalPaid,
-        fine_amount: fineInputVal,
-        discount_amount: discountVal,
-        note: paymentNote || (discountVal > 0 ? `ให้ส่วนลด -${discountVal}` : 'รับชำระปกติ'),
+        fine_amount: finePaid,
+        discount_amount: paymentMode === 'ส่วนลด' ? val : 0,
+        note: noteText,
         created_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).toISOString(),
       }]);
 
       if (paymentError) throw paymentError;
 
-      const todayDateStr = getThaiTodayString();
       const isPaidOff = newRemPrin === 0 && newRemainingInterest === 0;
 
-      // 📌 จุดแก้ไขสำคัญ: หากยังเหลือดอกเบี้ยค้าง ให้คงวันเริ่มสะสมเดิมไว้เพื่อไม่ให้วันนับดอกเบี้ยถูกรีเซ็ตเป็นศูนย์
       const nextInterestStartDate = newRemainingInterest > 0 
-        ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || todayDateStr)
-        : todayDateStr;
+        ? (selectedPaymentLoan.interest_start_date || selectedPaymentLoan.loan_date || selectedPaymentLoan.created_at?.split('T')[0] || getThaiTodayString())
+        : getThaiTodayString();
 
       const { error: loanErr } = await supabase.from('loans').update({
         remaining_principal: newRemPrin,
         daily_interest: newDailyInterest,
         remaining_interest: newRemainingInterest,
+        fine_amount: newTotalFine,
         interest_start_date: nextInterestStartDate,
         calc_next_day: newRemainingInterest > 0 ? (selectedPaymentLoan.calc_next_day ?? false) : false,
         status: isPaidOff ? 'ชำระแล้ว' : 'อนุมัติแล้ว'
@@ -310,11 +326,9 @@ export default function CustomersPage() {
 
       if (loanErr) throw loanErr;
 
-      alert('บันทึกข้อมูลและตัดยอดเรียบร้อยแล้ว!');
+      alert('บันทึกข้อมูลและทำรายการเรียบร้อยแล้ว!');
       setPaymentModalOpen(false);
-      setPaymentAmount('');
-      setFineAmount('');
-      setDiscountAmount('');
+      setActionAmount('');
       setPaymentNote('');
       fetchData();
     } catch (err) {
@@ -423,9 +437,8 @@ export default function CustomersPage() {
           onDeleteLoan={(loanId, billCode) => handleDeleteLoan(loanId, billCode)}
           onOpenPaymentModal={(l) => {
             setSelectedPaymentLoan(l);
-            setPaymentAmount('');
-            setFineAmount('');
-            setDiscountAmount('');
+            setPaymentMode('ชำระยอดปกติ');
+            setActionAmount('');
             setPaymentNote('');
             setPaymentModalOpen(true);
           }}
@@ -536,7 +549,7 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* ================= MODAL บันทึกรับชำระเงิน ================= */}
+      {/* ================= MODAL บันทึกรับชำระเงินแบบ 3 เงื่อนไข ================= */}
       {paymentModalOpen && selectedPaymentLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
@@ -549,6 +562,7 @@ export default function CustomersPage() {
                 </h3>
               </div>
               <button 
+                type="button"
                 onClick={() => setPaymentModalOpen(false)}
                 className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
               >
@@ -556,62 +570,56 @@ export default function CustomersPage() {
               </button>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-0.5 font-medium text-slate-700 text-[11px]">
+            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-1 font-medium text-slate-700 text-[11px]">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
-              <div>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></div>
+              <div className="flex justify-between items-center border-t border-purple-200/60 pt-1 mt-1">
+                <span>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></span>
+                <span>ดอกเบี้ยสะสม: <span className="font-mono font-bold text-[color:#ff007f]">฿{calculateAccruedInterest(selectedPaymentLoan).toLocaleString()}</span></span>
+              </div>
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-3">
+              {/* ช่องที่ 1: เลือกฟังก์ชันการใช้งาน */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">ยอดเงินที่ชำระ (บาท)</label>
+                <label className="block text-slate-700 font-bold mb-1">1. เลือกฟังก์ชันการใช้งาน</label>
+                <select
+                  value={paymentMode}
+                  onChange={(e) => setPaymentMode(e.target.value)}
+                  className="w-full border border-purple-300 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-white font-bold text-purple-900"
+                >
+                  <option value="ชำระยอดปกติ">ชำระยอดปกติ (ตัด ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
+                  <option value="ส่วนลด">ส่วนลด (หักลดหนี้ ค่าปรับ ➔ ดอกเบี้ย ➔ ต้น)</option>
+                  <option value="เพิ่มปรับ">เพิ่มปรับ (เพิ่มยอดค่าปรับ)</option>
+                </select>
+              </div>
+
+              {/* ช่องที่ 2: ใส่ยอดเงิน */}
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">
+                  2. {paymentMode === 'ส่วนลด' ? 'ยอดส่วนลด (บาท)' : paymentMode === 'เพิ่มปรับ' ? 'ยอดค่าปรับที่ต้องการเพิ่ม (บาท)' : 'ยอดเงินที่รับชำระ (บาท)'}
+                </label>
                 <input 
                   type="number" 
                   step="any"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  required
+                  value={actionAmount}
+                  onChange={(e) => setActionAmount(e.target.value)}
                   placeholder="0"
-                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold"
+                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold text-slate-900"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">ค่าปรับ</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={fineAmount}
-                    onChange={(e) => setFineAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">ส่วนลด</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={discountAmount}
-                    onChange={(e) => setDiscountAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono"
-                  />
-                </div>
-              </div>
-
+              {/* ช่องที่ 3: หมายเหตุ */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">หมายเหตุ</label>
+                <label className="block text-slate-700 font-bold mb-1">3. หมายเหตุ</label>
                 <input 
                   type="text" 
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder="ชำระงวดประจำวัน..."
-                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20"
+                  placeholder={paymentMode === 'ส่วนลด' ? 'ให้ส่วนลดพิเศษ...' : paymentMode === 'เพิ่มปรับ' ? 'ปรับค่าปรับล่าช้า...' : 'ชำระงวดประจำวัน...'}
+                  className="w-full border border-purple-200 rounded-xl px-3 py-2 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 text-slate-900"
                 />
-                <p className="text-[10px] text-purple-700 font-medium mt-1">
-                  💡 หากต้องการใส่ส่วนลด/ลดหนี้อย่างเดียว ให้กรอกแค่ช่อง &quot;ส่วนลด&quot; โดยไม่ต้องใส่ช่อง &quot;ยอดเงินที่ชำระ&quot;
-                </p>
               </div>
 
               <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
@@ -626,7 +634,7 @@ export default function CustomersPage() {
                   type="submit"
                   className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  ยืนยันรับชำระ
+                  ยืนยันทำรายการ
                 </button>
               </div>
             </form>
