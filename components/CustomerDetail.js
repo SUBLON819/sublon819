@@ -218,7 +218,7 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
         
-        {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ และ ออกบิลแจ้งยอด อยู่มุมขวาบน แบบกะทัดรัด */}
+        {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ (ซ้าย) และ ออกบิลแจ้งยอด (ขวา) อยู่มุมขวาบน แบบกะทัดรัด */}
         <div className="bg-purple-50 p-3.5 sm:p-4 rounded-2xl border border-purple-200 space-y-3 shadow-sm relative">
           
           {/* ปุ่มควบคุมมุมขวาบน (RECEIPT อยู่ซ้าย, NOTICE อยู่ขวา) */}
@@ -264,18 +264,21 @@ export default function CustomerDetail({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-0 sm:pr-64">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-0 sm:pr-[320px]">
             <div>
               <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
               <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
             </div>
             <div>
               <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
-              <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.bank_name || '-'} ({customerInfo.account_number || '-'})</span>
+              <div className="font-mono font-bold text-slate-900 text-sm">
+                <div>{customerInfo.bank_name || '-'}</div>
+                <div>{customerInfo.account_number ? `(${customerInfo.account_number})` : ''}</div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-1 border-t border-purple-200/60 pr-0 sm:pr-64">
+          <div className="flex items-center gap-2 pt-1 border-t border-purple-200/60 pr-0 sm:pr-[320px]">
             <span className="text-slate-500 text-[10px]">Facebook:</span> 
             {customerInfo.facebook_link ? (
               <a 
