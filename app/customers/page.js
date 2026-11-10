@@ -14,7 +14,7 @@ function getThaiTodayString() {
   return formatter.format(new Date());
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (ตรงกับหน้าแดชบอร์ด 100%)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (รองรับ calc_next_day 100%)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -43,6 +43,7 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+  // 🔍 ตรวจสอบเงื่อนไข: ถ้าเลือกเริ่มนับ "วันพรุ่งนี้" (calc_next_day = true) จะไม่บวก 1 เพิ่ม
   if (!loan.calc_next_day) {
     diffDays += 1;
   }
@@ -198,7 +199,7 @@ export default function CustomersPage() {
     }
   };
 
-  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขใหม่
+  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไข
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -254,10 +255,9 @@ export default function CustomersPage() {
         if (!noteText) noteText = 'รับชำระปกติ (ตัด ค่าปรับ/ดอกเบี้ย/ต้น)';
 
       } else if (paymentMode === 'ส่วนลด') {
-        recordAmount = 0; // ส่วนลดไม่นับเป็นเงินสดรับเข้า
+        recordAmount = 0; 
         let remDiscount = val;
 
-        // ลำดับหักส่วนลด: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
         if (currentFine > 0 && remDiscount > 0) {
           const discFine = Math.min(currentFine, remDiscount);
           remDiscount -= discFine;
@@ -582,7 +582,6 @@ export default function CustomersPage() {
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-3">
-              {/* ช่องที่ 1: เลือกฟังก์ชันการใช้งาน */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">1. เลือกฟังก์ชันการใช้งาน</label>
                 <select
@@ -596,7 +595,6 @@ export default function CustomersPage() {
                 </select>
               </div>
 
-              {/* ช่องที่ 2: ใส่ยอดเงิน */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">
                   2. {paymentMode === 'ส่วนลด' ? 'ยอดส่วนลด (บาท)' : paymentMode === 'เพิ่มปรับ' ? 'ยอดค่าปรับที่ต้องการเพิ่ม (บาท)' : 'ยอดเงินที่รับชำระ (บาท)'}
@@ -612,7 +610,6 @@ export default function CustomersPage() {
                 />
               </div>
 
-              {/* ช่องที่ 3: หมายเหตุ */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">3. หมายเหตุ</label>
                 <input 
