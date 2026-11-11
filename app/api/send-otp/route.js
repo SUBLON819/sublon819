@@ -14,13 +14,13 @@ export async function POST(request) {
     }
 
     // 3. จัดข้อความส่งเข้า LINE (ระบุป้ายลูกค้าเก่า / ลูกค้าใหม่)
-    const customerTypeTag = isOldCustomer ? '👤 [ลูกค้าเก่า]' : '✨ [ลูกค้าใหม่]';
+    const customerTypeTag = isOldCustomer ? '👤 (ลูกค้าเก่า)' : '✨ (ลูกค้าใหม่)';
 
     const messageText = `🚨 แจ้งเตือนคำขอ OTP ใหม่ (SUBLON819)\n\n` +
       `${customerTypeTag}\n` +
       `📞 เบอร์โทรศัพท์ลูกค้า: ${phone}\n` +
       `🔑 รหัส OTP: ${otp}\n\n` +
-      `กรุณาแจ้งรหัสนี้แก่ลูกค้าเพื่อยืนยันตัวตนในหน้าสมัคร`;
+      `📌 (สำหรับแอดมิน: นำรหัสนี้แจ้งลูกค้าเพื่อยืนยันตัวตน)`;
 
     // 4. ส่งข้อมูลไปยัง LINE Messaging API (Push Message Endpoint)
     const lineUrl = 'https://api.line.me/v2/bot/message/push';
