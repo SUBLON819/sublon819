@@ -6,8 +6,8 @@ export async function POST(request) {
     const { phone, otp, lineUserId, isOldCustomer } = await request.json();
 
     // 2. ดึงค่า LINE Token และ Admin ID จาก Environment Variables (.env.local / Vercel)
-    const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-    const TARGET_LINE_USER_ID = lineUserId || process.env.LINE_ADMIN_USER_ID;
+    const LINE_CHANNEL_ACCESS_TOKEN = '70239ca5a4ab3ea729e6d25552343043';
+    const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab0c39fec1055bdbd7423678eecdf';
 
     if (!LINE_CHANNEL_ACCESS_TOKEN) {
       throw new Error('ยังไม่ได้กำหนดค่า LINE_CHANNEL_ACCESS_TOKEN ในระบบ');
