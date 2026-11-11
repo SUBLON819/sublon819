@@ -301,12 +301,10 @@ export default function ApplyPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        // รอให้วิดีโอโหลดข้อมูลสตรีมพร้อมแสดงผล
         videoRef.current.onloadedmetadata = () => {
           videoRef.current.play().then(() => {
             setAutoCaptureStatus('✨ กำลังจับภาพอัตโนมัติใน 3 วินาที...');
             
-            // ตั้งเวลานับถอยหลัง 3 วินาทีเพื่อความแม่นยำ
             setTimeout(() => {
               triggerAutoCapture();
             }, 3000);
@@ -664,7 +662,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-bold`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm outline-none font-bold`}
                 />
               </div>
 
@@ -677,7 +675,7 @@ export default function ApplyPage() {
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm outline-none font-mono`}
                   />
                 </div>
               )}
@@ -690,25 +688,26 @@ export default function ApplyPage() {
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-bold outline-none font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm font-bold outline-none font-mono`}
                 />
               </div>
 
+              {/* ปรับช่องกำหนดคืนให้เป็นขนาดกะทัดรัด (Compact) */}
               <div className="space-y-1 w-full max-w-full min-w-0 overflow-hidden">
-  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
-    <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-    <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-75 block sm:inline">(บังคับวันคืนมากกว่าวันกู้)</span></span>
-  </label>
-  <input 
-    type="date"
-    required
-    min={formData.loan_date || ''}
-    value={formData.cycle_date}
-    onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-    className={`w-full max-w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono font-bold cursor-pointer text-white`}
-    style={{ colorScheme: 'dark' }}
-  />
-</div>
+                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-75">(ต้องมากกว่าวันกู้)</span></span>
+                </label>
+                <input 
+                  type="date"
+                  required
+                  min={formData.loan_date || ''}
+                  value={formData.cycle_date}
+                  onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
+                  className={`w-auto inline-block box-border ${theme.inputBg} border rounded-xl px-3 py-1.5 text-xs outline-none font-mono font-bold cursor-pointer text-white`}
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
@@ -719,7 +718,7 @@ export default function ApplyPage() {
                   <select
                     value={formData.bank_name} 
                     onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer"
+                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2 text-xs outline-none font-bold cursor-pointer"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)" className="bg-slate-900 text-white">ธนาคารทหารไทยธนชาติ (TTB)</option>
                     <option value="ธนาคารกสิกรไทย (KBANK)" className="bg-slate-900 text-white">ธนาคารกสิกรไทย (KBANK)</option>
@@ -740,20 +739,20 @@ export default function ApplyPage() {
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} 
                     onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-mono font-bold outline-none`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none`}
                   />
                 </div>
               </div>
 
               {!isOldCustomer ? (
-                <div className="space-y-1.5 pt-1 border-t border-black/10">
+                <div className="space-y-1 pt-1 border-t border-black/10">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
                     <Upload className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                     <span>แนบเอกสาร (บัตรประชาชน / ภาพถ่ายพิกัดหน้าบ้าน) <span className="text-red-500">*</span></span>
                   </label>
                   
-                  <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                    <label className={`px-3 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
+                  <div className="border border-black/10 bg-black/5 rounded-xl p-2 flex items-center justify-between gap-2">
+                    <label className={`px-2.5 py-1 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
                       <input 
                         type="file" required
@@ -772,12 +771,12 @@ export default function ApplyPage() {
               )}
 
               <div className="border border-black/10 bg-black/5 p-2 rounded-xl text-[10px] opacity-80 leading-relaxed">
-                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน ข้าพเจ้าได้ไตร่ตรองอย่างถี่ถ้วนแล้วว่า มีความสามารถในการชำระคืนได้ตรงเวลาโดยไม่กระทบต่อการดำรงชีวิตประจำวัน"
+                💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน..."
               </div>
 
               <button 
                 type="submit" 
-                className={`w-full py-3 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
+                className={`w-full py-2.5 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
               >
                 <span>ถัดไป: ถ่ายภาพหน้าคู่บัตรประชาชน</span>
                 <Camera className="w-4 h-4" />
@@ -788,10 +787,9 @@ export default function ApplyPage() {
         </div>
       </div>
 
-      {/* ================= 📸 MODAL สแกนหน้าเต็มจอ ถ่ายคู่บัตร (จับภาพอัตโนมัติ ไร้ขอบ) ================= */}
+      {/* ================= 📸 MODAL สแกนหน้าเต็มจอ ================= */}
       {scanModalOpen && (
         <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-between p-4 text-white">
-          
           <div className="w-full max-w-md pt-4 text-center space-y-1">
             <h3 className="text-base font-black text-emerald-400">📸 ถ่ายภาพคู่บัตรประชาชน</h3>
             <p className="text-xs text-slate-300">กรุณาถือบัตรประชาชนชิดใบหน้าให้เห็นชัดเจน ระบบจะจับภาพให้อัตโนมัติ</p>
@@ -852,10 +850,8 @@ export default function ApplyPage() {
               ยกเลิก / กลับไปแก้ไขฟอร์ม
             </button>
           </div>
-
         </div>
       )}
-
     </div>
   );
 }
