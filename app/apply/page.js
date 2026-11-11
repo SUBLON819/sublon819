@@ -105,6 +105,19 @@ export default function ApplyPage() {
     }
   };
 
+  // 🔄 ฟังก์ชันสำหรับรีเฟรช/ดึงข้อมูลปัจจุบันใหม่
+  const handleRefreshData = async () => {
+    setLoading(true);
+    try {
+      await fetchSiteSettings();
+      alert('รีเฟรชข้อมูลปัจจุบันสำเร็จ!');
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการรีเฟรช: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getThemeClasses = (color) => {
     switch (color) {
       case 'purple':
@@ -255,7 +268,6 @@ export default function ApplyPage() {
     );
   };
 
-  // 📋 ตรวจสอบฟอร์มเบื้องต้นก่อนเปิดกล้องสแกนหน้า
   const handlePreSubmitForm = (e) => {
     e.preventDefault();
     const todayThai = getThaiTodayString();
@@ -270,12 +282,10 @@ export default function ApplyPage() {
       return;
     }
 
-    // เปิด Modal สแกนหน้าเป็นขั้นตอนสุดท้าย
     setScanModalOpen(true);
     startCamera();
   };
 
-  // 📸 เริ่มเปิดกล้องเว็บแคม
   const startCamera = async () => {
     setCapturedImage(null);
     try {
@@ -290,7 +300,6 @@ export default function ApplyPage() {
     }
   };
 
-  // 🛑 ปิดกล้อง
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject;
@@ -299,7 +308,6 @@ export default function ApplyPage() {
     setScanModalOpen(false);
   };
 
-  // 📸 ถ่ายภาพจากวิดีโอ
   const capturePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -313,7 +321,6 @@ export default function ApplyPage() {
     }
   };
 
-  // 🚀 ขั้นตอนสุดท้าย: อัปโหลดรูปสแกนหน้าและข้อมูลทั้งหมดเข้า Supabase
   const handleFinalSubmit = async () => {
     if (!capturedImage) {
       alert('กรุณาถ่ายรูปสแกนใบหน้ายืนยันตัวตนก่อนยืนยันครับ');
@@ -327,7 +334,6 @@ export default function ApplyPage() {
       let fileUrl = null;
       let faceUrl = null;
 
-      // 1. อัปโหลดเอกสารแนบ (ถ้ามี)
       if (!isOldCustomer && file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${phone}-${Date.now()}.${fileExt}`;
@@ -345,7 +351,6 @@ export default function ApplyPage() {
         fileUrl = publicUrlData.publicUrl;
       }
 
-      // 2. อัปโหลดรูปสแกนหน้าเข้า Bucket fin-docs
       const faceBlobRes = await fetch(capturedImage);
       const faceBlob = await faceBlobRes.blob();
       const faceFileName = `face-${phone}-${Date.now()}.jpg`;
@@ -362,7 +367,6 @@ export default function ApplyPage() {
 
       faceUrl = facePublicUrlData.publicUrl;
 
-      // 3. บันทึกข้อมูลลงตาราง loans
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -380,7 +384,7 @@ export default function ApplyPage() {
         loan_date: todayThai,
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
-        face_image_url: faceUrl, // 📌 บันทึกลิงก์รูปสแกนหน้า
+        face_image_url: faceUrl,
         created_at: getThaiCurrentTimestamp(),
       }]);
 
@@ -450,7 +454,19 @@ export default function ApplyPage() {
       <div className={`${theme.cardBg} backdrop-blur-xl border rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden`}>
         
         {/* Header */}
-        <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-black/10 transition-colors duration-300`}>
+        <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-black/10 transition-colors duration-300 relative`}>
+          {/* 🔄 ปุ่มรีเฟรชข้อมูลปัจจุบันมุมขวาบน */}
+          <button 
+            type="button"
+            onClick={handleRefreshData}
+            disabled={loading}
+            className="absolute top-4 right-4 px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+            title="รีเฟรชข้อมูลปัจจุบัน"
+          >
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            <span>รีเฟรช</span>
+          </button>
+
           <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
             {siteConfig.banner_title}
           </h1>
