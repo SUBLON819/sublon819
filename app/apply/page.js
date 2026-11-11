@@ -801,7 +801,7 @@ export default function ApplyPage() {
 
             <div className="relative w-full h-64 bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border-4 border-purple-500">
               {!capturedImage ? (
-                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
               ) : (
                 <img src={capturedImage} alt="Captured Face" className="w-full h-full object-cover" />
               )}
