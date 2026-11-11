@@ -418,6 +418,25 @@ export default function ApplyPage() {
       }]);
 
       if (error) throw error;
+
+      // 🚨 ส่งข้อมูลแจ้งเตือนคำขอกู้เข้า LINE แอดมินทันทีหลังจากบันทึกสำเร็จ
+      try {
+        await fetch('/api/line-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: formData.full_name,
+            phone: phone,
+            amount: formData.principal_amount,
+            loanType: 'กำหนดช่วงวันที่ (กำหนดคืน: ' + formData.cycle_date + ')',
+            bankName: formData.bank_name,
+            accountNumber: formData.account_number
+          })
+        });
+      } catch (lineErr) {
+        console.error('Line notify background error:', lineErr);
+      }
+
       stopCamera();
       setSuccess(true);
     } catch (err) {
