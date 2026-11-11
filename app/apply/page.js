@@ -205,18 +205,33 @@ export default function ApplyPage() {
       const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedOtp(mockOtp);
 
-      const botToken = '9203750510:AAFJhUvWRf4mOSozUSkz0I0I9Jca-xImuTo';
-      const chatId = '1880260879';
-      const customerTypeTag = foundOld ? '👤 [ลูกค้าเก่า]' : '✨ [ลูกค้าใหม่]';
-      const message = `🚨 แจ้งเตือนคำขอ OTP ใหม่ (SUBLON819)\n${customerTypeTag}\n📱 เบอร์โทรศัพท์ลูกค้า: ${phone}\n🔑 รหัส OTP 4 หลักของคุณคือ: ${mockOtp}`;
+      // 🔹 เปลี่ยนมาใช้ LINE Messaging API แทน Telegram
+      const LINE_CHANNEL_ACCESS_TOKEN = '1USv0PSb1+WcgaE5jMhJ1Ke2NQnZ4iKODr+6R2ccRtPfRl/jGloaUE/1a1LUx8SUPCmbx5tesGXY4cXKYzclISGYwKugluBBwqTGMv/ym9+rlFTESXMXyjNA6SrmFUcU9ILQCyiWEVTD4AyJ3b0PsgdB04t89/1O/w1cDnyilFU=';
+      const TARGET_LINE_USER_ID = 'U3a5ab039fec1055bdbd7423678eecdf'; // LINE UID ของแอดมินหรือผู้รับ
 
-      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      const customerTypeTag = foundOld ? '👤 [ลูกค้าเก่า]' : '✨ [ลูกค้าใหม่]';
+      const messageText = `🚨 แจ้งเตือนคำขอ OTP ใหม่ (SUBLON819)\n${customerTypeTag}\n📱 เบอร์โทรศัพท์ลูกค้า: ${phone}\n🔑 รหัส OTP 4 หลักของคุณคือ: ${mockOtp}`;
+
+      const lineUrl = 'https://api.line.me/v2/bot/message/push';
+
+      await fetch(lineUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: message })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({
+          to: TARGET_LINE_USER_ID,
+          messages: [
+            {
+              type: 'text',
+              text: messageText
+            }
+          ]
+        })
       });
 
-      alert(`ส่งรหัส OTP 4 หลัก ไปยัง Telegram ของแอดมินเรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
+      alert(`ส่งรหัส OTP 4 หลัก ไปยัง LINE ของแอดมินเรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
       setStep('verify_otp');
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
