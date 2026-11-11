@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle } from 'lucide-react';
+import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle, Camera, RefreshCw } from 'lucide-react';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบปลอดภัย
 function getThaiTodayString() {
-  if (typeof window === 'undefined') return ''; // ป้องกัน Error ตอน Build บน Server
+  if (typeof window === 'undefined') return '';
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   const formatter = new Intl.DateTimeFormat('en-CA', options);
   return formatter.format(new Date());
@@ -48,7 +48,6 @@ export default function ApplyPage() {
     line_contact: '@682clwce',
   });
 
-  // ✅ กำหนดค่าเริ่มต้นเป็นค่าว่าง ป้องกัน Prerender Error บน Vercel
   const [formData, setFormData] = useState({
     full_name: '',
     facebook_link: '',
@@ -58,6 +57,16 @@ export default function ApplyPage() {
     bank_name: 'ธนาคารกสิกรไทย (KBANK)',
     account_number: '',
   });
+
+  // 📸 State สำหรับระบบสแกนใบหน้าขั้นตอนสุดท้าย
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const todayThai = getThaiTodayString();
@@ -69,7 +78,6 @@ export default function ApplyPage() {
     fetchSiteSettings();
   }, []);
 
-  // 🔍 ฟังก์ชันดึงการตั้งค่าจาก Supabase
   const fetchSiteSettings = async () => {
     setCheckingSystem(true);
     try {
@@ -88,7 +96,6 @@ export default function ApplyPage() {
           if (item.key === 'theme_color') configObj.theme_color = item.value;
           if (item.key === 'line_contact') configObj.line_contact = item.value;
         });
-
         setSiteConfig(prev => ({ ...prev, ...configObj }));
       }
     } catch (err) {
@@ -98,7 +105,6 @@ export default function ApplyPage() {
     }
   };
 
-  // 🎨 ฟังก์ชันจับคู่ธีมสีธนาคาร
   const getThemeClasses = (color) => {
     switch (color) {
       case 'purple':
@@ -151,10 +157,6 @@ export default function ApplyPage() {
   };
 
   const theme = getThemeClasses(siteConfig.theme_color);
-
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
@@ -253,25 +255,79 @@ export default function ApplyPage() {
     );
   };
 
-  const handleFinalSubmit = async (e) => {
+  // 📋 ตรวจสอบฟอร์มเบื้องต้นก่อนเปิดกล้องสแกนหน้า
+  const handlePreSubmitForm = (e) => {
     e.preventDefault();
     const todayThai = getThaiTodayString();
-    const fixedLoanDate = todayThai;
 
     if (!formData.cycle_date) {
-      alert('กรุณากรอกวันที่กำหนดคืน (วันคืน) ก่อนกดส่งคำขอครับ');
+      alert('กรุณากรอกวันที่กำหนดคืน (วันคืน) ก่อนดำเนินการต่อครับ');
       return;
     }
 
-    if (formData.cycle_date <= fixedLoanDate) {
+    if (formData.cycle_date <= todayThai) {
       alert('กรุณากำหนดวันคืน (วันที่กำหนดคืน) ให้มากกว่าวันที่กู้ครับ');
       return;
     }
 
+    // เปิด Modal สแกนหน้าเป็นขั้นตอนสุดท้าย
+    setScanModalOpen(true);
+    startCamera();
+  };
+
+  // 📸 เริ่มเปิดกล้องเว็บแคม
+  const startCamera = async () => {
+    setCapturedImage(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 300);
+    } catch (err) {
+      alert('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์การเข้าถึงกล้องในเบราว์เซอร์');
+    }
+  };
+
+  // 🛑 ปิดกล้อง
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setScanModalOpen(false);
+  };
+
+  // 📸 ถ่ายภาพจากวิดีโอ
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (video && canvas) {
+      canvas.width = video.videoWidth || 400;
+      canvas.height = video.videoHeight || 300;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageUrl = canvas.toDataURL('image/jpeg');
+      setCapturedImage(imageUrl);
+    }
+  };
+
+  // 🚀 ขั้นตอนสุดท้าย: อัปโหลดรูปสแกนหน้าและข้อมูลทั้งหมดเข้า Supabase
+  const handleFinalSubmit = async () => {
+    if (!capturedImage) {
+      alert('กรุณาถ่ายรูปสแกนใบหน้ายืนยันตัวตนก่อนยืนยันครับ');
+      return;
+    }
+
+    const todayThai = getThaiTodayString();
     setLoading(true);
+
     try {
       let fileUrl = null;
+      let faceUrl = null;
 
+      // 1. อัปโหลดเอกสารแนบ (ถ้ามี)
       if (!isOldCustomer && file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${phone}-${Date.now()}.${fileExt}`;
@@ -280,9 +336,7 @@ export default function ApplyPage() {
           .from('fin-docs')
           .upload(fileName, file);
 
-        if (uploadError) {
-          throw new Error('อัปโหลดไฟล์ไม่สำเร็จ: ' + uploadError.message);
-        }
+        if (uploadError) throw new Error('อัปโหลดไฟล์ไม่สำเร็จ: ' + uploadError.message);
 
         const { data: publicUrlData } = supabase.storage
           .from('fin-docs')
@@ -291,6 +345,24 @@ export default function ApplyPage() {
         fileUrl = publicUrlData.publicUrl;
       }
 
+      // 2. อัปโหลดรูปสแกนหน้าเข้า Bucket fin-docs
+      const faceBlobRes = await fetch(capturedImage);
+      const faceBlob = await faceBlobRes.blob();
+      const faceFileName = `face-${phone}-${Date.now()}.jpg`;
+      
+      const { error: faceUploadErr } = await supabase.storage
+        .from('fin-docs')
+        .upload(faceFileName, faceBlob);
+
+      if (faceUploadErr) throw new Error('อัปโหลดภาพสแกนหน้าไม่สำเร็จ: ' + faceUploadErr.message);
+
+      const { data: facePublicUrlData } = supabase.storage
+        .from('fin-docs')
+        .getPublicUrl(faceFileName);
+
+      faceUrl = facePublicUrlData.publicUrl;
+
+      // 3. บันทึกข้อมูลลงตาราง loans
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -305,13 +377,15 @@ export default function ApplyPage() {
         longitude: location.lng,
         bank_name: formData.bank_name,
         account_number: formData.account_number,
-        loan_date: fixedLoanDate,
+        loan_date: todayThai,
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
+        face_image_url: faceUrl, // 📌 บันทึกลิงก์รูปสแกนหน้า
         created_at: getThaiCurrentTimestamp(),
       }]);
 
       if (error) throw error;
+      stopCamera();
       setSuccess(true);
     } catch (err) {
       alert('เกิดข้อผิดพลาดในการส่งคำขอ: ' + err.message);
@@ -358,8 +432,8 @@ export default function ApplyPage() {
       <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
         <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
           <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
-          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้สำเร็จครบทุกขั้นตอน!</h2>
-          <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลเข้าสู่ฐานข้อมูลเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้และสแกนหน้าสำเร็จ!</h2>
+          <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลและภาพยืนยันตัวตนเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
           <button 
             onClick={() => { setSuccess(false); setStep('otp'); setPhone(''); setOtpCode(''); setLocation({ lat: null, lng: null, status: '' }); }}
             className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold shadow-md cursor-pointer"
@@ -525,7 +599,7 @@ export default function ApplyPage() {
                       setLocation({ lat: null, lng: null, status: 'ลูกค้าใช้ภาพถ่ายหน้าบ้านแทนพิกัด GPS' });
                       setStep('form');
                     }}
-                    className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-amber-500/25 hover:bg-amber-500/35 border border-amber-500/40 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Upload className="w-4 h-4" />
                     <span>ข้ามพิกัด & ใช้แอปถ่ายภาพหน้าบ้านแทน</span>
@@ -537,7 +611,7 @@ export default function ApplyPage() {
 
           {/* STEP 4: กรอกข้อมูลฟอร์มหลัก */}
           {step === 'form' && (
-            <form onSubmit={handleFinalSubmit} className="space-y-2.5">
+            <form onSubmit={handlePreSubmitForm} className="space-y-2.5">
               <div className="text-[11px] font-bold px-3 py-2 rounded-xl border border-black/10 bg-black/5 text-center">
                 {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ดึงข้อมูลเดิมให้ สามารถเปลี่ยนธนาคารและแก้ไขเลขบัญชีได้ทันที)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารสำคัญ'}
               </div>
@@ -665,7 +739,7 @@ export default function ApplyPage() {
                     </div>
                   )}
 
-                  <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap2">
+                  <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap-2">
                     <label className={`px-3 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
                       <input 
@@ -688,28 +762,78 @@ export default function ApplyPage() {
                 💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน ข้าพเจ้าได้ไตร่ตรองอย่างถี่ถ้วนแล้วว่า มีความสามารถในการชำระคืนได้ตรงเวลาโดยไม่กระทบต่อการดำรงชีวิตประจำวัน"
               </div>
 
+              {/* ปุ่มเปิดขั้นตอนสแกนหน้าเป็นขั้นสุดท้าย */}
               <button 
                 type="submit" 
-                disabled={loading}
                 className={`w-full py-3 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>กำลังส่งข้อมูลเข้าสู่ระบบ...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>ยืนยันส่งคำขอกู้ยืมเงิน</span>
-                    <CheckCircle className="w-4 h-4" />
-                  </>
-                )}
+                <span>ถัดไป: สแกนใบหน้ายืนยันตัวตน</span>
+                <Camera className="w-4 h-4" />
               </button>
             </form>
           )}
 
         </div>
       </div>
+
+      {/* ================= 📸 MODAL สแกนหน้า (ขั้นตอนสุดท้าย) ================= */}
+      {scanModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-center text-slate-800 dark:text-white">
+            <h3 className="text-base font-black text-purple-900 dark:text-purple-300">📸 สแกนใบหน้ายืนยันตัวตน</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">กรุณาจัดใบหน้าให้อยู่ในกรอบแล้วกดถ่ายภาพเพื่อยืนยันคำขอกู้</p>
+
+            <div className="relative w-full h-64 bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border-4 border-purple-500">
+              {!capturedImage ? (
+                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              ) : (
+                <img src={capturedImage} alt="Captured Face" className="w-full h-full object-cover" />
+              )}
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="flex gap-2 justify-center pt-2">
+              {!capturedImage ? (
+                <button 
+                  type="button"
+                  onClick={capturePhoto}
+                  className="px-6 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow cursor-pointer flex items-center gap-2 text-xs"
+                >
+                  <Camera className="w-4 h-4" /> ถ่ายภาพ
+                </button>
+              ) : (
+                <button 
+                  type="button"
+                  onClick={startCamera}
+                  className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl shadow cursor-pointer flex items-center gap-2 text-xs"
+                >
+                  <RefreshCw className="w-4 h-4" /> ถ่ายใหม่
+                </button>
+              )}
+            </div>
+
+            {/* ปุ่มยืนยันสุดท้ายส่งข้อมูลเข้า Supabase */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+              <button 
+                type="button"
+                disabled={!capturedImage || loading}
+                onClick={handleFinalSubmit}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 text-white font-bold rounded-xl shadow text-xs cursor-pointer flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4" /> {loading ? 'กำลังบันทึกข้อมูล...' : 'ยืนยันและส่งคำขอ'}
+              </button>
+              <button 
+                type="button"
+                onClick={stopCamera}
+                className="px-4 py-3 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
