@@ -86,7 +86,7 @@ export default function ApplyAdminThemePage() {
     }
   };
 
-  // 📌 แมปสไตล์และสีจริงของแต่ละธนาคาร สำหรับแสดงผล Preview ให้ตรงกับหน้าเว็บจริง (รวมธีมกรุงศรีสไตล์น้ำตาลตัดเหลืองทอง)
+  // 📌 แมปสไตล์และสีจริงของแต่ละธีม สำหรับแสดงผล Preview (รองรับธีม mystic แล้ว)
   const getPreviewThemeClasses = (color) => {
     switch (color) {
       case 'purple': // 💜 ธีมไทยพาณิชย์
@@ -103,19 +103,26 @@ export default function ApplyAdminThemePage() {
           button: 'bg-gradient-to-r from-pink-600 to-rose-500 text-white shadow-md',
           headerBg: 'bg-[#E03E82] text-white'
         };
-      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา (น้ำตาลเข้ม ตัดเหลืองทอง #FFCC00)
+      case 'yellow': // 💛 ธีมกรุงศรีอยุธยา
         return {
           bg: 'bg-white text-slate-900 border-[#FFCC00]/60 shadow-xl',
           badge: 'bg-[#FFCC00] text-[#5C3D2E] font-black',
           button: 'bg-gradient-to-r from-[#5C3D2E] to-[#452D22] text-[#FFCC00] font-black shadow-md border border-[#FFCC00]/40',
           headerBg: 'bg-[#5C3D2E] text-[#FFCC00]'
         };
-      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ (น้ำเงิน BBL)
+      case 'BangkokBank': // 🔷 ธีมธนาคารกรุงเทพ
         return {
           bg: 'bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950 text-white',
           badge: 'bg-blue-600 text-white font-bold',
           button: 'bg-gradient-to-r from-blue-700 to-sky-600 text-white shadow-md',
           headerBg: 'bg-[#003366] text-white'
+        };
+      case 'mystic': // 🌲✨ ธีมป่าลึกลับและแสงทอง
+        return {
+          bg: 'bg-gradient-to-br from-stone-950 via-emerald-950 to-teal-950 text-stone-100',
+          badge: 'bg-amber-500 text-stone-950 font-black',
+          button: 'bg-gradient-to-r from-amber-600 to-yellow-600 text-stone-950 font-black shadow-lg border border-amber-400/40',
+          headerBg: 'bg-[#15291F] text-amber-300 border-b border-amber-500/20'
         };
       case 'emerald':
       default: // 💚 ธีมกสิกรไทย
@@ -219,6 +226,7 @@ export default function ApplyAdminThemePage() {
                     <option value="pink">ธีมชมพู (ออมสิน)</option>
                     <option value="yellow">ธีมกรุงศรีอยุธยา (เหลือง-น้ำตาล)</option>
                     <option value="BangkokBank">ธีมธนาคารกรุงเทพ (น้ำเงิน BBL)</option>
+                    <option value="mystic">ธีมป่าลึกลับและแสงทอง (Mystic)</option>
                   </select>
                 </div>
 

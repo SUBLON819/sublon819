@@ -156,6 +156,15 @@ export default function ApplyPage() {
           headerBg: 'bg-[#003366] text-white',
           inputBg: 'bg-white/5 text-white border-blue-500/30 placeholder-slate-500',
         };
+      case 'mystic':
+        return {
+          pageBg: 'from-stone-950 via-emerald-950 to-teal-950 text-stone-100',
+          cardBg: 'bg-stone-900/95 text-stone-200 border-amber-500/30 shadow-2xl backdrop-blur-md',
+          badge: 'bg-amber-500 text-stone-950 font-black',
+          button: 'bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-stone-950 font-black shadow-lg border border-amber-400/40',
+          headerBg: 'bg-[#15291F] text-amber-300 border-b border-amber-500/20',
+          inputBg: 'bg-stone-950/60 text-stone-100 border-amber-500/30 focus:border-amber-400 placeholder-stone-500',
+        };
       case 'emerald':
       default:
         return {
@@ -806,7 +815,7 @@ export default function ApplyPage() {
                 </div>
               ) : (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 text-center font-bold">
-                  ✅ ลูกค้าเก่า: ดึงข้อมูลเดิมมาแสดง แต่ท่านสามารถเลือกเปลี่ยนธนาคารและแก้ไขเลขบัญชีใหม่ได้ทันที
+                  ✅ ลูกค้าเก่า: ดึงข้อมูลเดิมมาแสดง แต่ท่านสามารถเลือกเปลี่ยนธนาคารและแก้ไขเลขบัญชีได้ทันที
                 </div>
               )}
 
