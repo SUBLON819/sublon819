@@ -1919,6 +1919,53 @@ export default function AdminDashboard() {
                 <p>📅 วันกู้: <span className="font-bold text-slate-900">{selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || '-'}</span></p>
                 <p>📅 วันคืน: <span className="font-bold text-amber-700">{selectedLoanForApproval.cycle_date || '-'}</span></p>
               </div>
+
+              {/* 📌 ส่วนแสดงรูปถ่ายหน้าบ้าน/บัตรประชาชน และ รูปสแกนหน้า */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-200">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-600 font-bold block">📷 ภาพถ่ายหน้าบ้าน / บัตร ปชช.:</span>
+                  {selectedLoanForApproval.id_card_url ? (
+                    <a 
+                      href={selectedLoanForApproval.id_card_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block border border-purple-200 rounded-lg overflow-hidden bg-white h-24 hover:opacity-90 transition-opacity"
+                    >
+                      <img 
+                        src={selectedLoanForApproval.id_card_url} 
+                        alt="ID Card / House Photo" 
+                        className="w-full h-full object-cover" 
+                      />
+                    </a>
+                  ) : (
+                    <div className="h-24 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-[10px] text-slate-400 bg-white">
+                      ไม่มีภาพถ่าย
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-600 font-bold block">🤳 รูปสแกนหน้า (Face Scan):</span>
+                  {selectedLoanForApproval.face_image_url ? (
+                    <a 
+                      href={selectedLoanForApproval.face_image_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block border border-purple-200 rounded-lg overflow-hidden bg-white h-24 hover:opacity-90 transition-opacity"
+                    >
+                      <img 
+                        src={selectedLoanForApproval.face_image_url} 
+                        alt="Face Scan" 
+                        className="w-full h-full object-cover" 
+                      />
+                    </a>
+                  ) : (
+                    <div className="h-24 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-[10px] text-slate-400 bg-white">
+                      ไม่มีรูปสแกนหน้า
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <form onSubmit={async (e) => {
