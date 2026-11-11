@@ -561,6 +561,21 @@ export default function ApplyPage() {
                   </>
                 )}
               </button>
+
+              <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
+                <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
+                <p>
+                  LINE:{' '}
+                  <a 
+                    href="https://line.me/R/ti/p/@306fgwvw" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="font-mono font-bold underline transition-colors"
+                  >
+                    {siteConfig.line_contact}
+                  </a>
+                </p>
+              </div>
             </form>
           )}
 
@@ -594,7 +609,7 @@ export default function ApplyPage() {
               <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
                 <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
                 <p>
-                  LINE: {' '}
+                  LINE:{' '}
                   <a 
                     href="https://line.me/R/ti/p/@306fgwvw" 
                     target="_blank" 
@@ -806,6 +821,21 @@ export default function ApplyPage() {
                 <span>ถัดไป: ถ่ายภาพหน้าคู่บัตรประชาชน</span>
                 <Camera className="w-4 h-4" />
               </button>
+
+              <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
+                <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
+                <p>
+                  LINE:{' '}
+                  <a 
+                    href="https://line.me/R/ti/p/@306fgwvw" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="font-mono font-bold underline transition-colors"
+                  >
+                    {siteConfig.line_contact}
+                  </a>
+                </p>
+              </div>
             </form>
           )}
 
