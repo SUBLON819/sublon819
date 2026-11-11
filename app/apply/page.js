@@ -288,21 +288,34 @@ export default function ApplyPage() {
 
   const startCamera = async () => {
     setCapturedImage(null);
-    setAutoCaptureStatus('กำลังเตรียมกล้อง (กรุณาถือบัตรประชาชนคู่ใบหน้าให้ชัดเจน)...');
+    setAutoCaptureStatus('กำลังเปิดกล้อง (กรุณาถือบัตรประชาชนคู่ใบหน้าให้ชัดเจน)...');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setAutoCaptureStatus('✨ กำลังจับภาพอัตโนมัติใน 3 วินาที...');
-          
-          setTimeout(() => {
-            if (videoRef.current && !capturedImage) {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        
+        // รอให้วิดีโอโหลดข้อมูลสตรีมพร้อมแสดงผล
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play().then(() => {
+            setAutoCaptureStatus('✨ กำลังจับภาพอัตโนมัติใน 3 วินาที...');
+            
+            // ตั้งเวลานับถอยหลัง 3 วินาทีเพื่อความแม่นยำ
+            setTimeout(() => {
               triggerAutoCapture();
-            }
-          }, 3000);
-        }
-      }, 500);
+            }, 3000);
+          }).catch(err => {
+            console.error("Video play error:", err);
+            setAutoCaptureStatus('⚠️ กรุณากดปุ่มถ่ายภาพด้านล่าง');
+          });
+        };
+      }
     } catch (err) {
       alert('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์การเข้าถึงกล้องในเบราว์เซอร์');
     }
