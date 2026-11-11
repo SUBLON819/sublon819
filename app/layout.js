@@ -3,7 +3,7 @@ import RootLayoutClient from '@/components/RootLayoutClient';
 
 export const metadata = {
   title: 'SUBLON819 - Executive Portal',
-  description: 'ระบบจัดการเอกสาร สินเชื่อ และพอร์ตทรัพย์สินส่วนตัว',
+  description: 'ต่อลมหายใจคนรอเงินเดือน',
 };
 
 export default function RootLayout({ children }) {
