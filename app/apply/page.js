@@ -45,7 +45,7 @@ export default function ApplyPage() {
     banner_title: 'สมัครขอสินเชื่อออนไลน์ SUBLON819',
     banner_subtitle: 'อนุมัติไว ได้เงินจริง ขั้นตอนง่ายๆ ในไม่กี่นาที',
     theme_color: 'emerald',
-    line_contact: '@682clwce',
+    line_contact: '@306fgwvw',
   });
 
   const [formData, setFormData] = useState({
@@ -596,7 +596,7 @@ export default function ApplyPage() {
                 <p>
                   LINE: {' '}
                   <a 
-                    href="https://line.me/R/ti/p/@682clwce" 
+                    href="https://line.me/R/ti/p/@306fgwvw" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="font-mono font-bold underline transition-colors"
