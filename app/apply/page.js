@@ -556,7 +556,7 @@ export default function ApplyPage() {
                   </>
                 ) : (
                   <>
-                    <span>ขอรหัส OTP ผ่านแอดมิน</span>
+                    <span>รับ OTP ทาง Line</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
