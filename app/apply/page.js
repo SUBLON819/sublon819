@@ -694,21 +694,21 @@ export default function ApplyPage() {
                 />
               </div>
 
-              <div className="space-y-1 w-full max-w-full overflow-hidden">
-                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-75 block sm:inline">(บังคับวันคืนมากกว่าวันกู้)</span></span>
-                </label>
-                <input 
-                  type="date"
-                  required
-                  min={formData.loan_date || ''}
-                  value={formData.cycle_date}
-                  onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono font-bold cursor-pointer text-white`}
-                  style={{ colorScheme: 'dark' }}
-                />
-              </div>
+              <div className="space-y-1 w-full max-w-full min-w-0 overflow-hidden">
+  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
+    <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+    <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-75 block sm:inline">(บังคับวันคืนมากกว่าวันกู้)</span></span>
+  </label>
+  <input 
+    type="date"
+    required
+    min={formData.loan_date || ''}
+    value={formData.cycle_date}
+    onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
+    className={`w-full max-w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono font-bold cursor-pointer text-white`}
+    style={{ colorScheme: 'dark' }}
+  />
+</div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
