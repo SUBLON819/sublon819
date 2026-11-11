@@ -662,7 +662,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm outline-none font-bold`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-bold`}
                 />
               </div>
 
@@ -675,7 +675,7 @@ export default function ApplyPage() {
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm outline-none font-mono`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-mono`}
                   />
                 </div>
               )}
@@ -688,7 +688,7 @@ export default function ApplyPage() {
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm font-bold outline-none font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs font-bold outline-none font-mono`}
                 />
               </div>
 
@@ -704,7 +704,7 @@ export default function ApplyPage() {
                   min={formData.loan_date || ''}
                   value={formData.cycle_date}
                   onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                  className={`w-auto inline-block box-border ${theme.inputBg} border rounded-xl px-3 py-1.5 text-xs outline-none font-mono font-bold cursor-pointer text-white`}
+                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
@@ -718,7 +718,7 @@ export default function ApplyPage() {
                   <select
                     value={formData.bank_name} 
                     onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2 text-xs outline-none font-bold cursor-pointer"
+                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-bold cursor-pointer"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)" className="bg-slate-900 text-white">ธนาคารทหารไทยธนชาติ (TTB)</option>
                     <option value="ธนาคารกสิกรไทย (KBANK)" className="bg-slate-900 text-white">ธนาคารกสิกรไทย (KBANK)</option>
@@ -739,7 +739,7 @@ export default function ApplyPage() {
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} 
                     onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs font-mono font-bold outline-none`}
                   />
                 </div>
               </div>
@@ -752,7 +752,7 @@ export default function ApplyPage() {
                   </label>
                   
                   <div className="border border-black/10 bg-black/5 rounded-xl p-2 flex items-center justify-between gap-2">
-                    <label className={`px-2.5 py-1 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
+                    <label className={`px-2.5 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
                       <input 
                         type="file" required
@@ -776,7 +776,7 @@ export default function ApplyPage() {
 
               <button 
                 type="submit" 
-                className={`w-full py-2.5 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
+                className={`w-full py-3 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
               >
                 <span>ถัดไป: ถ่ายภาพหน้าคู่บัตรประชาชน</span>
                 <Camera className="w-4 h-4" />
