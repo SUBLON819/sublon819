@@ -8,16 +8,15 @@ export async function POST(request) {
     // 2. ข้อมูล LINE Messaging API ของ SUBLON819
     const LINE_CHANNEL_ACCESS_TOKEN = '1USv0PSb1+WcgaE5jMhJ1Ke2NQnZ4iKODr+6R2ccRtPfRl/jGloaUE/1a1LUx8SUPCmbx5tesGXY4cXKYzclISGYwKugluBBwqTGMv/ym9+rlFTESXMXyjNA6SrmFUcU9ILQCyiWEVTD4AyJ3b0PsgdB04t89/1O/w1cDnyilFU=';
     
-    // หมายเหตุ: กรณีส่งหาแอดมินโดยตรง สามารถใส่ LINE User ID ของแอดมินไว้ที่นี่ได้เลย 
-    // หรือถ้าส่งหาลูกค้า ให้ส่ง lineUserId แนบมาจากฟอร์มหน้าบ้านครับ
-    const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab039fec1055bdbd7423678eecdf'; // (ตัวอย่างใช้ User ID แอดมินที่คุณมี)
+    // กำหนด LINE User ID ปลายทาง (หากส่งเข้าแอดมิน ใช้ ID แอดมิน / หากส่งหาลูกค้า ใช้ lineUserId ที่ส่งมาจากฟอร์ม)
+    const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab039fec1055bdbd7423678eecdf'; 
 
-    // 3. จัดรูปแบบข้อความแจ้งเตือนคำขอกู้ใหม่ (LINE รองรับ Markdown แบบย่อหรือข้อความ text ธรรมดา)
+    // 3. จัดรูปแบบข้อความแจ้งเตือนคำขอกู้ใหม่
     const messageText = `🚨 มีคำขอกู้เงินใหม่เข้ามา (SUBLON819)\n\n` +
       `👤 ชื่อ-นามสกุล: ${fullName}\n` +
       `📞 เบอร์โทรศัพท์: ${phone}\n` +
-      `💵 ยอดเงินกู้: ฿${Number(amount).toLocaleString()}\n` +
-      `✍️ ประเภท: ${loanType}\n` +
+      `💵 ยอดเงินกู้: ฿${Number(amount || 0).toLocaleString()}\n` +
+      `✍️ ประเภท: ${loanType || 'กำหนดช่วงวันที่'}\n` +
       `🏧 ธนาคารรับเงิน: ${bankName}\n` +
       `🔢 เลขบัญชี: ${accountNumber}\n\n` +
       `กรุณาตรวจสอบข้อมูล เอกสาร และพิกัด GPS ในระบบหลังบ้าน`;

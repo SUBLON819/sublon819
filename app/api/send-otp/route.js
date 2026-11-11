@@ -2,17 +2,22 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    // 1. รับเบอร์โทรและ OTP จากหน้าบ้าน
-    const { phone, otp, lineUserId } = await request.json();
+    // 1. รับเบอร์โทร, OTP, lineUserId และสถานะลูกค้าเก่า/ใหม่จากหน้าบ้าน
+    const { phone, otp, lineUserId, isOldCustomer } = await request.json();
 
-    // 2. ข้อมูล LINE Messaging API ของ SUBLON819
-    const LINE_CHANNEL_ACCESS_TOKEN = '1USv0PSb1+WcgaE5jMhJ1Ke2NQnZ4iKODr+6R2ccRtPfRl/jGloaUE/1a1LUx8SUPCmbx5tesGXY4cXKYzclISGYwKugluBBwqTGMv/ym9+rlFTESXMXyjNA6SrmFUcU9ILQCyiWEVTD4AyJ3b0PsgdB04t89/1O/w1cDnyilFU=';
-    
-    // กำหนด LINE User ID ปลายทาง (หากส่งเข้าแอดมิน ใช้ ID แอดมิน / หากส่งหาลูกค้า ใช้ lineUserId ที่ส่งมาจากฟอร์ม)
-    const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab039fec1055bdbd7423678eecdf'; 
+    // 2. ดึงค่า LINE Token และ Admin ID จาก Environment Variables (.env.local / Vercel)
+    const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    const TARGET_LINE_USER_ID = lineUserId || process.env.LINE_ADMIN_USER_ID;
 
-    // 3. จัดข้อความส่งเข้า LINE
+    if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      throw new Error('ยังไม่ได้กำหนดค่า LINE_CHANNEL_ACCESS_TOKEN ในระบบ');
+    }
+
+    // 3. จัดข้อความส่งเข้า LINE (ระบุป้ายลูกค้าเก่า / ลูกค้าใหม่)
+    const customerTypeTag = isOldCustomer ? '👤 [ลูกค้าเก่า]' : '✨ [ลูกค้าใหม่]';
+
     const messageText = `🚨 แจ้งเตือนคำขอ OTP ใหม่ (SUBLON819)\n\n` +
+      `${customerTypeTag}\n` +
       `📞 เบอร์โทรศัพท์ลูกค้า: ${phone}\n` +
       `🔑 รหัส OTP: ${otp}\n\n` +
       `กรุณาแจ้งรหัสนี้แก่ลูกค้าเพื่อยืนยันตัวตนในหน้าสมัคร`;
@@ -27,7 +32,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
       },
       body: JSON.stringify({
-        to: TARGET_LINE_USER_ID, // LINE UID ของผู้รับปลายทาง
+        to: TARGET_LINE_USER_ID,
         messages: [
           {
             type: 'text',
