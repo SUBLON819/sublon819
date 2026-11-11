@@ -58,9 +58,10 @@ export default function ApplyPage() {
     account_number: '',
   });
 
-  // 📸 State สำหรับระบบสแกนใบหน้าขั้นตอนสุดท้าย
+  // 📸 State สำหรับระบบสแกนหน้าแบบเต็มจอ ถ่ายคู่บัตรประชาชน
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
+  const [autoCaptureStatus, setAutoCaptureStatus] = useState('กำลังเตรียมกล้อง...');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -105,7 +106,6 @@ export default function ApplyPage() {
     }
   };
 
-  // 🔄 ฟังก์ชันสำหรับรีเฟรช/ดึงข้อมูลปัจจุบันใหม่
   const handleRefreshData = async () => {
     setLoading(true);
     try {
@@ -288,13 +288,21 @@ export default function ApplyPage() {
 
   const startCamera = async () => {
     setCapturedImage(null);
+    setAutoCaptureStatus('กำลังเตรียมกล้อง (กรุณาถือบัตรประชาชนคู่ใบหน้าให้ชัดเจน)...');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          setAutoCaptureStatus('✨ กำลังจับภาพอัตโนมัติใน 3 วินาที...');
+          
+          setTimeout(() => {
+            if (videoRef.current && !capturedImage) {
+              triggerAutoCapture();
+            }
+          }, 3000);
         }
-      }, 300);
+      }, 500);
     } catch (err) {
       alert('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์การเข้าถึงกล้องในเบราว์เซอร์');
     }
@@ -308,22 +316,26 @@ export default function ApplyPage() {
     setScanModalOpen(false);
   };
 
-  const capturePhoto = () => {
+  const triggerAutoCapture = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (video && canvas) {
-      canvas.width = video.videoWidth || 400;
-      canvas.height = video.videoHeight || 300;
+      canvas.width = video.videoWidth || window.innerWidth;
+      canvas.height = video.videoHeight || window.innerHeight;
       const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageUrl = canvas.toDataURL('image/jpeg');
+      
+      const imageUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedImage(imageUrl);
+      setAutoCaptureStatus('✅ จับภาพอัตโนมัติสำเร็จ!');
     }
   };
 
   const handleFinalSubmit = async () => {
     if (!capturedImage) {
-      alert('กรุณาถ่ายรูปสแกนใบหน้ายืนยันตัวตนก่อนยืนยันครับ');
+      alert('ยังไม่มีภาพถ่าย กรุณากดถ่ายภาพใหม่ครับ');
       return;
     }
 
@@ -353,13 +365,13 @@ export default function ApplyPage() {
 
       const faceBlobRes = await fetch(capturedImage);
       const faceBlob = await faceBlobRes.blob();
-      const faceFileName = `face-${phone}-${Date.now()}.jpg`;
+      const faceFileName = `face-id-${phone}-${Date.now()}.jpg`;
       
       const { error: faceUploadErr } = await supabase.storage
         .from('fin-docs')
         .upload(faceFileName, faceBlob);
 
-      if (faceUploadErr) throw new Error('อัปโหลดภาพสแกนหน้าไม่สำเร็จ: ' + faceUploadErr.message);
+      if (faceUploadErr) throw new Error('อัปโหลดภาพถ่ายคู่บัตรไม่สำเร็จ: ' + faceUploadErr.message);
 
       const { data: facePublicUrlData } = supabase.storage
         .from('fin-docs')
@@ -436,8 +448,8 @@ export default function ApplyPage() {
       <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
         <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
           <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
-          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้และสแกนหน้าสำเร็จ!</h2>
-          <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลและภาพยืนยันตัวตนเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้และภาพยืนยันตัวตนสำเร็จ!</h2>
+          <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลและภาพถ่ายคู่บัตรประชาชนเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
           <button 
             onClick={() => { setSuccess(false); setStep('otp'); setPhone(''); setOtpCode(''); setLocation({ lat: null, lng: null, status: '' }); }}
             className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold shadow-md cursor-pointer"
@@ -455,7 +467,6 @@ export default function ApplyPage() {
         
         {/* Header */}
         <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-black/10 transition-colors duration-300 relative`}>
-          {/* 🔄 ปุ่มรีเฟรชข้อมูลปัจจุบันมุมขวาบน */}
           <button 
             type="button"
             onClick={handleRefreshData}
@@ -670,39 +681,21 @@ export default function ApplyPage() {
                 />
               </div>
 
-              {/* วันที่กู้ & กำหนดคืน */}
-              <div className="space-y-2.5 pt-1">
-                <div className="p-2 rounded-xl border border-black/10 bg-black/5 space-y-1">
-                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span>วันที่กู้ <span className="text-red-500">*</span> <span className="text-[10px] text-emerald-600 font-bold">(ล็อกวันที่ปัจจุบันอัตโนมัติ)</span></span>
-                  </label>
-                  <input 
-                    type="date"
-                    required
-                    readOnly
-                    value={formData.loan_date}
-                    className="w-full bg-transparent text-base outline-none font-mono py-1 px-1 font-bold opacity-90 cursor-not-allowed"
-                  />
-                </div>
-
-                <div className="p-2 rounded-xl border-2 border-red-500 bg-red-500/10 shadow-sm space-y-1">
-                  <label className="text-xs font-semibold text-red-600 dark:text-red-300 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] text-red-500 font-normal">(บังคับวันคืนมากกว่าวันกู้)</span></span>
-                  </label>
-                  <input 
-                    type="date"
-                    required
-                    min={formData.loan_date || ''}
-                    value={formData.cycle_date}
-                    onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                    className="w-full bg-transparent text-base outline-none font-mono font-bold py-1 px-1"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-70">(บังคับวันคืนมากกว่าวันกู้)</span></span>
+                </label>
+                <input 
+                  type="date"
+                  required
+                  min={formData.loan_date || ''}
+                  value={formData.cycle_date}
+                  onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-base outline-none font-mono font-bold cursor-pointer`}
+                />
               </div>
 
-              {/* 📌 ส่วนเลือกธนาคารและเลขบัญชี */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
@@ -738,7 +731,6 @@ export default function ApplyPage() {
                 </div>
               </div>
 
-              {/* แนบเอกสาร */}
               {!isOldCustomer ? (
                 <div className="space-y-1.5 pt-1 border-t border-black/10">
                   <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
@@ -746,15 +738,6 @@ export default function ApplyPage() {
                     <span>แนบเอกสาร (บัตรประชาชน / ภาพถ่ายพิกัดหน้าบ้าน) <span className="text-red-500">*</span></span>
                   </label>
                   
-                  {location.lat === null && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl text-[11px] opacity-90 space-y-1">
-                      <p className="font-bold">📱 คำแนะนำกรณีใช้ภาพถ่ายแทนพิกัด:</p>
-                      <p className="leading-relaxed">
-                        โหลดแอปพลิเคชันระบุพิกัด/เวลา (เช่น <b>GPS Map Camera</b>) ถ่ายรูปหน้าบ้านแล้วนำภาพที่มีลายน้ำพิกัด/เวลามาแนบในช่องนี้แทนครับ
-                      </p>
-                    </div>
-                  )}
-
                   <div className="border border-black/10 bg-black/5 rounded-xl p-2.5 flex items-center justify-between gap-2">
                     <label className={`px-3 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
@@ -778,12 +761,11 @@ export default function ApplyPage() {
                 💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน ข้าพเจ้าได้ไตร่ตรองอย่างถี่ถ้วนแล้วว่า มีความสามารถในการชำระคืนได้ตรงเวลาโดยไม่กระทบต่อการดำรงชีวิตประจำวัน"
               </div>
 
-              {/* ปุ่มเปิดขั้นตอนสแกนหน้าเป็นขั้นสุดท้าย */}
               <button 
                 type="submit" 
                 className={`w-full py-3 ${theme.button} rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer`}
               >
-                <span>ถัดไป: สแกนใบหน้ายืนยันตัวตน</span>
+                <span>ถัดไป: ถ่ายภาพหน้าคู่บัตรประชาชน</span>
                 <Camera className="w-4 h-4" />
               </button>
             </form>
@@ -792,61 +774,71 @@ export default function ApplyPage() {
         </div>
       </div>
 
-      {/* ================= 📸 MODAL สแกนหน้า (ขั้นตอนสุดท้าย) ================= */}
+      {/* ================= 📸 MODAL สแกนหน้าเต็มจอ ถ่ายคู่บัตร (จับภาพอัตโนมัติ ไร้ขอบ) ================= */}
       {scanModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-center text-slate-800 dark:text-white">
-            <h3 className="text-base font-black text-purple-900 dark:text-purple-300">📸 สแกนใบหน้ายืนยันตัวตน</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">กรุณาจัดใบหน้าให้อยู่ในกรอบแล้วกดถ่ายภาพเพื่อยืนยันคำขอกู้</p>
-
-            <div className="relative w-full h-64 bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border-4 border-purple-500">
-              {!capturedImage ? (
-                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
-              ) : (
-                <img src={capturedImage} alt="Captured Face" className="w-full h-full object-cover" />
-              )}
-              <canvas ref={canvasRef} className="hidden" />
+        <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-between p-4 text-white">
+          
+          <div className="w-full max-w-md pt-4 text-center space-y-1">
+            <h3 className="text-base font-black text-emerald-400">📸 ถ่ายภาพคู่บัตรประชาชน</h3>
+            <p className="text-xs text-slate-300">กรุณาถือบัตรประชาชนชิดใบหน้าให้เห็นชัดเจน ระบบจะจับภาพให้อัตโนมัติ</p>
+            <div className="bg-emerald-500/25 border border-emerald-500/50 py-1.5 px-3 rounded-full text-xs font-bold text-emerald-200 inline-block mt-1 animate-pulse">
+              {autoCaptureStatus}
             </div>
+          </div>
 
-            <div className="flex gap-2 justify-center pt-2">
-              {!capturedImage ? (
-                <button 
-                  type="button"
-                  onClick={capturePhoto}
-                  className="px-6 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow cursor-pointer flex items-center gap-2 text-xs"
-                >
-                  <Camera className="w-4 h-4" /> ถ่ายภาพ
-                </button>
-              ) : (
+          <div className="relative w-full flex-1 max-w-lg my-3 bg-black rounded-3xl overflow-hidden flex items-center justify-center shadow-2xl border border-white/20">
+            {!capturedImage ? (
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover" 
+                style={{ transform: 'scaleX(-1)' }} 
+              />
+            ) : (
+              <img src={capturedImage} alt="Captured ID Face" className="w-full h-full object-cover" />
+            )}
+            <canvas ref={canvasRef} className="hidden" />
+          </div>
+
+          <div className="w-full max-w-md pb-4 space-y-2">
+            {!capturedImage ? (
+              <button 
+                type="button"
+                onClick={triggerAutoCapture}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg cursor-pointer flex items-center justify-center gap-2 text-sm tracking-wider uppercase"
+              >
+                <Camera className="w-5 h-5" /> กดถ่ายภาพทันที
+              </button>
+            ) : (
+              <div className="flex gap-2">
                 <button 
                   type="button"
                   onClick={startCamera}
-                  className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl shadow cursor-pointer flex items-center gap-2 text-xs"
+                  className="flex-1 py-3.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-2xl shadow cursor-pointer flex items-center justify-center gap-2 text-xs"
                 >
                   <RefreshCw className="w-4 h-4" /> ถ่ายใหม่
                 </button>
-              )}
-            </div>
+                <button 
+                  type="button"
+                  disabled={loading}
+                  onClick={handleFinalSubmit}
+                  className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-500 text-white font-bold rounded-2xl shadow cursor-pointer flex items-center justify-center gap-2 text-xs"
+                >
+                  <CheckCircle className="w-4 h-4" /> {loading ? 'กำลังส่งข้อมูล...' : 'ยืนยันรูปนี้และส่งคำขอ'}
+                </button>
+              </div>
+            )}
 
-            {/* ปุ่มยืนยันสุดท้ายส่งข้อมูลเข้า Supabase */}
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-2">
-              <button 
-                type="button"
-                disabled={!capturedImage || loading}
-                onClick={handleFinalSubmit}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 text-white font-bold rounded-xl shadow text-xs cursor-pointer flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-4 h-4" /> {loading ? 'กำลังบันทึกข้อมูล...' : 'ยืนยันและส่งคำขอ'}
-              </button>
-              <button 
-                type="button"
-                onClick={stopCamera}
-                className="px-4 py-3 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs cursor-pointer"
-              >
-                ยกเลิก
-              </button>
-            </div>
+            <button 
+              type="button"
+              onClick={stopCamera}
+              className="w-full py-2 bg-transparent hover:bg-white/10 text-slate-400 hover:text-white rounded-xl text-xs transition-all cursor-pointer"
+            >
+              ยกเลิก / กลับไปแก้ไขฟอร์ม
+            </button>
           </div>
+
         </div>
       )}
 
