@@ -5,7 +5,7 @@ export async function POST(request) {
     // 1. รับเบอร์โทร, OTP, lineUserId และสถานะลูกค้าเก่า/ใหม่จากหน้าบ้าน
     const { phone, otp, lineUserId, isOldCustomer } = await request.json();
 
-    // 2. ดึงค่า LINE Token และ Admin ID จาก Environment Variables (.env.local / Vercel)
+    // 2. ดึงค่า LINE Token และ Admin ID จาก Environment Variables / ค่าสำรอง
     const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
     const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab0c39fec1055bdbd7423678eecdf';
 
@@ -45,6 +45,7 @@ export async function POST(request) {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('LINE API Response Error:', data);
       throw new Error(data.message || 'เกิดข้อผิดพลาดในการส่งข้อความผ่าน LINE');
     }
 
