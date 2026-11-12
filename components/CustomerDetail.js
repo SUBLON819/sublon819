@@ -317,24 +317,24 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 ช่องสี่เหลี่ยมโค้งมน (จัดเรียง 3 คอลัมน์ทั้งบนมือถือและ PC โดยปรับขนาดตัวอักษรและช่องไฟให้พอดีจอ) */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-6 my-6 w-full">
+        {/* ยอดสรุปตัวเลข 3 ช่องสี่เหลี่ยมโค้งมน (ปรับขอบให้เข้มขึ้นอีกนิดเดียวกำลังสวยงาม) */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-6 my-6 w-full">
           {/* ช่องที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) */}
-          <div className="relative flex flex-col items-center justify-center py-3 px-1 sm:py-4 sm:px-3 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-purple-100 via-fuchsia-50 to-white border-2 sm:border-3 border-purple-800 shadow-md sm:shadow-lg shadow-purple-500/10 overflow-hidden group">
+          <div className="relative flex flex-col items-center justify-center py-5 px-1.5 sm:py-6 sm:px-3 rounded-2xl bg-gradient-to-tr from-purple-100 via-fuchsia-50 to-white border-3 sm:border-4 border-purple-900 shadow-md sm:shadow-lg shadow-purple-500/10 overflow-hidden group">
             <span className="text-[9px] sm:text-xs font-black text-purple-950 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
-            <span className="text-xs sm:text-2xl font-black font-mono text-purple-900 text-center px-0.5 mt-1 truncate w-full">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
+            <span className="text-sm sm:text-2xl font-black font-mono text-purple-900 text-center px-0.5 mt-2 truncate w-full">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
           {/* ช่องที่ 2: ยอดหนี้คงเหลือ */}
-          <div className="relative flex flex-col items-center justify-center py-3 px-1 sm:py-4 sm:px-3 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-100 via-yellow-50 to-white border-2 sm:border-3 border-amber-600 shadow-md sm:shadow-lg shadow-amber-500/10 overflow-hidden group">
+          <div className="relative flex flex-col items-center justify-center py-5 px-1.5 sm:py-6 sm:px-3 rounded-2xl bg-gradient-to-tr from-amber-100 via-yellow-50 to-white border-3 sm:border-4 border-amber-700 shadow-md sm:shadow-lg shadow-amber-500/10 overflow-hidden group">
             <span className="text-[9px] sm:text-xs font-black text-amber-950 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
-            <span className="text-xs sm:text-2xl font-black font-mono text-amber-900 text-center px-0.5 mt-1 truncate w-full">฿{totalCustomerRemaining.toLocaleString()}</span>
+            <span className="text-sm sm:text-2xl font-black font-mono text-amber-900 text-center px-0.5 mt-2 truncate w-full">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
           {/* ช่องที่ 3: ยอดชำระแล้ว */}
-          <div className="relative flex flex-col items-center justify-center py-3 px-1 sm:py-4 sm:px-3 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-100 via-teal-50 to-white border-2 sm:border-3 border-emerald-800 shadow-md sm:shadow-lg shadow-emerald-500/10 overflow-hidden group">
+          <div className="relative flex flex-col items-center justify-center py-5 px-1.5 sm:py-6 sm:px-3 rounded-2xl bg-gradient-to-tr from-emerald-100 via-teal-50 to-white border-3 sm:border-4 border-emerald-900 shadow-md sm:shadow-lg shadow-emerald-500/10 overflow-hidden group">
             <span className="text-[9px] sm:text-xs font-black text-emerald-950 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
-            <span className="text-xs sm:text-2xl font-black font-mono text-emerald-900 text-center px-0.5 mt-1 truncate w-full">฿{totalCustomerPaid.toLocaleString()}</span>
+            <span className="text-sm sm:text-2xl font-black font-mono text-emerald-900 text-center px-0.5 mt-2 truncate w-full">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
         </div>
 
