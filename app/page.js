@@ -732,7 +732,7 @@ export default function AdminDashboard() {
               <h1 className="text-base sm:text-2xl font-black text-white drop-shadow-sm">
                 แผงควบคุมการบันทึกข้อมูลด่วน
               </h1>
-              <p className="text-[10px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์[cite: 7, 8]</p>
+              <p className="text-[10px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์</p>
             </div>
           </div>
 
