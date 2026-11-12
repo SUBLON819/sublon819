@@ -411,6 +411,7 @@ export default function ApplyPage() {
 
       faceUrl = facePublicUrlData.publicUrl;
 
+      // 1. บันทึกข้อมูลลงฐานข้อมูล Supabase ตามปกติ
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -435,29 +436,26 @@ export default function ApplyPage() {
 
       if (error) throw error;
 
-      try {
-        await fetch('/api/line-notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fullName: formData.full_name,
-            phone: phone,
-            amount: formData.principal_amount,
-            loanType: formData.cycle_date, // 🟢 ส่งแค่วันที่คืน (เช่น 2026-11-28) ไปแสดงผล
-            bankName: formData.bank_name,
-            accountNumber: formData.account_number,
-            lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf'
-          })
-        });
-      } catch (lineErr) {
-        console.error('Line notify background error:', lineErr);
-      }
+      // 2. สร้างข้อความสรุปเพื่อให้ "ลูกค้าส่งเข้าแชทร้าน"
+      const lineMessage = `🚨 แจ้งขอสินเชื่อใหม่ (SUBLON819)\n\n` +
+        `👤 ชื่อ-นามสกุล: ${formData.full_name}\n` +
+        `📞 เบอร์โทรศัพท์: ${phone}\n` +
+        `💵 ยอดเงินกู้: ฿${Number(formData.principal_amount || 0).toLocaleString()}\n` +
+        `✍️ รอบบิล: ${formData.cycle_date}\n` +
+        `🏧 ธนาคารรับเงิน: ${formData.bank_name}\n` +
+        `🔢 เลขบัญชี: ${formData.account_number}\n\n` +
+        `✨ ส่งคำขอเรียบร้อย รอแอดมินตรวจสอบครับ`;
+
+      const encodedMessage = encodeURIComponent(lineMessage);
+      const lineShareUrl = `https://line.me/R/oaMessage/${siteConfig.line_contact}/?${encodedMessage}`;
 
       stopCamera();
-      setSuccess(true);
+      
+      // 3. พาหน้าจอเปิดแอป LINE เพื่อให้ลูกค้ากดส่งข้อความเข้าหาแอดมิน
+      window.location.href = lineShareUrl;
+
     } catch (err) {
       alert('เกิดข้อผิดพลาดในการส่งคำขอ: ' + err.message);
-    } finally {
       setLoading(false);
     }
   };
