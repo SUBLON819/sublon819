@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle, Camera, RefreshCw } from 'lucide-react';
+import liff from '@line/liff'; // 🟢 นำเข้า LIFF SDK
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบปลอดภัย
 function getThaiTodayString() {
@@ -81,18 +82,43 @@ export default function ApplyPage() {
     }));
     fetchSiteSettings();
 
-    // 🟢 ดึง LINE UID จาก URL Query (เช่น /apply?lineUserId=Uxxxx...) หรือจาก localStorage เผื่อเคยล็อกอินไว้
-    const params = new URLSearchParams(window.location.search);
-    let lineIdFromUrl = params.get('lineUserId');
-    
-    if (!lineIdFromUrl && typeof window !== 'undefined') {
-      lineIdFromUrl = localStorage.getItem('sublon_line_user_id');
-    }
+    // 🟢 ผสานการทำงานร่วมกับ LINE LIFF SDK เพื่อดึง User ID อัตโนมัติ
+    const initLiffAndGetProfile = async () => {
+      try {
+        // ใช้ LIFF ID ที่ตั้งค่าไว้ใน .env.local
+        await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID });
+        
+        if (liff.isInClient() || liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          if (profile && profile.userId) {
+            setCustomerLineId(profile.userId);
+            localStorage.setItem('sublon_line_user_id', profile.userId);
+            return;
+          }
+        } else {
+          // หากยังไม่ได้ล็อกอินผ่าน LINE ให้ทำการ Login
+          liff.login();
+          return;
+        }
+      } catch (err) {
+        console.warn('LIFF initialization failed, falling back to URL/LocalStorage:', err);
+      }
 
-    if (lineIdFromUrl) {
-      setCustomerLineId(lineIdFromUrl);
-      localStorage.setItem('sublon_line_user_id', lineIdFromUrl);
-    }
+      // ระบบสำรอง: ดึงจาก URL Query หรือ localStorage เผื่อกรณีเปิดผ่านเว็บเบราว์เซอร์ปกติ
+      const params = new URLSearchParams(window.location.search);
+      let lineIdFromUrl = params.get('lineUserId');
+      
+      if (!lineIdFromUrl && typeof window !== 'undefined') {
+        lineIdFromUrl = localStorage.getItem('sublon_line_user_id');
+      }
+
+      if (lineIdFromUrl) {
+        setCustomerLineId(lineIdFromUrl);
+        localStorage.setItem('sublon_line_user_id', lineIdFromUrl);
+      }
+    };
+
+    initLiffAndGetProfile();
   }, []);
 
   const fetchSiteSettings = async () => {
@@ -232,7 +258,7 @@ export default function ApplyPage() {
       const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedOtp(mockOtp);
 
-      // เรียกใช้งาน Backend API Route (/api/send-otp) พร้อมแนบ lineUserId (ถ้าไม่มี จะใช้ค่าสำรองเพื่อไม่ให้ติดบล็อกตอนเทส)
+      // เรียกใช้งาน Backend API Route (/api/send-otp) พร้อมแนบ lineUserId ที่ดึงมาได้จริงจาก LIFF
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
