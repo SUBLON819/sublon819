@@ -870,10 +870,10 @@ export default function AdminDashboard() {
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
 
-            {/* ยอดเก็บแล้ว: สีเขียวมรกต */}
+            {/* ดอกเก็บแล้ว: สีเขียวมรกต */}
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: ยอดเก็บแล้ว');
+                setStatModalTitle('ที่มาของยอด: ดอกเก็บแล้ว');
                 const validPays = payments.filter(p => {
                   const note = (p.note || '').toLowerCase();
                   const amt = Number(p.amount || p.payment_amount || 0);
@@ -888,7 +888,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-emerald-100 text-[10px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ยอดเก็บแล้ว</span>
+                <span>ดอกเก็บแล้ว</span>
                 <span className="text-[10px] text-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-emerald-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalInterestCollected.toLocaleString()}</div>
