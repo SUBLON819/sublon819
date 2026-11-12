@@ -34,6 +34,9 @@ export default function ApplyPage() {
   const [otpCode, setOtpCode] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState('');
   
+  // 🟢 เพิ่ม State สำหรับเก็บ LINE UID ของลูกค้า
+  const [customerLineId, setCustomerLineId] = useState('');
+
   const [isOldCustomer, setIsOldCustomer] = useState(false);
   const [location, setLocation] = useState({ lat: null, lng: null, status: 'ยังไม่ได้ระบุพิกัด' });
   const [locationError, setLocationError] = useState(false);
@@ -77,6 +80,13 @@ export default function ApplyPage() {
       cycle_date: prev.cycle_date || todayThai 
     }));
     fetchSiteSettings();
+
+    // 🟢 ดึง LINE UID จาก URL Query (เผื่อส่งลิงก์ให้ลูกค้าเปิดผ่าน LINE) เช่น /apply?lineUserId=Uxxxx...
+    const params = new URLSearchParams(window.location.search);
+    const lineIdFromUrl = params.get('lineUserId');
+    if (lineIdFromUrl) {
+      setCustomerLineId(lineIdFromUrl);
+    }
   }, []);
 
   const fetchSiteSettings = async () => {
@@ -180,7 +190,7 @@ export default function ApplyPage() {
 
   const theme = getThemeClasses(siteConfig.theme_color);
 
-  // 🚀 ฟังก์ชันขอรหัส OTP ผ่าน Backend API (เชื่อม LINE Messaging API)
+  // 🚀 ฟังก์ชันขอรหัส OTP ผ่าน Backend API (ส่งเข้าแชท LINE ของลูกค้าโดยตรง)
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
@@ -215,14 +225,15 @@ export default function ApplyPage() {
       const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedOtp(mockOtp);
 
-      // เรียกใช้งาน Backend API Route (/api/send-otp)
+      // เรียกใช้งาน Backend API Route (/api/send-otp) พร้อมแนบ lineUserId ไปด้วย
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: phone,
           otp: mockOtp,
-          isOldCustomer: foundOld
+          isOldCustomer: foundOld,
+          lineUserId: customerLineId // 👈 ส่ง LINE UID ของลูกค้าคนนี้ไปหลังบ้าน
         })
       });
 
@@ -231,7 +242,7 @@ export default function ApplyPage() {
         throw new Error(result.error || 'ไม่สามารถส่งรหัส OTP ได้');
       }
 
-      alert(`ส่งรหัส OTP 4 หลัก ไปยัง LINE ของแอดมินเรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
+      alert(`ส่งรหัส OTP 4 หลัก ไปยังแชท LINE ของคุณเรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
       setStep('verify_otp');
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
@@ -592,7 +603,7 @@ export default function ApplyPage() {
           {step === 'verify_otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-3">
               <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5">
-                {isOldCustomer ? '👤 ตรวจพบข้อมูลลูกค้าเก่า ดึงข้อมูลเดิมให้อัตโนมัติ!' : '✨ ลูกค้าใหม่ กรอกรหัส OTP 4 หลักที่ส่งไปยังแอดมิน'} (เบอร์ {phone})
+                {isOldCustomer ? '👤 ตรวจพบข้อมูลลูกค้าเก่า ดึงข้อมูลเดิมให้อัตโนมัติ!' : '✨ ลูกค้าใหม่ กรอกรหัส OTP 4 หลักที่ส่งไปยังแชท LINE ของคุณ'} (เบอร์ {phone})
               </div>
 
               <div className="space-y-1.5">

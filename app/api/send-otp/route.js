@@ -2,27 +2,31 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    // 1. รับเบอร์โทร, OTP, lineUserId และสถานะลูกค้าเก่า/ใหม่จากหน้าบ้าน
+    // 1. รับเบอร์โทร, OTP, lineUserId และสถานะลูกค้าจากหน้าบ้าน
     const { phone, otp, lineUserId, isOldCustomer } = await request.json();
 
-    // 2. ดึงค่า LINE Token และ Admin ID จาก Environment Variables / ค่าสำรอง
-    const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-    const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab0c39fec1055bdbd7423678eecdf';
+    // 🛡️ สำคัญ: ถ้าไม่มี lineUserId ส่งมา แปลว่าลูกค้ายังไม่ได้ล็อกอินผ่าน LINE ให้ปฏิเสธทันที
+    if (!lineUserId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'ไม่พบ LINE User ID กรุณาล็อกอินด้วย LINE ก่อนทำรายการ' 
+      }, { status: 400 });
+    }
 
+    const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
     if (!LINE_CHANNEL_ACCESS_TOKEN) {
       throw new Error('ยังไม่ได้กำหนดค่า LINE_CHANNEL_ACCESS_TOKEN ในระบบ');
     }
 
-    // 3. จัดข้อความส่งเข้า LINE (ระบุป้ายลูกค้าเก่า / ลูกค้าใหม่)
+    // 2. จัดรูปแบบข้อความ OTP สำหรับส่งให้ลูกค้า
     const customerTypeTag = isOldCustomer ? '👤 (ลูกค้าเก่า)' : '✨ (ลูกค้าใหม่)';
-
-    // ✂️ ปรับแต่งข้อความ: เอาคำว่า "ใหม่" ด้านบน และตัดข้อความด้านล่างออกแล้วครับ
-    const messageText = `🚨 แจ้งเตือนคำขอ OTP (SUBLON819)\n\n` +
+    const messageText = `🚨 รหัสยืนยัน OTP ของคุณ (SUBLON819)\n\n` +
       `${customerTypeTag}\n` +
-      `📞 เบอร์โทรศัพท์ลูกค้า: ${phone}\n` +
-      `🔑 รหัส OTP: ${otp}`;
+      `📞 เบอร์โทรศัพท์: ${phone}\n` +
+      `🔑 รหัส OTP: ${otp}\n\n` +
+      `*(ห้ามบอกรหัสนี้ให้ผู้อื่นทราบ)*`;
 
-    // 4. ส่งข้อมูลไปยัง LINE Messaging API (Push Message Endpoint)
+    // 3. ส่งไปยัง LINE Messaging API (Push Message ไปหาลูกค้ารายนั้นโดยตรง)
     const lineUrl = 'https://api.line.me/v2/bot/message/push';
 
     const response = await fetch(lineUrl, {
@@ -32,7 +36,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
       },
       body: JSON.stringify({
-        to: TARGET_LINE_USER_ID,
+        to: lineUserId, // 👈 ส่งเข้า LINE UID ของลูกค้าคนนี้โดยตรง
         messages: [
           {
             type: 'text',
@@ -46,10 +50,10 @@ export async function POST(request) {
 
     if (!response.ok) {
       console.error('LINE API Response Error:', data);
-      throw new Error(data.message || 'เกิดข้อผิดพลาดในการส่งข้อความผ่าน LINE');
+      throw new Error(data.message || 'ไม่สามารถส่งข้อความหาลูกค้าได้ (ลูกค้าอาจจะยังไม่ได้เพิ่มเพื่อนกับบอท)');
     }
 
-    return NextResponse.json({ success: true, message: 'ส่ง OTP เข้า LINE เรียบร้อยแล้ว' });
+    return NextResponse.json({ success: true, message: 'ส่ง OTP เข้า LINE ลูกค้าเรียบร้อยแล้ว' });
 
   } catch (error) {
     console.error('LINE OTP Error:', error);
