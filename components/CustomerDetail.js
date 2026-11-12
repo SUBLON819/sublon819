@@ -317,27 +317,27 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 วงกลม จัดกึ่งกลางและปรับขอบสีตัดคมชัด */}
-        <div className="flex justify-center items-center gap-4 sm:gap-8 my-6 w-full">
-          {/* วงที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) - สีม่วง */}
-          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-violet-700 via-purple-600 to-indigo-400 border-[3px] border-violet-200 shadow-xl shadow-purple-900/30 overflow-hidden group hover:scale-105 transition-all">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/30 rounded-full blur-sm pointer-events-none"></div>
-            <span className="text-[11px] sm:text-xs font-black text-purple-100 text-center px-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
-            <span className="text-base sm:text-lg font-black font-mono text-white text-center px-2 mt-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
+        {/* ยอดสรุปตัวเลข 3 ช่องสี่เหลี่ยมโค้งมน (Rounded Rectangle) สีอ่อนละมุน กรอบเข้มคมชัด ฟอนต์ตัวเลขใหญ่เด่นชัด */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 my-6 w-full">
+          {/* ช่องที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) */}
+          <div className="relative flex flex-col items-center justify-center w-full py-4 px-3 rounded-2xl bg-gradient-to-tr from-purple-100 via-fuchsia-50 to-white border-3 border-purple-800 shadow-lg shadow-purple-500/10 overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-white/50 rounded-full blur-md pointer-events-none"></div>
+            <span className="text-xs font-black text-purple-950 text-center px-1">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
+            <span className="text-xl sm:text-2xl font-black font-mono text-purple-900 text-center px-1 mt-1 truncate w-full">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
-          {/* วงที่ 2: ยอดหนี้คงเหลือ - สีเหลืองทอง */}
-          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 border-[3px] border-amber-100 shadow-xl shadow-amber-600/30 overflow-hidden group hover:scale-105 transition-all">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/50 rounded-full blur-sm pointer-events-none"></div>
-            <span className="text-[11px] sm:text-xs font-black text-amber-950 text-center px-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">ยอดหนี้คงเหลือ</span>
-            <span className="text-base sm:text-lg font-black font-mono text-amber-950 text-center px-2 mt-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)] truncate">฿{totalCustomerRemaining.toLocaleString()}</span>
+          {/* ช่องที่ 2: ยอดหนี้คงเหลือ */}
+          <div className="relative flex flex-col items-center justify-center w-full py-4 px-3 rounded-2xl bg-gradient-to-tr from-amber-100 via-yellow-50 to-white border-3 border-amber-600 shadow-lg shadow-amber-500/10 overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-white/60 rounded-full blur-md pointer-events-none"></div>
+            <span className="text-xs font-black text-amber-950 text-center px-1">ยอดหนี้คงเหลือ</span>
+            <span className="text-xl sm:text-2xl font-black font-mono text-amber-900 text-center px-1 mt-1 truncate w-full">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
-          {/* วงที่ 3: ยอดชำระแล้ว - สีเขียวมรกต */}
-          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-emerald-700 via-emerald-500 to-teal-300 border-[3px] border-emerald-200 shadow-xl shadow-emerald-900/30 overflow-hidden group hover:scale-105 transition-all">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/30 rounded-full blur-sm pointer-events-none"></div>
-            <span className="text-[11px] sm:text-xs font-black text-emerald-100 text-center px-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">ยอดชำระแล้ว</span>
-            <span className="text-base sm:text-lg font-black font-mono text-white text-center px-2 mt-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">฿{totalCustomerPaid.toLocaleString()}</span>
+          {/* ช่องที่ 3: ยอดชำระแล้ว */}
+          <div className="relative flex flex-col items-center justify-center w-full py-4 px-3 rounded-2xl bg-gradient-to-tr from-emerald-100 via-teal-50 to-white border-3 border-emerald-800 shadow-lg shadow-emerald-500/10 overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-white/50 rounded-full blur-md pointer-events-none"></div>
+            <span className="text-xs font-black text-emerald-950 text-center px-1">ยอดชำระแล้ว</span>
+            <span className="text-xl sm:text-2xl font-black font-mono text-emerald-900 text-center px-1 mt-1 truncate w-full">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
         </div>
 
