@@ -964,38 +964,43 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs font-bold text-purple-800">บิล: {loan.bill_code}</span>
+                          <span className="font-mono text-xs font-bold text-purple-800 shrink-0">บิล: {loan.bill_code}</span>
                           <span 
                             onClick={() => {
                               setSelectedCustomerName(loan.full_name);
                               setCustomerProfileModalOpen(true);
                             }}
-                            className="text-xs font-bold text-slate-800 hover:text-purple-700 underline cursor-pointer truncate"
+                            className="text-xs font-bold text-slate-800 hover:text-purple-700 underline cursor-pointer truncate max-w-[180px] sm:max-w-none"
                             title="คลิกเพื่อดูประวัติลูกค้าแบบเต็มจอ"
                           >
                             - {loan.full_name} 🔍
                           </span>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] text-slate-500 mt-1 flex-wrap">
-                          <span>ประเภท: {loan.loan_type}</span> | 
-                          <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
-                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 mt-1">
+                          <span className="shrink-0">ประเภท: {loan.loan_type}</span> 
+                          <span className="text-slate-300 hidden sm:inline">|</span> 
+                          <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
+                          <span className="text-slate-300 hidden sm:inline">|</span> 
+                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold shrink-0">
                             <Clock className="w-3 h-3" />
                             สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
                           </span>
                           {!isPending && (
                             <>
-                              | ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span>
+                              <span className="text-slate-300 hidden sm:inline">|</span>
+                              <span className="shrink-0">ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></span>
                             </>
                           )}
-                          
-                          {latestPayment && (
-                            <span className="bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+                        </div>
+
+                        {latestPayment && (
+                          <div className="mt-1.5">
+                            <span className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold text-[10px] max-w-full truncate">
                               🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} {formatThaiTime(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
