@@ -437,14 +437,14 @@ export default function ApplyPage() {
       if (error) throw error;
 
       // 2. สร้างข้อความสรุปเพื่อให้ "ลูกค้าส่งเข้าแชทร้าน"
-      const lineMessage = `🚨 แจ้งขอสินเชื่อใหม่ (SUBLON819)\n\n` +
+      const lineMessage = `✨ ส่งคำขอเรียบร้อยค่ะ.. \n\n` +
         `👤 ชื่อ-นามสกุล: ${formData.full_name}\n` +
         `📞 เบอร์โทรศัพท์: ${phone}\n` +
         `💵 ยอดเงินกู้: ฿${Number(formData.principal_amount || 0).toLocaleString()}\n` +
-        `✍️ รอบบิล: ${formData.cycle_date}\n` +
-        `🏧 ธนาคารรับเงิน: ${formData.bank_name}\n` +
-        `🔢 เลขบัญชี: ${formData.account_number}\n\n` +
-        `✨ ส่งคำขอเรียบร้อย รอแอดมินตรวจสอบครับ`;
+        `📅 รอบบิล: ${formData.cycle_date}\n` +
+        `🏦 ธนาคารรับเงิน: ${formData.bank_name}\n` +
+        `💳 เลขบัญชี: ${formData.account_number}\n\n` +
+        `📌 พิกัด GPS: ${location.lat ? location.lat.toFixed(4) : 'ไม่ระบุ'}, ${location.lng ? location.lng.toFixed(4) : 'ไม่ระบุ'}\n`
 
       const encodedMessage = encodeURIComponent(lineMessage);
       const lineShareUrl = `https://line.me/R/oaMessage/${siteConfig.line_contact}/?${encodedMessage}`;

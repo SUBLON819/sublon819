@@ -17,14 +17,14 @@ export async function POST(request) {
     const TARGET_LINE_USER_ID = LINE_ADMIN_USER_ID;
 
     // 4. จัดรูปแบบข้อความแจ้งเตือน (เปลี่ยนเป็น "รอบบิล" และแสดงแค่วันที่คืน)
-    const messageText = `🚨 ระบบรับคำขอเรียบร้อยแล้ว!\n\n` +
-      `👤 ชื่อ-นามสกุล: ${fullName}\n` +
-      `📞 เบอร์โทรศัพท์: ${phone}\n` +
-      `💵 ยอดเงินกู้: ฿${Number(amount || 0).toLocaleString()}\n` +
-      `✍️ รอบบิล: ${loanType || '-'}\n` + // 🟢 แสดงเป็นรอบบิลและดึงวันที่คืนมาแสดง
-      `🏧 ธนาคารรับเงิน: ${bankName}\n` +
-      `🔢 เลขบัญชี: ${accountNumber}\n\n` +
-      `✨ กรุณารอตรวจสอบสักครู่...`;
+    const lineMessage = `✨ ส่งคำขอเรียบร้อยค่ะ.. \n\n` +
+        `👤 ชื่อ-นามสกุล: ${formData.full_name}\n` +
+        `📞 เบอร์โทรศัพท์: ${phone}\n` +
+        `💵 ยอดเงินกู้: ฿${Number(formData.principal_amount || 0).toLocaleString()}\n` +
+        `📅 รอบบิล: ${formData.cycle_date}\n` +
+        `🏦 ธนาคารรับเงิน: ${formData.bank_name}\n` +
+        `💳 เลขบัญชี: ${formData.account_number}\n\n` +
+        `📌 พิกัด GPS: ${location.lat ? location.lat.toFixed(4) : 'ไม่ระบุ'}, ${location.lng ? location.lng.toFixed(4) : 'ไม่ระบุ'}\n`
 
     // 5. ส่งข้อมูลไปยัง LINE Messaging API (Push Message)
     const lineUrl = 'https://api.line.me/v2/bot/message/push';
@@ -40,7 +40,7 @@ export async function POST(request) {
         messages: [
           {
             type: 'text',
-            text: messageText
+            text: lineMessage
           }
         ]
       }),
