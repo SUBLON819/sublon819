@@ -110,7 +110,7 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [todayStr, setTodayStr] = useState('');
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
@@ -423,46 +423,56 @@ export default function AdminDashboard() {
   };
 
   const handleSaveNewLoan = async (e) => {
-    e.preventDefault();
-    try {
-      const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
-      const principal = Number(newLoanData.principal_amount || 0);
-      const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
-        ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
-        : newLoanData.payment_schedule;
+  e.preventDefault();
+  if (isSubmitting) return; // 🛡️ ป้องกันการกดซ้ำระหว่างระบบกำลังทำงาน
 
-      const { error } = await supabase.from('loans').insert([{
-        bill_code: 'LN-' + Math.floor(10000 + Math.random() * 90000),
-        full_name: newLoanData.full_name,
-        phone: String(newLoanData.phone || '').trim(),
-        facebook_link: newLoanData.facebook_link,
-        loan_type: newLoanData.loan_type,
-        principal_amount: principal,
-        remaining_principal: principal,
-        remaining_interest: 0,
-        status: 'อนุมัติแล้ว',
-        bank_name: newLoanData.bank_name,
-        account_number: newLoanData.account_number,
-        loan_date: newLoanData.loan_date || todayStr,
-        cycle_date: newLoanData.cycle_date || null,
-        interest_start_date: interestStartDate,
-        calc_next_day: newLoanData.calc_next_day,
-        daily_interest: newLoanData.loan_type === 'ดอกลอย' ? Number(newLoanData.daily_interest || 0) : 0,
-        total_interest: newLoanData.loan_type === 'จบต้นดอก' ? Number(newLoanData.total_interest || 0) : 0,
-        installment_amount: Number(newLoanData.installment_amount || 0),
-        total_installments: Number(newLoanData.installment_count || 0),
-        payment_schedule: scheduleStr,
-        created_at: new Date().toISOString(),
-      }]);
+  setIsSubmitting(true); // ล็อกปุ่มทันที
+  try {
+    const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
+    const principal = Number(newLoanData.principal_amount || 0);
+    const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
+      ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
+      : newLoanData.payment_schedule;
 
-      if (error) throw error;
-      alert('บันทึกรายการปล่อยกู้ใหม่เรียบร้อยแล้ว!');
-      setNewLoanModalOpen(false);
-      fetchData();
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
-    }
-  };
+    const { error } = await supabase.from('loans').insert([{
+      bill_code: 'LN-' + Math.floor(10000 + Math.random() * 90000),
+      full_name: newLoanData.full_name,
+      phone: String(newLoanData.phone || '').trim(),
+      facebook_link: newLoanData.facebook_link,
+      loan_type: newLoanData.loan_type,
+      principal_amount: principal,
+      remaining_principal: principal,
+      remaining_interest: 0,
+      status: 'อนุมัติแล้ว',
+      bank_name: newLoanData.bank_name,
+      account_number: newLoanData.account_number,
+      loan_date: newLoanData.loan_date || todayStr,
+      cycle_date: newLoanData.cycle_date || null,
+      interest_start_date: interestStartDate,
+      calc_next_day: newLoanData.calc_next_day,
+      daily_interest: newLoanData.loan_type === 'ดอกลอย' ? Number(newLoanData.daily_interest || 0) : 0,
+      total_interest: newLoanData.loan_type === 'จบต้นดอก' ? Number(newLoanData.total_interest || 0) : 0,
+      installment_amount: Number(newLoanData.installment_amount || 0),
+      total_installments: Number(newLoanData.installment_count || 0),
+      payment_schedule: scheduleStr,
+      created_at: new Date().toISOString(),
+    }]);
+
+    if (error) throw error;
+
+    // ✅ ปิด Modal ทันทีที่บันทึกสำเร็จ เพื่อไม่ให้หน้าต่างค้างซ้อนกัน
+    setNewLoanModalOpen(false);
+    fetchData();
+
+    // แสดงแจ้งเตือนหลังจากปิดหน้าต่างเรียบร้อยแล้ว
+    alert('บันทึกรายการปล่อยกู้ใหม่เรียบร้อยแล้ว!');
+
+  } catch (err) {
+    alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+  } finally {
+    setIsSubmitting(false); // ปดล็อกสถานะเมื่อจบกระบวนการ
+  }
+};
 
   const handleSaveCustomerInfo = async (e) => {
     e.preventDefault();
@@ -1679,10 +1689,21 @@ export default function AdminDashboard() {
               )}
 
               <div className="flex gap-2 pt-1.5 sticky bottom-0 bg-emerald-50 py-1">
-                <button type="submit" className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors">
-                  บันทึกข้อมูลเข้าสู่ระบบ
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold shadow-md transition-colors text-white ${
+                    isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 cursor-pointer'
+                  }`}
+                >
+                  {isSubmitting ? 'กำลังบันทึกข้อมูล...' : 'บันทึกข้อมูลเข้าสู่ระบบ'}
                 </button>
-                <button type="button" onClick={() => setNewLoanModalOpen(false)} className="px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors">
+                <button 
+                  type="button" 
+                  disabled={isSubmitting}
+                  onClick={() => setNewLoanModalOpen(false)} 
+                  className="px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md transition-colors"
+                >
                   ปิด
                 </button>
               </div>
