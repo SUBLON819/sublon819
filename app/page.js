@@ -804,7 +804,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-emerald-100 text-[11px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ยอดเก็บสดวันนี้</span>
+                <span>ยอดเก็บสดวันนี้ 🟢</span>
                 <span className="text-[10px] text-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-emerald-900/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm">฿{todayCollectedCash.toLocaleString()}</div>
@@ -824,7 +824,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-sky-100 text-[11px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ดอกเบี้ยและค่าปรับสะสมรอเก็บ</span>
+                <span>ดอกเบี้ยและค่าปรับสะสมรอเก็บ 🔵</span>
                 <span className="text-[10px] text-sky-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-sky-900/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
@@ -843,7 +843,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/25 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-amber-950 text-[10px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ทุนใหม่รอเก็บ</span>
+                <span>ทุนใหม่รอเก็บ 🟡</span>
                 <span className="text-[10px] text-amber-950 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-white/50 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalActivePrincipal.toLocaleString()}</div>
@@ -860,7 +860,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-purple-100 text-[10px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ยอดค้างรอเคลียร์</span>
+                <span>ยอดค้างรอเคลียร์ 🟣</span>
                 <span className="text-[10px] text-purple-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-purple-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalPendingBalance.toLocaleString()}</div>
@@ -883,7 +883,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-pink-100 text-[10px] sm:text-xs font-bold flex items-center justify-between">
-                <span>กำไรสะสม</span>
+                <span>กำไรสะสม 🌸</span>
                 <span className="text-[10px] text-pink-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-pink-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalInterestCollected.toLocaleString()}</div>
