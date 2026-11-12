@@ -794,7 +794,7 @@ export default function AdminDashboard() {
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
           <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full">
-            {/* ยอดเก็บสดวันนี้: สีฟ้า (ใส่ animate-pulse แล้ว) */}
+            {/* ยอดเก็บสดวันนี้: สีฟ้า (ยังมีเอฟเฟกต์กระพริบ) */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดเก็บสดวันนี้');
@@ -811,10 +811,10 @@ export default function AdminDashboard() {
               <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm animate-pulse">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
-            {/* ดอกเบี้ยและค่าปรับสะสมรอเก็บ: สีม่วง */}
+            {/* ดอกเบี้ย,ค่าปรับรอเก็บ: สีม่วง (เอาเอฟเฟกต์กระพริบออกแล้ว แสดงผลนิ่งๆ) */}
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: ดอกเบี้ยและค่าปรับสะสมรอเก็บ');
+                setStatModalTitle('ที่มาของยอด: ดอกเบี้ย,ค่าปรับรอเก็บ');
                 const activeLoansWithInterest = loans.filter(l => l.status === 'อนุมัติแล้ว').map(l => ({
                   ...l,
                   calculated_accrued: calculateAccruedInterest(l)
@@ -826,10 +826,10 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-purple-100 text-[11px] sm:text-xs font-bold flex items-center justify-between">
-                <span>ดอกเบี้ยและค่าปรับสะสมรอเก็บ</span>
+                <span>ดอกเบี้ย,ค่าปรับรอเก็บ</span>
                 <span className="text-[10px] text-purple-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-purple-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalAccruedInterestAll.toLocaleString()}</div>
             </div>
           </div>
 
@@ -870,10 +870,10 @@ export default function AdminDashboard() {
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
 
-            {/* กำไรสะสม: สีเขียวมรกต */}
+            {/* ยอดเก็บแล้ว: สีเขียวมรกต */}
             <div 
               onClick={() => {
-                setStatModalTitle('ที่มาของยอด: กำไรสะสม');
+                setStatModalTitle('ที่มาของยอด: ยอดเก็บแล้ว');
                 const validPays = payments.filter(p => {
                   const note = (p.note || '').toLowerCase();
                   const amt = Number(p.amount || p.payment_amount || 0);
@@ -888,7 +888,7 @@ export default function AdminDashboard() {
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-emerald-100 text-[10px] sm:text-xs font-bold flex items-center justify-between">
-                <span>กำไรสะสม</span>
+                <span>ยอดเก็บแล้ว</span>
                 <span className="text-[10px] text-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-emerald-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalInterestCollected.toLocaleString()}</div>
