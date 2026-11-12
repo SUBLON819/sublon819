@@ -217,7 +217,6 @@ export default function ApplyPage() {
 
   const theme = getThemeClasses(siteConfig.theme_color);
 
-  // 🚀 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์และข้ามไปหน้าพิกัด GPS ทันที
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
@@ -412,7 +411,6 @@ export default function ApplyPage() {
 
       faceUrl = facePublicUrlData.publicUrl;
 
-      // 🟢 บันทึกข้อมูลลง Supabase พร้อมส่ง line_user_id
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -542,7 +540,7 @@ export default function ApplyPage() {
 
         <div className="p-3.5 sm:p-6 space-y-3">
           
-          {/* STEP 1: กรอกเบอร์โทรศัพท์ (ข้ามไปหน้าพิกัด GPS ทันที) */}
+          {/* STEP 1: กรอกเบอร์โทรศัพท์ */}
           {step === 'phone' && (
             <form onSubmit={handlePhoneSubmit} className="space-y-3">
               <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
@@ -715,6 +713,7 @@ export default function ApplyPage() {
                 />
               </div>
 
+              {/* ปรับช่องกำหนดคืนให้เล็กลง กระชับ และเข้ากับช่องอื่น */}
               <div className="space-y-1 w-full max-w-full min-w-0 overflow-hidden">
                 <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
                   <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -726,7 +725,7 @@ export default function ApplyPage() {
                   min={formData.loan_date || ''}
                   value={formData.cycle_date}
                   onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
+                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2 text-sm sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
