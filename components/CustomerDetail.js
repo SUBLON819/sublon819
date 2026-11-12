@@ -317,22 +317,22 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 ช่อง (ใช้สีและการไล่ระดับแบบหน้า Dashboard หลัก) */}
+        {/* ยอดสรุปตัวเลข 3 ช่อง (ตามสีที่คุณเลือก: ม่วง, ส้มทอง, เขียวมรกต) */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 my-6 w-full">
-          {/* ช่องที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) -> ใช้สีฟ้าแบบแดชบอร์ด */}
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-500 text-white shadow-lg shadow-sky-500/20 transform transition-transform hover:scale-[1.01]">
-            <span className="text-[10px] sm:text-xs font-bold text-sky-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
+          {/* ช่องที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) -> สีม่วง */}
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 transform transition-transform hover:scale-[1.01]">
+            <span className="text-[10px] sm:text-xs font-bold text-purple-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
             <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
-          {/* ช่องที่ 2: ยอดหนี้คงเหลือ -> ใช้สีเหลืองทองแบบแดชบอร์ด */}
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-lg shadow-amber-500/20 transform transition-transform hover:scale-[1.01]">
+          {/* ช่องที่ 2: ยอดหนี้คงเหลือ -> สีส้มทอง */}
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30 transform transition-transform hover:scale-[1.01]">
             <span className="text-[10px] sm:text-xs font-bold text-amber-100 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
             <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
-          {/* ช่องที่ 3: ยอดชำระแล้ว -> ใช้สีเขียวแบบแดชบอร์ด */}
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20 transform transition-transform hover:scale-[1.01]">
+          {/* ช่องที่ 3: ยอดชำระแล้ว -> สีเขียวมรกต */}
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 transform transition-transform hover:scale-[1.01]">
             <span className="text-[10px] sm:text-xs font-bold text-emerald-100 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
             <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
