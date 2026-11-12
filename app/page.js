@@ -800,11 +800,11 @@ export default function AdminDashboard() {
                 setStatModalData(todayPayments);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-emerald-50/90 backdrop-blur-md border border-emerald-300 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-emerald-500 hover:shadow-lg transition-all group"
             >
-              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="text-emerald-800 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>ยอดเก็บสดวันนี้</span>
-                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
+                <span className="text-[10px] text-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
               </div>
               <div className="text-lg sm:text-2xl font-black font-mono text-emerald-600 truncate">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
@@ -819,13 +819,13 @@ export default function AdminDashboard() {
                 setStatModalData(activeLoansWithInterest);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-sky-50/90 backdrop-blur-md border border-sky-300 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-sky-500 hover:shadow-lg transition-all group"
             >
-              <div className="text-slate-600 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="text-sky-900 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>ดอกเบี้ยและค่าปรับสะสมรอเก็บ</span>
-                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
+                <span className="text-[10px] text-sky-700 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-[color:#ff007f] truncate animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-sky-700 truncate animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
             </div>
           </div>
 
@@ -837,11 +837,11 @@ export default function AdminDashboard() {
                 setStatModalData(principalLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-amber-50/90 backdrop-blur-md border border-amber-300 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-amber-500 hover:shadow-lg transition-all group"
             >
-              <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="text-amber-900 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>ทุนใหม่รอเก็บ</span>
-                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+                <span className="text-[10px] text-amber-700 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-amber-600 truncate">฿{totalActivePrincipal.toLocaleString()}</div>
             </div>
@@ -853,11 +853,11 @@ export default function AdminDashboard() {
                 setStatModalData(pendingLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group"
+              className="bg-rose-50/90 backdrop-blur-md border border-rose-300 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-rose-500 hover:shadow-lg transition-all group"
             >
-              <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="text-rose-900 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>ยอดค้างรอเคลียร์</span>
-                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+                <span className="text-[10px] text-rose-700 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-rose-800 truncate">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
@@ -875,11 +875,11 @@ export default function AdminDashboard() {
                 setStatModalData(validPays);
                 setStatModalOpen(true);
               }}
-              className="bg-white/95 backdrop-blur-md border border-purple-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
+              className="bg-purple-50/90 backdrop-blur-md border border-purple-300 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
             >
-              <div className="text-slate-600 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="text-purple-900 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
                 <span>กำไรสะสม</span>
-                <span className="text-[10px] text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+                <span className="text-[10px] text-purple-700 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
               </div>
               <div className="text-base sm:text-xl font-black font-mono text-pink-600 truncate">฿{totalInterestCollected.toLocaleString()}</div>
             </div>
