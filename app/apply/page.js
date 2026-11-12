@@ -715,21 +715,23 @@ export default function ApplyPage() {
                 />
               </div>
 
-              {/* 🟢 ปรับช่องกำหนดคืนให้เล็กลง (ลด Padding และขนาดฟอนต์) */}
-              <div className="space-y-1 w-full max-w-full min-w-0 overflow-hidden">
+              {/* 🟢 ปรับช่องกำหนดคืนให้สั้นลงและกระชับ ทั้งบนมือถือและคอมพิวเตอร์ */}
+              <div className="space-y-1">
                 <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
                   <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-75">(ต้องมากกว่าวันกู้)</span></span>
                 </label>
-                <input 
-                  type="date"
-                  required
-                  min={formData.loan_date || ''}
-                  value={formData.cycle_date}
-                  onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-1.5 text-sm sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
-                  style={{ colorScheme: 'dark' }}
-                />
+                <div className="flex">
+                  <input 
+                    type="date"
+                    required
+                    min={formData.loan_date || ''}
+                    value={formData.cycle_date}
+                    onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
+                    className={`w-auto inline-block ${theme.inputBg} border rounded-xl px-4 py-2 text-sm sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
