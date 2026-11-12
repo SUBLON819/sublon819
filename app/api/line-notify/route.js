@@ -22,11 +22,11 @@ export async function POST(request) {
     const TARGET_LINE_USER_ID = LINE_ADMIN_USER_ID;
 
     // 4. จัดรูปแบบข้อความแจ้งเตือนส่งให้ "แอดมิน"
-    const messageText = `🚨 ระบบรับคำขอเรียบร้อยแล้ว!\n\n` +
+    const messageText = `🚨 ระบบรับคำขอเรียบร้อยแล้ว\n\n` +
       `👤 ชื่อ-นามสกุล: ${fullName}\n` +
       `📞 เบอร์โทรศัพท์: ${phone}\n` +
       `💵 ยอดเงิน: ฿${Number(amount || 0).toLocaleString()}\n` +
-      `✍️ ประเภท: ${loanType || 'กำหนดช่วงวันที่'}\n` +
+      `✍️ รอบบิล: ${loanType || '-'}\n` +
       `🏧 ธนาคารรับเงิน: ${bankName}\n` +
       `🔢 เลขบัญชี: ${accountNumber}\n\n` +
       `✨ กรุณารอตรวจสอบสักครู่...`;

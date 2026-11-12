@@ -443,7 +443,7 @@ export default function ApplyPage() {
             fullName: formData.full_name,
             phone: phone,
             amount: formData.principal_amount,
-            loanType: 'กำหนดช่วงวันที่ (กำหนดคืน: ' + formData.cycle_date + ')',
+            loanType: formData.cycle_date, // 🟢 ส่งแค่วันที่คืน (เช่น 2026-11-28) ไปแสดงผล
             bankName: formData.bank_name,
             accountNumber: formData.account_number,
             lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf'
