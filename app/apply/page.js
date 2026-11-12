@@ -217,6 +217,7 @@ export default function ApplyPage() {
 
   const theme = getThemeClasses(siteConfig.theme_color);
 
+  // 🚀 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์และข้ามไปหน้าพิกัด GPS ทันที
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
@@ -411,6 +412,7 @@ export default function ApplyPage() {
 
       faceUrl = facePublicUrlData.publicUrl;
 
+      // 🟢 บันทึกข้อมูลลง Supabase พร้อมส่ง line_user_id
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -540,7 +542,7 @@ export default function ApplyPage() {
 
         <div className="p-3.5 sm:p-6 space-y-3">
           
-          {/* STEP 1: กรอกเบอร์โทรศัพท์ */}
+          {/* STEP 1: กรอกเบอร์โทรศัพท์ (ข้ามไปหน้าพิกัด GPS ทันที) */}
           {step === 'phone' && (
             <form onSubmit={handlePhoneSubmit} className="space-y-3">
               <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
@@ -683,7 +685,7 @@ export default function ApplyPage() {
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-bold`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm sm:text-xs outline-none font-bold`}
                 />
               </div>
 
@@ -696,7 +698,7 @@ export default function ApplyPage() {
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-mono`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm sm:text-xs outline-none font-mono`}
                   />
                 </div>
               )}
@@ -709,11 +711,11 @@ export default function ApplyPage() {
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs font-bold outline-none font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm sm:text-xs font-bold outline-none font-mono`}
                 />
               </div>
 
-              {/* ปรับช่องกำหนดคืนให้เล็กลง กระชับ และเข้ากับช่องอื่น */}
+              {/* 🟢 ปรับช่องกำหนดคืนให้เล็กลง (ลด Padding และขนาดฟอนต์) */}
               <div className="space-y-1 w-full max-w-full min-w-0 overflow-hidden">
                 <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
                   <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -725,7 +727,7 @@ export default function ApplyPage() {
                   min={formData.loan_date || ''}
                   value={formData.cycle_date}
                   onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-2 text-sm sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
+                  className={`w-full box-border ${theme.inputBg} border rounded-xl px-3 py-1.5 text-sm sm:text-xs outline-none font-mono font-bold cursor-pointer text-white`}
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
@@ -739,7 +741,7 @@ export default function ApplyPage() {
                   <select
                     value={formData.bank_name} 
                     onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2.5 text-base sm:text-xs outline-none font-bold cursor-pointer"
+                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2 text-sm sm:text-xs outline-none font-bold cursor-pointer"
                   >
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)" className="bg-slate-900 text-white">ธนาคารทหารไทยธนชาติ (TTB)</option>
                     <option value="ธนาคารกสิกรไทย (KBANK)" className="bg-slate-900 text-white">ธนาคารกสิกรไทย (KBANK)</option>
@@ -760,7 +762,7 @@ export default function ApplyPage() {
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} 
                     onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base sm:text-xs font-mono font-bold outline-none`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2 text-sm sm:text-xs font-mono font-bold outline-none`}
                   />
                 </div>
               </div>
