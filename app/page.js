@@ -475,30 +475,30 @@ export default function AdminDashboard() {
 };
 
   const handleSaveCustomerInfo = async (e) => {
-    e.preventDefault();
-    if (!editingLoanId) return;
-    try {
-      const { error } = await supabase
-        .from('loans')
-        .update({
-          full_name: editName.trim(),
-          phone: String(editPhone || '').trim(),
-          facebook_link: editFacebook.trim(),
-          bank_name: editBankName,
-          account_number: String(editAccountNumber || '').trim()
-        })
-        .eq('id', editingLoanId);
+  e.preventDefault();
+  if (!editingLoanId) return;
+  try {
+    const { error } = await supabase
+      .from('loans')
+      .update({
+        full_name: editName.trim(),
+        phone: String(editPhone || '').trim(),
+        facebook_link: editFacebook.trim(),
+        bank_name: editBankName,
+        account_number: String(editAccountNumber || '').trim()
+      })
+      .eq('id', editingLoanId); // อัปเดตข้อมูลตาม ID บิลนั้นๆ
 
-      if (error) throw error;
+    if (error) throw error;
 
-      alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
-      setEditCustomerModalOpen(false);
-      fetchData();
-    } catch (err) {
-      console.error('Error updating customer:', err.message);
-      alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
-    }
-  };
+    alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
+    setEditCustomerModalOpen(false);
+    fetchData(); // ดึงข้อมูลใหม่มาแสดงผลทันที
+  } catch (err) {
+    console.error('Error updating customer:', err.message);
+    alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
+  }
+};
 
   const handleDeleteLoan = async (loanId, billCode) => {
     if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
