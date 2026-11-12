@@ -2,36 +2,31 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    // 1. รับข้อมูลคำขอกู้จากฟอร์มหน้าบ้าน
+    // 1. รับข้อมูลจากหน้าบ้าน
     const { fullName, phone, amount, loanType, bankName, accountNumber } = await request.json();
 
-    // 2. ดึงค่า LINE Token และ LINE Admin ID จาก Environment Variables ของ Vercel
+    // 2. ดึงค่า Token และ Admin ID จาก Environment Variables ของ Vercel
     const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-    const LINE_ADMIN_USER_ID = process.env.LINE_ADMIN_USER_ID; // 🟢 ดึง LINE UID แอดมิน
+    const LINE_ADMIN_USER_ID = process.env.LINE_ADMIN_USER_ID; // LINE UID ของแอดมิน
 
-    if (!LINE_CHANNEL_ACCESS_TOKEN) {
-      throw new Error('ยังไม่ได้กำหนดค่า LINE_CHANNEL_ACCESS_TOKEN ในระบบ');
+    if (!LINE_CHANNEL_ACCESS_TOKEN || !LINE_ADMIN_USER_ID) {
+      throw new Error('ยังไม่ได้กำหนดค่า LINE Token หรือ Admin ID ใน Vercel');
     }
 
-    // 🛡️ ป้องกันกรณีไม่ได้ตั้งค่า LINE_ADMIN_USER_ID บน Vercel
-    if (!LINE_ADMIN_USER_ID) {
-      throw new Error('ยังไม่ได้กำหนดค่า LINE_ADMIN_USER_ID ใน Environment Variables ของ Vercel');
-    }
-
-    // 3. กำหนดให้เป้าหมายคือ LINE User ID ของแอดมิน
+    // 3. กำหนดให้เป้าหมายส่งตรงเข้าแชทส่วนตัวของ "แอดมิน" เสมอ
     const TARGET_LINE_USER_ID = LINE_ADMIN_USER_ID;
 
-    // 4. จัดรูปแบบข้อความแจ้งเตือนส่งให้ "แอดมิน"
-    const messageText = `🚨 ระบบรับคำขอเรียบร้อยแล้ว\n\n` +
+    // 4. จัดรูปแบบข้อความแจ้งเตือน (เปลี่ยนเป็น "รอบบิล" และแสดงแค่วันที่คืน)
+    const messageText = `🚨 ระบบรับคำขอเรียบร้อยแล้ว!\n\n` +
       `👤 ชื่อ-นามสกุล: ${fullName}\n` +
       `📞 เบอร์โทรศัพท์: ${phone}\n` +
-      `💵 ยอดเงิน: ฿${Number(amount || 0).toLocaleString()}\n` +
-      `✍️ รอบบิล: ${loanType || '-'}\n` +
+      `💵 ยอดเงินกู้: ฿${Number(amount || 0).toLocaleString()}\n` +
+      `✍️ รอบบิล: ${loanType || '-'}\n` + // 🟢 แสดงเป็นรอบบิลและดึงวันที่คืนมาแสดง
       `🏧 ธนาคารรับเงิน: ${bankName}\n` +
       `🔢 เลขบัญชี: ${accountNumber}\n\n` +
       `✨ กรุณารอตรวจสอบสักครู่...`;
 
-    // 5. ส่งข้อมูลไปยัง LINE Messaging API (Push Message Endpoint)
+    // 5. ส่งข้อมูลไปยัง LINE Messaging API (Push Message)
     const lineUrl = 'https://api.line.me/v2/bot/message/push';
 
     const response = await fetch(lineUrl, {
@@ -41,7 +36,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
       },
       body: JSON.stringify({
-        to: TARGET_LINE_USER_ID, // 🟢 ส่งตรงเข้า LINE UID ของแอดมิน
+        to: TARGET_LINE_USER_ID, // 🟢 ส่งตรงเข้าแชทแอดมิน
         messages: [
           {
             type: 'text',
@@ -54,8 +49,7 @@ export async function POST(request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('LINE API Error Response:', data);
-      throw new Error(data.message || 'เกิดข้อผิดพลาดในการส่งแจ้งเตือนผ่าน LINE');
+      throw new Error(data.message || 'เกิดข้อผิดพลาดในการส่ง LINE Notify');
     }
 
     return NextResponse.json({ success: true, message: 'ส่งแจ้งเตือนหาแอดมินสำเร็จ' });
