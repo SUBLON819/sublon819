@@ -800,13 +800,14 @@ export default function AdminDashboard() {
                 setStatModalData(todayPayments);
                 setStatModalOpen(true);
               }}
-              className="bg-emerald-600 backdrop-blur-md border border-emerald-700 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:bg-emerald-700 hover:shadow-lg transition-all group"
+              className="bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 border border-emerald-300/60 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-lg shadow-emerald-500/20 cursor-pointer hover:scale-[1.02] hover:shadow-emerald-500/40 transition-all group relative overflow-hidden"
             >
-              <div className="text-emerald-100 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
+              <div className="text-emerald-50 text-[11px] sm:text-xs font-bold flex items-center justify-between drop-shadow-sm">
                 <span>ยอดเก็บสดวันนี้</span>
-                <span className="text-[10px] text-emerald-200 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
+                <span className="text-[10px] text-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-emerald-900/30 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate">฿{todayCollectedCash.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-md">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
             <div 
@@ -819,13 +820,14 @@ export default function AdminDashboard() {
                 setStatModalData(activeLoansWithInterest);
                 setStatModalOpen(true);
               }}
-              className="bg-sky-600 backdrop-blur-md border border-sky-700 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:bg-sky-700 hover:shadow-lg transition-all group"
+              className="bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 border border-sky-300/60 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-lg shadow-sky-500/20 cursor-pointer hover:scale-[1.02] hover:shadow-sky-500/40 transition-all group relative overflow-hidden"
             >
-              <div className="text-sky-100 text-[11px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
+              <div className="text-sky-50 text-[11px] sm:text-xs font-bold flex items-center justify-between drop-shadow-sm">
                 <span>ดอกเบี้ยและค่าปรับสะสมรอเก็บ</span>
-                <span className="text-[10px] text-sky-200 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดูรายการ 🔍</span>
+                <span className="text-[10px] text-sky-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-sky-900/30 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-md animate-pulse">฿{totalAccruedInterestAll.toLocaleString()}</div>
             </div>
           </div>
 
@@ -837,13 +839,14 @@ export default function AdminDashboard() {
                 setStatModalData(principalLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-amber-600 backdrop-blur-md border border-amber-700 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:bg-amber-700 hover:shadow-lg transition-all group"
+              className="bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 border border-amber-300/60 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-lg shadow-amber-500/20 cursor-pointer hover:scale-[1.02] hover:shadow-amber-500/40 transition-all group relative overflow-hidden"
             >
-              <div className="text-amber-100 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
+              <div className="text-amber-50 text-[10px] sm:text-xs font-bold flex items-center justify-between drop-shadow-sm">
                 <span>ทุนใหม่รอเก็บ</span>
-                <span className="text-[10px] text-amber-200 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+                <span className="text-[10px] text-amber-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-amber-900/30 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-white truncate">฿{totalActivePrincipal.toLocaleString()}</div>
+              <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-md">฿{totalActivePrincipal.toLocaleString()}</div>
             </div>
 
             <div 
@@ -853,13 +856,14 @@ export default function AdminDashboard() {
                 setStatModalData(pendingLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-rose-600 backdrop-blur-md border border-rose-700 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:bg-rose-700 hover:shadow-lg transition-all group"
+              className="bg-gradient-to-br from-red-700 via-rose-900 to-red-950 border border-red-500/60 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-lg shadow-red-950/40 cursor-pointer hover:scale-[1.02] hover:shadow-red-900/60 transition-all group relative overflow-hidden"
             >
-              <div className="text-rose-100 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+              <div className="text-red-100 text-[10px] sm:text-xs font-bold flex items-center justify-between drop-shadow-sm">
                 <span>ยอดค้างรอเคลียร์</span>
-                <span className="text-[10px] text-rose-200 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+                <span className="text-[10px] text-red-200 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-red-950/50 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-white truncate">฿{totalPendingBalance.toLocaleString()}</div>
+              <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-md">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
 
             <div 
@@ -875,13 +879,14 @@ export default function AdminDashboard() {
                 setStatModalData(validPays);
                 setStatModalOpen(true);
               }}
-              className="bg-purple-600 backdrop-blur-md border border-purple-700 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md cursor-pointer hover:bg-purple-700 hover:shadow-lg transition-all group col-span-2 sm:col-span-1"
+              className="bg-gradient-to-br from-fuchsia-400 via-purple-500 to-indigo-600 border border-purple-300/60 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-lg shadow-purple-500/20 cursor-pointer hover:scale-[1.02] hover:shadow-purple-500/40 transition-all group relative overflow-hidden col-span-2 sm:col-span-1"
             >
-              <div className="text-purple-100 text-[10px] sm:text-xs font-semibold flex items-center justify-between">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
+              <div className="text-purple-50 text-[10px] sm:text-xs font-bold flex items-center justify-between drop-shadow-sm">
                 <span>กำไรสะสม</span>
-                <span className="text-[10px] text-purple-200 opacity-0 group-hover:opacity-100 transition-opacity font-bold">คลิกดู 🔍</span>
+                <span className="text-[10px] text-purple-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-purple-900/30 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-base sm:text-xl font-black font-mono text-white truncate">฿{totalInterestCollected.toLocaleString()}</div>
+              <div className="text-base sm:text-xl font-black font-mono text-white truncate drop-shadow-md">฿{totalInterestCollected.toLocaleString()}</div>
             </div>
           </div>
         </div>
