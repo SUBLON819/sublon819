@@ -1,64 +1,43 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase'; // สมมติว่าต้องการเชื่อม Supabase ฝั่ง Backend ด้วย (ถ้ามี)
 
 export async function POST(request) {
   try {
-    const { phone, otp, lineUserId, isOldCustomer } = await request.json();
+    const { phone } = await request.json();
 
-    const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-    if (!LINE_CHANNEL_ACCESS_TOKEN) {
-      throw new Error('ยังไม่ได้กำหนดค่า LINE_CHANNEL_ACCESS_TOKEN ในระบบ');
+    if (!phone || phone.length < 10) {
+      return NextResponse.json(
+        { success: false, error: 'กรุณากรอกเบอร์โทรศัพท์มือถือให้ถูกต้อง' },
+        { status: 400 }
+      );
     }
 
-    // 🟢 ถ้าไม่มี lineUserId ส่งมา ให้ใช้ค่าสำรองหรือข้ามการส่ง Push ไปก่อนเพื่อไม่ให้แอปค้าง (หรือแจ้งเตือนแอดมิน)
-    const targetUserId = lineUserId && lineUserId.trim() !== '' ? lineUserId : null;
+    // ตัวอย่าง: ตรวจสอบเบอร์โทรศัพท์ในฐานข้อมูล Supabase (ถ้าต้องการเช็กจากฝั่ง Server)
+    const { data: existingLoans, error: fetchError } = await supabase
+      .from('loans')
+      .select('*')
+      .eq('phone', phone)
+      .order('id', { ascending: false })
+      .limit(1);
 
-    if (!targetUserId) {
-      // กรณีหา LINE ID ไม่เจอจริงๆ ให้ผ่านไปก่อนได้ หรือส่ง Response สำเร็จจำลองเพื่อให้อย่างน้อยระบบไปต่อได้
-      console.warn('Warning: lineUserId is missing, OTP generated locally:', otp);
-      return NextResponse.json({ 
-        success: true, 
-        message: 'สร้างรหัส OTP สำเร็จ (ไม่พบ LINE UID ระบบแสดงรหัสชั่วคราว)',
-        mockOtp: otp // ส่งกลับไปแสดงผลเผื่อกรณีเทส
-      });
+    if (fetchError) {
+      throw new Error(fetchError.message);
     }
 
-    const customerTypeTag = isOldCustomer ? '👤 (ลูกค้าเก่า)' : '✨ (ลูกค้าใหม่)';
-    const messageText = `🚨 รหัสยืนยัน OTP ของคุณ (SUBLON819)\n\n` +
-      `${customerTypeTag}\n` +
-      `📞 เบอร์โทรศัพท์: ${phone}\n` +
-      `🔑 รหัส OTP: ${otp}\n\n` +
-      `*(ห้ามบอกรหัสนี้ให้ผู้อื่นทราบ)*`;
+    const isOldCustomer = existingLoans && existingLoans.length > 0;
 
-    const lineUrl = 'https://api.line.me/v2/bot/message/push';
-
-    const response = await fetch(lineUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        to: targetUserId,
-        messages: [
-          {
-            type: 'text',
-            text: messageText
-          }
-        ]
-      }),
+    return NextResponse.json({ 
+      success: true, 
+      isOldCustomer: isOldCustomer,
+      message: isOldCustomer ? 'ตรวจพบข้อมูลลูกค้าเก่าในระบบ' : 'ไม่พบข้อมูล (ลูกค้าใหม่)',
+      customerData: isOldCustomer ? existingLoans[0] : null
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('LINE API Response Error:', data);
-      throw new Error(data.message || 'ไม่สามารถส่งข้อความหาลูกค้าได้ (ลูกค้าอาจจะยังไม่ได้เพิ่มเพื่อนกับบอท)');
-    }
-
-    return NextResponse.json({ success: true, message: 'ส่ง OTP เข้า LINE ลูกค้าเรียบร้อยแล้ว' });
-
   } catch (error) {
-    console.error('LINE OTP Error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูล' }, 
+      { status: 500 }
+    );
   }
 }

@@ -30,7 +30,7 @@ function getThaiCurrentTimestamp() {
 }
 
 export default function ApplyPage() {
-  const [step, setStep] = useState('phone'); // เปลี่ยนจาก 'otp' เป็นเริ่มต้นที่ 'phone' ทันที
+  const [step, setStep] = useState('phone'); // เริ่มต้นที่หน้ากรอกเบอร์โทรศัพท์ (ตัด OTP ออก)
   const [phone, setPhone] = useState('');
   
   // 🟢 State สำหรับเก็บ LINE UID ของลูกค้า
@@ -217,7 +217,7 @@ export default function ApplyPage() {
 
   const theme = getThemeClasses(siteConfig.theme_color);
 
-  // 🚀 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์และข้ามขั้นตอน OTP ไปหน้าพิกัด GPS ทันที
+  // 🚀 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์และข้ามไปหน้าพิกัด GPS ทันที
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
@@ -250,7 +250,6 @@ export default function ApplyPage() {
         setIsOldCustomer(false);
       }
 
-      // ข้ามไปหน้าพิกัด GPS ทันทีโดยไม่ต้องกรอกรหัส OTP
       setStep('gps');
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
@@ -413,6 +412,7 @@ export default function ApplyPage() {
 
       faceUrl = facePublicUrlData.publicUrl;
 
+      // 🟢 บันทึกข้อมูลลง Supabase พร้อมส่ง line_user_id
       const { error } = await supabase.from('loans').insert([{
         bill_code: 'LN-' + Math.floor(100 + Math.random() * 900),
         full_name: formData.full_name,
@@ -431,7 +431,7 @@ export default function ApplyPage() {
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
         face_image_url: faceUrl,
-        line_user_id: customerLineId || null,
+        line_user_id: customerLineId || null, 
         created_at: getThaiCurrentTimestamp(),
       }]);
 
@@ -447,7 +447,7 @@ export default function ApplyPage() {
             amount: formData.principal_amount,
             loanType: 'กำหนดช่วงวันที่ (กำหนดคืน: ' + formData.cycle_date + ')',
             bankName: formData.bank_name,
-            account_number: formData.account_number,
+            accountNumber: formData.account_number,
             lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf'
           })
         });
@@ -542,7 +542,7 @@ export default function ApplyPage() {
 
         <div className="p-3.5 sm:p-6 space-y-3">
           
-          {/* STEP 1: กรอกเบอร์โทรศัพท์ (ตัดขั้นตอน OTP ออก ข้ามไป GPS ทันที) */}
+          {/* STEP 1: กรอกเบอร์โทรศัพท์ (ข้ามไปหน้าพิกัด GPS ทันที) */}
           {step === 'phone' && (
             <form onSubmit={handlePhoneSubmit} className="space-y-3">
               <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
