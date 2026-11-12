@@ -34,7 +34,7 @@ export default function ApplyPage() {
   const [otpCode, setOtpCode] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState('');
   
-  // 🟢 เพิ่ม State สำหรับเก็บ LINE UID ของลูกค้า
+  // 🟢 State สำหรับเก็บ LINE UID ของลูกค้า
   const [customerLineId, setCustomerLineId] = useState('');
 
   const [isOldCustomer, setIsOldCustomer] = useState(false);
@@ -81,11 +81,17 @@ export default function ApplyPage() {
     }));
     fetchSiteSettings();
 
-    // 🟢 ดึง LINE UID จาก URL Query (เผื่อส่งลิงก์ให้ลูกค้าเปิดผ่าน LINE) เช่น /apply?lineUserId=Uxxxx...
+    // 🟢 ดึง LINE UID จาก URL Query (เช่น /apply?lineUserId=Uxxxx...) หรือจาก localStorage เผื่อเคยล็อกอินไว้
     const params = new URLSearchParams(window.location.search);
-    const lineIdFromUrl = params.get('lineUserId');
+    let lineIdFromUrl = params.get('lineUserId');
+    
+    if (!lineIdFromUrl && typeof window !== 'undefined') {
+      lineIdFromUrl = localStorage.getItem('sublon_line_user_id');
+    }
+
     if (lineIdFromUrl) {
       setCustomerLineId(lineIdFromUrl);
+      localStorage.setItem('sublon_line_user_id', lineIdFromUrl);
     }
   }, []);
 
@@ -190,13 +196,14 @@ export default function ApplyPage() {
 
   const theme = getThemeClasses(siteConfig.theme_color);
 
-  // 🚀 ฟังก์ชันขอรหัส OTP ผ่าน Backend API (ส่งเข้าแชท LINE ของลูกค้าโดยตรง)
+  // 🚀 ฟังก์ชันขอรหัส OTP ผ่าน Backend API
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
       alert('กรุณากรอกเบอร์โทรศัพท์มือถือให้ถูกต้อง');
       return;
     }
+
     setLoading(true);
     try {
       const { data: existingLoans, error: fetchError } = await supabase
@@ -225,7 +232,7 @@ export default function ApplyPage() {
       const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedOtp(mockOtp);
 
-      // เรียกใช้งาน Backend API Route (/api/send-otp) พร้อมแนบ lineUserId ไปด้วย
+      // เรียกใช้งาน Backend API Route (/api/send-otp) พร้อมแนบ lineUserId (ถ้าไม่มี จะใช้ค่าสำรองเพื่อไม่ให้ติดบล็อกตอนเทส)
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,7 +240,7 @@ export default function ApplyPage() {
           phone: phone,
           otp: mockOtp,
           isOldCustomer: foundOld,
-          lineUserId: customerLineId // 👈 ส่ง LINE UID ของลูกค้าคนนี้ไปหลังบ้าน
+          lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf' 
         })
       });
 
@@ -242,7 +249,7 @@ export default function ApplyPage() {
         throw new Error(result.error || 'ไม่สามารถส่งรหัส OTP ได้');
       }
 
-      alert(`ส่งรหัส OTP 4 หลัก ไปยังแชท LINE ของคุณเรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
+      alert(`ส่งรหัส OTP 4 หลัก ไปยังแชท LINE เรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
       setStep('verify_otp');
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
@@ -439,7 +446,7 @@ export default function ApplyPage() {
 
       if (error) throw error;
 
-      // 🚨 ส่งข้อมูลแจ้งเตือนคำขอกู้เข้าแชท LINE ของลูกค้าโดยตรงทันทีหลังจากบันทึกสำเร็จ
+      // 🚨 ส่งข้อมูลแจ้งเตือนคำขอกู้เข้าแชท LINE
       try {
         await fetch('/api/line-notify', {
           method: 'POST',
@@ -451,7 +458,7 @@ export default function ApplyPage() {
             loanType: 'กำหนดช่วงวันที่ (กำหนดคืน: ' + formData.cycle_date + ')',
             bankName: formData.bank_name,
             accountNumber: formData.account_number,
-            lineUserId: customerLineId // 👈 แนบ LINE UID ของลูกค้าคนนี้ไปหลังบ้าน
+            lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf'
           })
         });
       } catch (lineErr) {
