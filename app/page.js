@@ -794,7 +794,7 @@ export default function AdminDashboard() {
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
           <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full">
-            {/* ยอดเก็บสดวันนี้: สีฟ้า */}
+            {/* ยอดเก็บสดวันนี้: สีฟ้า (ใส่ animate-pulse แล้ว) */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดเก็บสดวันนี้');
@@ -808,7 +808,7 @@ export default function AdminDashboard() {
                 <span>ยอดเก็บสดวันนี้</span>
                 <span className="text-[10px] text-sky-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-sky-900/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
-              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm">฿{todayCollectedCash.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm animate-pulse">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
             {/* ดอกเบี้ยและค่าปรับสะสมรอเก็บ: สีม่วง */}
