@@ -22,14 +22,14 @@ export async function POST(request) {
     const TARGET_LINE_USER_ID = LINE_ADMIN_USER_ID;
 
     // 4. จัดรูปแบบข้อความแจ้งเตือนส่งให้ "แอดมิน"
-    const messageText = `🚨 มีคำขอกู้เงินใหม่เข้ามา! (SUBLON819)\n\n` +
+    const messageText = `🚨 ระบบรับคำขอเรียบร้อยแล้ว!\n\n` +
       `👤 ชื่อ-นามสกุล: ${fullName}\n` +
       `📞 เบอร์โทรศัพท์: ${phone}\n` +
-      `💵 ยอดเงินกู้: ฿${Number(amount || 0).toLocaleString()}\n` +
+      `💵 ยอดเงิน: ฿${Number(amount || 0).toLocaleString()}\n` +
       `✍️ ประเภท: ${loanType || 'กำหนดช่วงวันที่'}\n` +
       `🏧 ธนาคารรับเงิน: ${bankName}\n` +
       `🔢 เลขบัญชี: ${accountNumber}\n\n` +
-      `✨ กรุณาตรวจสอบข้อมูลและสลิปภาพถ่ายในระบบแอดมิน`;
+      `✨ กรุณารอตรวจสอบสักครู่...`;
 
     // 5. ส่งข้อมูลไปยัง LINE Messaging API (Push Message Endpoint)
     const lineUrl = 'https://api.line.me/v2/bot/message/push';
