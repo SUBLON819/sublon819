@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, ShieldCheck, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle, Camera, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle, Camera, RefreshCw } from 'lucide-react';
 import liff from '@line/liff'; // 🟢 นำเข้า LIFF SDK
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบปลอดภัย
@@ -30,10 +30,8 @@ function getThaiCurrentTimestamp() {
 }
 
 export default function ApplyPage() {
-  const [step, setStep] = useState('otp'); // 'otp', 'verify_otp', 'gps', 'form'
+  const [step, setStep] = useState('phone'); // เปลี่ยนจาก 'otp' เป็นเริ่มต้นที่ 'phone' ทันที
   const [phone, setPhone] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   
   // 🟢 State สำหรับเก็บ LINE UID ของลูกค้า
   const [customerLineId, setCustomerLineId] = useState('');
@@ -85,7 +83,6 @@ export default function ApplyPage() {
     // 🟢 ผสานการทำงานร่วมกับ LINE LIFF SDK เพื่อดึง User ID อัตโนมัติ
     const initLiffAndGetProfile = async () => {
       try {
-        // ใช้ LIFF ID ที่ตั้งค่าไว้ใน .env.local
         await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID });
         
         if (liff.isInClient() || liff.isLoggedIn()) {
@@ -96,7 +93,6 @@ export default function ApplyPage() {
             return;
           }
         } else {
-          // หากยังไม่ได้ล็อกอินผ่าน LINE ให้ทำการ Login
           liff.login();
           return;
         }
@@ -104,7 +100,6 @@ export default function ApplyPage() {
         console.warn('LIFF initialization failed, falling back to URL/LocalStorage:', err);
       }
 
-      // ระบบสำรอง: ดึงจาก URL Query หรือ localStorage เผื่อกรณีเปิดผ่านเว็บเบราว์เซอร์ปกติ
       const params = new URLSearchParams(window.location.search);
       let lineIdFromUrl = params.get('lineUserId');
       
@@ -222,8 +217,8 @@ export default function ApplyPage() {
 
   const theme = getThemeClasses(siteConfig.theme_color);
 
-  // 🚀 ฟังก์ชันขอรหัส OTP ผ่าน Backend API
-  const handleRequestOtp = async (e) => {
+  // 🚀 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์และข้ามขั้นตอน OTP ไปหน้าพิกัด GPS ทันที
+  const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
       alert('กรุณากรอกเบอร์โทรศัพท์มือถือให้ถูกต้อง');
@@ -255,43 +250,13 @@ export default function ApplyPage() {
         setIsOldCustomer(false);
       }
 
-      const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
-      setGeneratedOtp(mockOtp);
-
-      // เรียกใช้งาน Backend API Route (/api/send-otp) พร้อมแนบ lineUserId ที่ดึงมาได้จริงจาก LIFF
-      const res = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: phone,
-          otp: mockOtp,
-          isOldCustomer: foundOld,
-          lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf' 
-        })
-      });
-
-      const result = await res.json();
-      if (!result.success) {
-        throw new Error(result.error || 'ไม่สามารถส่งรหัส OTP ได้');
-      }
-
-      alert(`ส่งรหัส OTP 4 หลัก ไปยังแชท LINE เรียบร้อยแล้ว กรุณานำรหัสมากรอกครับ`);
-      setStep('verify_otp');
+      // ข้ามไปหน้าพิกัด GPS ทันทีโดยไม่ต้องกรอกรหัส OTP
+      setStep('gps');
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    if (otpCode !== generatedOtp) {
-      alert('รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
-      return;
-    }
-    alert('ยืนยันเบอร์โทรศัพท์สำเร็จ! ไปสู่ขั้นตอนที่ 2: ระบุพิกัด GPS');
-    setStep('gps');
   };
 
   const handleGetLocation = () => {
@@ -316,7 +281,6 @@ export default function ApplyPage() {
           status: `พิกัดสำเร็จ: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
         });
         setLoading(false);
-        alert('ดึงพิกัด GPS สำเร็จ! ไปสู่ขั้นตอนที่ 3 & 4: กรอกข้อมูล');
         setStep('form');
       },
       (error) => {
@@ -467,12 +431,12 @@ export default function ApplyPage() {
         cycle_date: formData.cycle_date || null,
         id_card_url: fileUrl,
         face_image_url: faceUrl,
+        line_user_id: customerLineId || null,
         created_at: getThaiCurrentTimestamp(),
       }]);
 
       if (error) throw error;
 
-      // 🚨 ส่งข้อมูลแจ้งเตือนคำขอกู้เข้าแชท LINE
       try {
         await fetch('/api/line-notify', {
           method: 'POST',
@@ -483,7 +447,7 @@ export default function ApplyPage() {
             amount: formData.principal_amount,
             loanType: 'กำหนดช่วงวันที่ (กำหนดคืน: ' + formData.cycle_date + ')',
             bankName: formData.bank_name,
-            accountNumber: formData.account_number,
+            account_number: formData.account_number,
             lineUserId: customerLineId || 'U3a5ab039fec1055bdbd7423678eecdf'
           })
         });
@@ -541,7 +505,7 @@ export default function ApplyPage() {
           <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้และภาพยืนยันตัวตนสำเร็จ!</h2>
           <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลและภาพถ่ายคู่บัตรประชาชนเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
           <button 
-            onClick={() => { setSuccess(false); setStep('otp'); setPhone(''); setOtpCode(''); setLocation({ lat: null, lng: null, status: '' }); }}
+            onClick={() => { setSuccess(false); setStep('phone'); setPhone(''); setLocation({ lat: null, lng: null, status: '' }); }}
             className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold shadow-md cursor-pointer"
           >
             กลับสู่หน้าแรก
@@ -578,12 +542,12 @@ export default function ApplyPage() {
 
         <div className="p-3.5 sm:p-6 space-y-3">
           
-          {/* STEP 1: OTP */}
-          {step === 'otp' && (
-            <form onSubmit={handleRequestOtp} className="space-y-3">
+          {/* STEP 1: กรอกเบอร์โทรศัพท์ (ตัดขั้นตอน OTP ออก ข้ามไป GPS ทันที) */}
+          {step === 'phone' && (
+            <form onSubmit={handlePhoneSubmit} className="space-y-3">
               <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
                 <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>1</span>
-                <span>ยืนยันเบอร์โทรศัพท์ (ระบบตรวจสอบลูกค้าเก่าอัตโนมัติ)</span>
+                <span>กรอกเบอร์โทรศัพท์มือถือ (ตรวจสอบลูกค้าเก่าอัตโนมัติ)</span>
               </div>
 
               <div className="space-y-1.5">
@@ -606,11 +570,11 @@ export default function ApplyPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>กำลังตรวจสอบเบอร์โทร...</span>
+                    <span>กำลังตรวจสอบข้อมูล...</span>
                   </>
                 ) : (
                   <>
-                    <span>รับ OTP ทาง Line</span>
+                    <span>ถัดไป: ระบุพิกัด GPS</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -633,56 +597,12 @@ export default function ApplyPage() {
             </form>
           )}
 
-          {/* STEP 2: Verify OTP (4 หลัก) */}
-          {step === 'verify_otp' && (
-            <form onSubmit={handleVerifyOtp} className="space-y-3">
-              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5">
-                {isOldCustomer ? '👤 ตรวจพบข้อมูลลูกค้าเก่า ดึงข้อมูลเดิมให้อัตโนมัติ!' : '✨ ลูกค้าใหม่ กรอกรหัส OTP 4 หลักที่ส่งไปยังแชท LINE ของคุณ'} (เบอร์ {phone})
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>รหัส OTP 4 หลัก</span>
-                </label>
-                <input 
-                  type="text" required maxLength={4} placeholder="----"
-                  value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3.5 py-2.5 text-center text-xl tracking-widest font-bold outline-none font-mono`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setStep('otp')} className="w-1/3 py-2.5 bg-black/10 opacity-80 rounded-xl text-xs font-bold hover:opacity-100 transition-all cursor-pointer">ย้อนกลับ</button>
-                <button type="submit" className={`w-2/3 py-2.5 ${theme.button} rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer`}>
-                  <span>ยืนยันรหัส OTP</span>
-                  <CheckCircle className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
-                <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
-                <p>
-                  LINE:{' '}
-                  <a 
-                    href="https://line.me/R/ti/p/@306fgwvw" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="font-mono font-bold underline transition-colors"
-                  >
-                    {siteConfig.line_contact}
-                  </a>
-                </p>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 3: พิกัด GPS */}
+          {/* STEP 2: พิกัด GPS */}
           {step === 'gps' && (
             <div className="space-y-3">
               <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
                 <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>2</span>
-                <span>ระบุพิกัดตำแหน่ง GPS ปัจจุบัน</span>
+                <span>ระบุพิกัดตำแหน่ง GPS ปัจจุบัน ({phone})</span>
               </div>
 
               <div className="p-4 rounded-2xl border border-black/10 bg-black/5 text-center space-y-3">
@@ -704,24 +624,33 @@ export default function ApplyPage() {
                   </p>
                 </div>
 
-                <button 
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={loading}
-                  className={`w-full py-3 ${theme.button} rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>กำลังดึงพิกัด GPS...</span>
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="w-4 h-4" />
-                      <span>คลิกเพื่อแชร์พิกัด GPS ของคุณ</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setStep('phone')} 
+                    className="w-1/3 py-3 bg-black/10 opacity-80 rounded-xl text-xs font-bold hover:opacity-100 transition-all cursor-pointer"
+                  >
+                    ย้อนกลับ
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={loading}
+                    className={`w-2/3 py-3 ${theme.button} rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer`}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>กำลังดึงพิกัด...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        <span>แชร์พิกัด GPS</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 <div className="pt-2 border-t border-black/10 space-y-2">
                   <p className="text-[11px] opacity-80">หากลองแล้วยังไม่ได้ สามารถใช้แอปถ่ายภาพพิกัดแทนได้</p>
@@ -741,7 +670,7 @@ export default function ApplyPage() {
             </div>
           )}
 
-          {/* STEP 4: กรอกข้อมูลฟอร์มหลัก */}
+          {/* STEP 3 & 4: กรอกข้อมูลฟอร์มหลัก */}
           {step === 'form' && (
             <form onSubmit={handlePreSubmitForm} className="space-y-2.5">
               <div className="text-[11px] font-bold px-3 py-2 rounded-xl border border-black/10 bg-black/5 text-center">
@@ -786,7 +715,6 @@ export default function ApplyPage() {
                 />
               </div>
 
-              {/* ปรับช่องกำหนดคืนให้เป็นขนาดกะทัดรัด (Compact) */}
               <div className="space-y-1 w-full max-w-full min-w-0 overflow-hidden">
                 <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
                   <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
