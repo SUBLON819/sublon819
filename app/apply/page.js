@@ -574,7 +574,7 @@ export default function ApplyPage() {
                   </>
                 ) : (
                   <>
-                    <span>ถัดไป: ระบุพิกัด GPS</span>
+                    <span>ถัดไป</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
