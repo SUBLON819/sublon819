@@ -194,7 +194,10 @@ export default function CustomerDetail({
               <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
               <button
                 type="button"
-                onClick={onOpenEditModal}
+                onClick={() => {
+                  const targetLoan = customerLoans[0];
+                  if (onOpenEditModal) onOpenEditModal(targetLoan);
+                }}
                 className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
               >
                 <Edit3 className="w-3 h-3" />

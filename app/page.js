@@ -423,82 +423,79 @@ export default function AdminDashboard() {
   };
 
   const handleSaveNewLoan = async (e) => {
-  e.preventDefault();
-  if (isSubmitting) return; // 🛡️ ป้องกันการกดซ้ำระหว่างระบบกำลังทำงาน
+    e.preventDefault();
+    if (isSubmitting) return;
 
-  setIsSubmitting(true); // ล็อกปุ่มทันที
-  try {
-    const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
-    const principal = Number(newLoanData.principal_amount || 0);
-    const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
-      ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
-      : newLoanData.payment_schedule;
+    setIsSubmitting(true);
+    try {
+      const interestStartDate = calculateInterestStartDate(newLoanData.loan_date, newLoanData.calc_next_day);
+      const principal = Number(newLoanData.principal_amount || 0);
+      const scheduleStr = newLoanData.payment_schedule === 'กำหนดช่วงวัน' 
+        ? `${newLoanData.schedule_start}-${newLoanData.schedule_end}` 
+        : newLoanData.payment_schedule;
 
-    const { error } = await supabase.from('loans').insert([{
-      bill_code: 'LN-' + Math.floor(10000 + Math.random() * 90000),
-      full_name: newLoanData.full_name,
-      phone: String(newLoanData.phone || '').trim(),
-      facebook_link: newLoanData.facebook_link,
-      loan_type: newLoanData.loan_type,
-      principal_amount: principal,
-      remaining_principal: principal,
-      remaining_interest: 0,
-      status: 'อนุมัติแล้ว',
-      bank_name: newLoanData.bank_name,
-      account_number: newLoanData.account_number,
-      loan_date: newLoanData.loan_date || todayStr,
-      cycle_date: newLoanData.cycle_date || null,
-      interest_start_date: interestStartDate,
-      calc_next_day: newLoanData.calc_next_day,
-      daily_interest: newLoanData.loan_type === 'ดอกลอย' ? Number(newLoanData.daily_interest || 0) : 0,
-      total_interest: newLoanData.loan_type === 'จบต้นดอก' ? Number(newLoanData.total_interest || 0) : 0,
-      installment_amount: Number(newLoanData.installment_amount || 0),
-      total_installments: Number(newLoanData.installment_count || 0),
-      payment_schedule: scheduleStr,
-      created_at: new Date().toISOString(),
-    }]);
+      const { error } = await supabase.from('loans').insert([{
+        bill_code: 'LN-' + Math.floor(10000 + Math.random() * 90000),
+        full_name: newLoanData.full_name,
+        phone: String(newLoanData.phone || '').trim(),
+        facebook_link: newLoanData.facebook_link,
+        loan_type: newLoanData.loan_type,
+        principal_amount: principal,
+        remaining_principal: principal,
+        remaining_interest: 0,
+        status: 'อนุมัติแล้ว',
+        bank_name: newLoanData.bank_name,
+        account_number: newLoanData.account_number,
+        loan_date: newLoanData.loan_date || todayStr,
+        cycle_date: newLoanData.cycle_date || null,
+        interest_start_date: interestStartDate,
+        calc_next_day: newLoanData.calc_next_day,
+        daily_interest: newLoanData.loan_type === 'ดอกลอย' ? Number(newLoanData.daily_interest || 0) : 0,
+        total_interest: newLoanData.loan_type === 'จบต้นดอก' ? Number(newLoanData.total_interest || 0) : 0,
+        installment_amount: Number(newLoanData.installment_amount || 0),
+        total_installments: Number(newLoanData.installment_count || 0),
+        payment_schedule: scheduleStr,
+        created_at: new Date().toISOString(),
+      }]);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // ✅ ปิด Modal ทันทีที่บันทึกสำเร็จ เพื่อไม่ให้หน้าต่างค้างซ้อนกัน
-    setNewLoanModalOpen(false);
-    fetchData();
+      setNewLoanModalOpen(false);
+      fetchData();
+      alert('บันทึกรายการปล่อยกู้ใหม่เรียบร้อยแล้ว!');
 
-    // แสดงแจ้งเตือนหลังจากปิดหน้าต่างเรียบร้อยแล้ว
-    alert('บันทึกรายการปล่อยกู้ใหม่เรียบร้อยแล้ว!');
-
-  } catch (err) {
-    alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
-  } finally {
-    setIsSubmitting(false); // ปดล็อกสถานะเมื่อจบกระบวนการ
-  }
-};
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSaveCustomerInfo = async (e) => {
-  e.preventDefault();
-  if (!editingLoanId) return;
-  try {
-    const { error } = await supabase
-      .from('loans')
-      .update({
-        full_name: editName.trim(),
-        phone: String(editPhone || '').trim(),
-        facebook_link: editFacebook.trim(),
-        bank_name: editBankName,
-        account_number: String(editAccountNumber || '').trim()
-      })
-      .eq('id', editingLoanId); // อัปเดตข้อมูลตาม ID บิลนั้นๆ
+    e.preventDefault();
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .update({
+          full_name: editName.trim(),
+          phone: String(editPhone || '').trim(),
+          facebook_link: editFacebook.trim(),
+          bank_name: editBankName,
+          account_number: String(editAccountNumber || '').trim()
+        })
+        .eq('full_name', selectedCustomerName); // อัปเดตทุกสัญญาที่เป็นชื่อลูกค้ารายนี้
 
-    if (error) throw error;
+      if (error) throw error;
 
-    alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
-    setEditCustomerModalOpen(false);
-    fetchData(); // ดึงข้อมูลใหม่มาแสดงผลทันที
-  } catch (err) {
-    console.error('Error updating customer:', err.message);
-    alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
-  }
-};
+      alert('อัปเดตข้อมูลลูกค้าสำเร็จ!');
+      setSelectedCustomerName(editName.trim());
+      setEditCustomerModalOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error updating customer:', err.message);
+      alert('เกิดข้อผิดพลาดในการอัปเดต: ' + err.message);
+    }
+  };
 
   const handleDeleteLoan = async (loanId, billCode) => {
     if (!confirm(`คุณต้องการลบบิลรหัส "${billCode}" นี้ออกจากระบบใช่หรือไม่?\n(การลบจะไม่สามารถกู้คืนได้)`)) {
@@ -549,7 +546,6 @@ export default function AdminDashboard() {
         recordAmount = val;
         let rem = val;
 
-        // ลำดับตัดหนี้: 1. ค่าปรับ -> 2. ดอกสะสม -> 3. ต้นคงค้าง
         if (currentFine > 0 && rem > 0) {
           finePaid = Math.min(currentFine, rem);
           rem -= finePaid;
@@ -813,7 +809,6 @@ export default function AdminDashboard() {
               <div className="text-lg sm:text-2xl font-black font-mono text-emerald-600 truncate">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
-            {/* 📌 ดอกเบี้ยและค่าปรับสะสมรอเก็บ (รวมค่าปรับในนี้เรียบร้อยแล้ว) */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ยและค่าปรับสะสมรอเก็บ');
@@ -1436,7 +1431,10 @@ export default function AdminDashboard() {
           customerPayments={customerPayments}
           customerInfo={customerInfo}
           onClose={() => setCustomerProfileModalOpen(false)}
-          onOpenEditModal={() => {
+          onOpenEditModal={(loan) => {
+            if (loan) {
+              setEditingLoanId(loan.id);
+            }
             setEditName(selectedCustomerName);
             setEditPhone(customerInfo.phone || '');
             setEditFacebook(customerInfo.facebook_link || '');

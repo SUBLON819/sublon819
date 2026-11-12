@@ -85,7 +85,8 @@ export default function CustomersPage() {
   const [editFacebook, setEditFacebook] = useState('');
   const [editBankName, setEditBankName] = useState('');
   const [editAccountNumber, setEditAccountNumber] = useState('');
-
+  const [editingLoanId, setEditingLoanId] = useState(null);
+  
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -426,7 +427,10 @@ export default function CustomersPage() {
           customerPayments={customerPayments}
           customerInfo={customerInfo}
           onClose={() => setCustomerProfileModalOpen(false)}
-          onOpenEditModal={() => {
+          onOpenEditModal={(loan) => {
+            if (loan) {
+              setEditingLoanId(loan.id);
+            }
             setEditName(selectedCustomerName);
             setEditPhone(customerInfo.phone || '');
             setEditFacebook(customerInfo.facebook_link || '');
