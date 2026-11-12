@@ -106,7 +106,6 @@ export default function CustomerDetail({
   const handleDownloadNoticeImage = async () => {
     if (!hiddenCaptureRef.current) return;
 
-    // บันทึกบัญชีแอดมินล่าสุดลง localStorage ถ้ามีการกรอก
     if (noticeForm.bank_name || noticeForm.account_number) {
       const existing = [...adminBankList];
       const index = existing.findIndex(b => b.account_number === noticeForm.account_number && b.bank_name === noticeForm.bank_name);
@@ -236,7 +235,6 @@ export default function CustomerDetail({
         {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ (ซ้าย) และ ออกบิลแจ้งยอด (ขวา) */}
         <div className="bg-purple-50 p-3.5 sm:p-4 rounded-2xl border border-purple-200 space-y-3 shadow-sm relative">
           
-          {/* ปุ่มควบคุมมุมขวาบน */}
           {customerLoans.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 justify-end sm:absolute sm:right-3.5 sm:top-3.5">
               <button
@@ -317,21 +315,18 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 ช่อง (ตามสีที่คุณเลือก: ม่วง, ส้มทอง, เขียวมรกต) */}
+        {/* ยอดสรุปตัวเลข 3 ช่อง */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 my-6 w-full">
-          {/* ช่องที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) -> สีม่วง */}
           <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 transform transition-transform hover:scale-[1.01]">
             <span className="text-[10px] sm:text-xs font-bold text-purple-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
             <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
-          {/* ช่องที่ 2: ยอดหนี้คงเหลือ -> สีส้มทอง */}
           <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30 transform transition-transform hover:scale-[1.01]">
             <span className="text-[10px] sm:text-xs font-bold text-amber-100 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
             <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
-          {/* ช่องที่ 3: ยอดชำระแล้ว -> สีเขียวมรกต */}
           <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 transform transition-transform hover:scale-[1.01]">
             <span className="text-[10px] sm:text-xs font-bold text-emerald-100 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
             <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
@@ -364,19 +359,26 @@ export default function CustomerDetail({
                           <span className="text-xs font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] text-slate-500 mt-1 flex-wrap">
-                          <span>ประเภท: {loan.loan_type}</span> | 
-                          <span>รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> | 
-                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold">
+                        {/* 📌 ปรับแก้จัดเรียงข้อมูลรายละเอียดและป้ายตัดล่าสุดให้อยู่ในบรรทัดเดียวกันแบบแนวนอน */}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 mt-1">
+                          <span className="shrink-0">ประเภท: {loan.loan_type}</span> 
+                          <span className="text-slate-300 hidden sm:inline">|</span> 
+                          <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
+                          <span className="text-slate-300 hidden sm:inline">|</span> 
+                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold shrink-0">
                             <Clock className="w-3 h-3" />
                             สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
                           </span>
-                          | ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span>
-                          
+                          <span className="text-slate-300 hidden sm:inline">|</span>
+                          <span className="shrink-0">ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></span>
+
                           {latestPayment && (
-                            <span className="bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
-                              🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
-                            </span>
+                            <>
+                              <span className="text-slate-300 hidden sm:inline">|</span>
+                              <span className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 text-emerald-900 px-1.5 py-0.5 rounded font-mono font-bold text-[10px] shrink-0">
+                                🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
+                              </span>
+                            </>
                           )}
                         </div>
                       </div>
@@ -667,7 +669,7 @@ export default function CustomerDetail({
         </div>
       )}
 
-      {/* ================= 📌 Receipt Modal (พิมพ์ใบเสร็จรับเงิน) ================= */}
+      {/* ================= 📌 Receipt Modal ================= */}
       {receiptModalOpen && latestPaymentRecord && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
