@@ -105,6 +105,19 @@ export default function CustomerDetail({
   // 📌 ฟังก์ชันดาวน์โหลดรูปภาพบิล Notice
   const handleDownloadNoticeImage = async () => {
     if (!hiddenCaptureRef.current) return;
+
+    // บันทึกบัญชีแอดมินล่าสุดลง localStorage ถ้ามีการกรอก
+    if (noticeForm.bank_name || noticeForm.account_number) {
+      const existing = [...adminBankList];
+      const index = existing.findIndex(b => b.account_number === noticeForm.account_number && b.bank_name === noticeForm.bank_name);
+      if (index >= 0) {
+        existing[index] = noticeForm;
+      } else {
+        existing.unshift(noticeForm);
+      }
+      localStorage.setItem('admin_saved_banks', JSON.stringify(existing));
+    }
+
     try {
       const canvas = await html2canvas(hiddenCaptureRef.current, { scale: 2, useCORS: true });
       const image = canvas.toDataURL('image/png');
@@ -250,12 +263,19 @@ export default function CustomerDetail({
                   const remPrin = Number((targetLoan.remaining_principal ?? targetLoan.principal_amount) || 0);
                   const accInt = calculateAccruedInterest(targetLoan);
                   setCustomNoticeAmount(remPrin + accInt);
-                  setNoticeForm({
-                    bank_name: customerInfo.bank_name || '',
-                    account_number: customerInfo.account_number || '',
-                    account_name: customerInfo.full_name || selectedCustomerName,
-                    qr_code_image: customerInfo.qr_code_image || ''
-                  });
+                  
+                  // 📌 แก้ไขให้ดึงบัญชีแอดมินตัวแรกมาแสดง (แทนที่จะเป็นบัญชีลูกค้า)
+                  if (adminBankList.length > 0) {
+                    setNoticeForm(adminBankList[0]);
+                  } else {
+                    setNoticeForm({
+                      bank_name: '',
+                      account_number: '',
+                      account_name: '',
+                      qr_code_image: ''
+                    });
+                  }
+
                   setNoticeModalOpen(true);
                 }}
                 className="px-2.5 py-1.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-[10px] shadow-sm transition-colors flex items-center gap-1 cursor-pointer"

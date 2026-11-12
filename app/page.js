@@ -275,7 +275,7 @@ export default function AdminDashboard() {
     return dateObj.toISOString().split('T')[0];
   };
 
-  // 📌 กรองเฉพาะรายการที่เป็นการรับเงินสดจริงๆ วันนี้ (ตัดส่วนลด และตัดรายการเพิ่มปรับออก)[cite: 7, 8]
+  // 📌 กรองเฉพาะรายการที่เป็นการรับเงินสดจริงๆ วันนี้ (ตัดส่วนลด และตัดรายการเพิ่มปรับออก)
   const todayPayments = payments.filter(p => {
     const payDate = formatThaiDate(p.created_at);
     const isToday = payDate === todayStr;
@@ -515,7 +515,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก[cite: 7, 8]
+  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;

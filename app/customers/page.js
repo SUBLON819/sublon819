@@ -64,6 +64,7 @@ function calculateAccruedInterest(loan) {
 export default function CustomersPage() {
   const [loans, setLoans] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [adminBankList, setAdminBankList] = useState([]); // 📌 State สำหรับเก็บรายการบัญชีธนาคารแอดมิน
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -90,14 +91,25 @@ export default function CustomersPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [loansRes, paymentsRes] = await Promise.all([
+      const [loansRes, paymentsRes, banksRes] = await Promise.all([
         supabase.from('loans').select('*').order('id', { ascending: false }),
-        supabase.from('payments').select('*').order('created_at', { ascending: false })
+        supabase.from('payments').select('*').order('created_at', { ascending: false }),
+        supabase.from('admin_banks').select('*') // 📌 ดึงข้อมูลบัญชีแอดมินจาก Supabase
       ]);
 
       if (loansRes.error) throw loansRes.error;
       setLoans(loansRes.data || []);
       setPayments(paymentsRes.data || []);
+
+      if (!banksRes.error && banksRes.data && banksRes.data.length > 0) {
+        setAdminBankList(banksRes.data);
+      } else {
+        // Fallback ดึงจาก localStorage เผื่อกรณีบันทึกไว้ในเครื่อง
+        const saved = localStorage.getItem('admin_saved_banks');
+        if (saved) {
+          setAdminBankList(JSON.parse(saved));
+        }
+      }
     } catch (err) {
       console.error('Error fetching data:', err.message);
     } finally {
@@ -419,13 +431,14 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* ================= 📌 เรียกใช้งาน Component กลาง CustomerDetail ================= */}
+      {/* ================= 📌 เรียกใช้งาน Component กลาง CustomerDetail (ส่ง adminBankList ไปด้วย) ================= */}
       {customerProfileModalOpen && (
         <CustomerDetail
           selectedCustomerName={selectedCustomerName}
           customerLoans={customerLoans}
           customerPayments={customerPayments}
           customerInfo={customerInfo}
+          adminBankList={adminBankList}
           onClose={() => setCustomerProfileModalOpen(false)}
           onOpenEditModal={(loan) => {
             if (loan) {
