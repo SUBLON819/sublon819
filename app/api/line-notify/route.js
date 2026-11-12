@@ -2,26 +2,38 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    // 1. รับข้อมูลคำขอกู้จากฟอร์มหน้าบ้าน
+    // 1. รับข้อมูลคำขอกู้และ lineUserId จากฟอร์มหน้าบ้าน
     const { fullName, phone, amount, loanType, bankName, accountNumber, lineUserId } = await request.json();
 
-    // 2. ข้อมูล LINE Messaging API ของ SUBLON819
-    const LINE_CHANNEL_ACCESS_TOKEN = '1USv0PSb1+WcgaE5jMhJ1Ke2NQnZ4iKODr+6R2ccRtPfRl/jGloaUE/1a1LUx8SUPCmbx5tesGXY4cXKYzclISGYwKugluBBwqTGMv/ym9+rlFTESXMXyjNA6SrmFUcU9ILQCyiWEVTD4AyJ3b0PsgdB04t89/1O/w1cDnyilFU=';
-    
-    // กำหนด LINE User ID ปลายทาง (หากส่งเข้าแอดมิน ใช้ ID แอดมิน / หากส่งหาลูกค้า ใช้ lineUserId ที่ส่งมาจากฟอร์ม)
-    const TARGET_LINE_USER_ID = lineUserId || 'U3a5ab039fec1055bdbd7423678eecdf'; 
+    // 🛡️ ป้องกันกรณีไม่มี LINE UID ส่งมา
+    if (!lineUserId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'ไม่พบ LINE User ID ของผู้ใช้งาน' 
+      }, { status: 400 });
+    }
 
-    // 3. จัดรูปแบบข้อความแจ้งเตือนคำขอกู้ใหม่
-    const messageText = `🚨 มีคำขอกู้เงินใหม่เข้ามา (SUBLON819)\n\n` +
+    // 2. ดึงค่า LINE Token จาก Environment Variables เพื่อความปลอดภัย
+    const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    
+    if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      throw new Error('ยังไม่ได้กำหนดค่า LINE_CHANNEL_ACCESS_TOKEN ในระบบ');
+    }
+    
+    // 3. ใช้ LINE User ID ของลูกค้าที่กดสมัครคนนั้นโดยตรง
+    const TARGET_LINE_USER_ID = lineUserId;
+
+    // 4. จัดรูปแบบข้อความแจ้งเตือนส่งให้ลูกค้า
+    const messageText = `🚨 แจ้งผลคำขอกู้เงิน (SUBLON819)\n\n` +
       `👤 ชื่อ-นามสกุล: ${fullName}\n` +
       `📞 เบอร์โทรศัพท์: ${phone}\n` +
       `💵 ยอดเงินกู้: ฿${Number(amount || 0).toLocaleString()}\n` +
       `✍️ ประเภท: ${loanType || 'กำหนดช่วงวันที่'}\n` +
       `🏧 ธนาคารรับเงิน: ${bankName}\n` +
       `🔢 เลขบัญชี: ${accountNumber}\n\n` +
-      `กรุณาตรวจสอบข้อมูล เอกสาร และพิกัด GPS ในระบบหลังบ้าน`;
+      `✨ ระบบได้รับคำขอกู้ของคุณเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบและอนุมัติ`;
 
-    // 4. ส่งข้อมูลไปยัง LINE Messaging API (Push Message Endpoint)
+    // 5. ส่งข้อมูลไปยัง LINE Messaging API (Push Message Endpoint)
     const lineUrl = 'https://api.line.me/v2/bot/message/push';
 
     const response = await fetch(lineUrl, {
@@ -31,7 +43,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
       },
       body: JSON.stringify({
-        to: TARGET_LINE_USER_ID, // LINE User ID ของผู้รับปลายทาง
+        to: TARGET_LINE_USER_ID, // LINE User ID ของลูกค้าคนนั้นๆ
         messages: [
           {
             type: 'text',

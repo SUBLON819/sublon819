@@ -439,7 +439,7 @@ export default function ApplyPage() {
 
       if (error) throw error;
 
-      // 🚨 ส่งข้อมูลแจ้งเตือนคำขอกู้เข้า LINE แอดมินทันทีหลังจากบันทึกสำเร็จ
+      // 🚨 ส่งข้อมูลแจ้งเตือนคำขอกู้เข้าแชท LINE ของลูกค้าโดยตรงทันทีหลังจากบันทึกสำเร็จ
       try {
         await fetch('/api/line-notify', {
           method: 'POST',
@@ -450,7 +450,8 @@ export default function ApplyPage() {
             amount: formData.principal_amount,
             loanType: 'กำหนดช่วงวันที่ (กำหนดคืน: ' + formData.cycle_date + ')',
             bankName: formData.bank_name,
-            accountNumber: formData.account_number
+            accountNumber: formData.account_number,
+            lineUserId: customerLineId // 👈 แนบ LINE UID ของลูกค้าคนนี้ไปหลังบ้าน
           })
         });
       } catch (lineErr) {
