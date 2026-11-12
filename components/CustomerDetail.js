@@ -317,25 +317,25 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 วงกลมสไตล์ Dashboard (Glossy & Glowing with sharp borders) */}
-        <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10 my-6 w-full">
-          {/* วงที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) - สีม่วงสดใส */}
-          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-400 border-4 border-white shadow-xl shadow-purple-600/40 overflow-hidden group hover:scale-105 transition-all">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/40 rounded-full blur-sm pointer-events-none"></div>
+        {/* ยอดสรุปตัวเลข 3 วงกลม จัดกึ่งกลางและปรับขอบสีตัดคมชัด */}
+        <div className="flex justify-center items-center gap-4 sm:gap-8 my-6 w-full">
+          {/* วงที่ 1: ดอกเบี้ยสะสม (+ค่าปรับ) - สีม่วง */}
+          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-violet-700 via-purple-600 to-indigo-400 border-[3px] border-violet-200 shadow-xl shadow-purple-900/30 overflow-hidden group hover:scale-105 transition-all">
+            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/30 rounded-full blur-sm pointer-events-none"></div>
             <span className="text-[11px] sm:text-xs font-black text-purple-100 text-center px-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
             <span className="text-base sm:text-lg font-black font-mono text-white text-center px-2 mt-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
-          {/* วงที่ 2: ยอดหนี้คงเหลือ - สีเหลืองทองประกาย */}
-          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border-4 border-white shadow-xl shadow-amber-500/40 overflow-hidden group hover:scale-105 transition-all">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/60 rounded-full blur-sm pointer-events-none"></div>
+          {/* วงที่ 2: ยอดหนี้คงเหลือ - สีเหลืองทอง */}
+          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 border-[3px] border-amber-100 shadow-xl shadow-amber-600/30 overflow-hidden group hover:scale-105 transition-all">
+            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/50 rounded-full blur-sm pointer-events-none"></div>
             <span className="text-[11px] sm:text-xs font-black text-amber-950 text-center px-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">ยอดหนี้คงเหลือ</span>
-            <span className="text-base sm:text-lg font-black font-mono text-white text-center px-2 mt-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)] truncate">฿{totalCustomerRemaining.toLocaleString()}</span>
+            <span className="text-base sm:text-lg font-black font-mono text-amber-950 text-center px-2 mt-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)] truncate">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
           {/* วงที่ 3: ยอดชำระแล้ว - สีเขียวมรกต */}
-          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-emerald-700 via-emerald-500 to-teal-300 border-4 border-white shadow-xl shadow-emerald-600/40 overflow-hidden group hover:scale-105 transition-all">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/40 rounded-full blur-sm pointer-events-none"></div>
+          <div className="relative flex flex-col items-center justify-center w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-emerald-700 via-emerald-500 to-teal-300 border-[3px] border-emerald-200 shadow-xl shadow-emerald-900/30 overflow-hidden group hover:scale-105 transition-all">
+            <div className="absolute -top-4 -right-4 w-12 h-12 bg-white/30 rounded-full blur-sm pointer-events-none"></div>
             <span className="text-[11px] sm:text-xs font-black text-emerald-100 text-center px-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">ยอดชำระแล้ว</span>
             <span className="text-base sm:text-lg font-black font-mono text-white text-center px-2 mt-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
