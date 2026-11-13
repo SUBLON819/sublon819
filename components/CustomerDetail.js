@@ -198,45 +198,45 @@ export default function CustomerDetail({
       {/* Header ของ Modal ประวัติลูกค้า */}
       <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
         <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-16 sm:pr-0">
-          <div className="w-9 h-9 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
-            <User className="w-5 h-5 text-purple-300" />
+          <div className="w-10 h-10 bg-purple-800 rounded-xl flex items-center justify-center shrink-0">
+            <User className="w-6 h-6 text-purple-300" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-xs sm:text-base font-black flex flex-wrap items-center gap-2">
-              <span className="truncate">ประวัติข้อมูลลูกค้า: {selectedCustomerName}</span>
+            <h2 className="text-sm sm:text-lg font-black flex flex-wrap items-center gap-2">
+              <span className="truncate">{selectedCustomerName}</span>
               <button
                 type="button"
                 onClick={() => {
                   const targetLoan = customerLoans[0];
                   if (onOpenEditModal) onOpenEditModal(targetLoan);
                 }}
-                className="px-2.5 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
+                className="px-3 py-1 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-md cursor-pointer transition-colors shrink-0"
               >
-                <Edit3 className="w-3 h-3" />
+                <Edit3 className="w-3.5 h-3.5" />
                 <span>แก้ไขข้อมูล</span>
               </button>
             </h2>
-            <p className="text-[10px] text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
+            <p className="text-xs text-purple-300/80">ระบบแสดงข้อมูลสัญญาและประวัติการชำระเงินแบบเต็มหน้าจอ</p>
           </div>
         </div>
 
         <button 
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 sm:static px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs flex flex-col items-center justify-center leading-tight shadow-lg transition-all cursor-pointer shrink-0 border border-purple-500/50"
+          className="absolute right-4 top-4 sm:static px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm flex flex-col items-center justify-center leading-tight shadow-lg transition-all cursor-pointer shrink-0 border border-purple-500/50"
         >
-          <span className="text-sm font-black">✕ ปิด</span>
-          <span className="text-[9px] text-purple-200">หน้าจอ</span>
+          <span className="text-sm sm:text-base font-black">✕ ปิด</span>
+          <span className="text-[10px] text-purple-200">หน้าจอ</span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-xs">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-sm">
         
         {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ (ซ้าย) และ ออกบิลแจ้งยอด (ขวา) */}
-        <div className="bg-purple-50 p-3.5 sm:p-4 rounded-2xl border border-purple-200 space-y-3 shadow-sm relative">
+        <div className="bg-purple-50 p-4 sm:p-5 rounded-2xl border border-purple-200 space-y-3 shadow-sm relative">
           
           {customerLoans.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 justify-end sm:absolute sm:right-3.5 sm:top-3.5">
+            <div className="flex flex-wrap items-center gap-2 justify-end sm:absolute sm:right-4 sm:top-4">
               <button
                 type="button"
                 onClick={() => {
@@ -247,9 +247,9 @@ export default function CustomerDetail({
                   setLatestPaymentRecord(customerPayments[0]);
                   setReceiptModalOpen(true);
                 }}
-                className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg text-[10px] shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <Printer className="w-3 h-3" />
+                <Printer className="w-3.5 h-3.5" />
                 <span>พิมพ์ใบเสร็จ</span>
               </button>
 
@@ -275,9 +275,9 @@ export default function CustomerDetail({
 
                   setNoticeModalOpen(true);
                 }}
-                className="px-2.5 py-1.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-[10px] shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-3 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <FileText className="w-3 h-3" />
+                <FileText className="w-3.5 h-3.5" />
                 <span>แจ้งยอด</span>
               </button>
             </div>
@@ -285,12 +285,12 @@ export default function CustomerDetail({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-0 sm:pr-[320px]">
             <div>
-              <span className="text-slate-500 block text-[10px]">เบอร์โทรศัพท์:</span> 
-              <span className="font-mono font-bold text-slate-900 text-sm">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
+              <span className="text-slate-500 block text-xs">เบอร์โทรศัพท์:</span> 
+              <span className="font-mono font-bold text-slate-900 text-base">{customerInfo.phone || 'ไม่มีข้อมูล'}</span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[10px]">บัญชีธนาคาร:</span> 
-              <div className="font-mono font-bold text-slate-900 text-sm">
+              <span className="text-slate-500 block text-xs">บัญชีธนาคาร:</span> 
+              <div className="font-mono font-bold text-slate-900 text-base">
                 <div>{customerInfo.bank_name || '-'}</div>
                 <div>{customerInfo.account_number ? `(${customerInfo.account_number})` : ''}</div>
               </div>
@@ -298,16 +298,16 @@ export default function CustomerDetail({
           </div>
 
           <div className="flex items-center gap-2 pt-1 border-t border-purple-200/60 pr-0 sm:pr-[320px]">
-            <span className="text-slate-500 text-[10px]">Facebook:</span> 
+            <span className="text-slate-500 text-xs">Facebook:</span> 
             {customerInfo.facebook_link ? (
               <a 
                 href={customerInfo.facebook_link.startsWith('http') ? customerInfo.facebook_link : `https://${customerInfo.facebook_link}`} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs sm:text-sm inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
               >
                 <span>🔗 ไปที่ Facebook ลูกค้า</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
               </a>
             ) : (
               <span className="text-slate-400">ไม่มีข้อมูล</span>
@@ -318,27 +318,27 @@ export default function CustomerDetail({
         {/* ยอดสรุปตัวเลข 3 ช่อง */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 my-6 w-full">
           <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 transform transition-transform hover:scale-[1.01]">
-            <span className="text-[10px] sm:text-xs font-bold text-purple-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
-            <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
+            <span className="text-xs sm:text-sm font-bold text-purple-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
           <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30 transform transition-transform hover:scale-[1.01]">
-            <span className="text-[10px] sm:text-xs font-bold text-amber-100 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
-            <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
+            <span className="text-xs sm:text-sm font-bold text-amber-100 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
           <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 transform transition-transform hover:scale-[1.01]">
-            <span className="text-[10px] sm:text-xs font-bold text-emerald-100 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
-            <span className="text-sm sm:text-base font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
+            <span className="text-xs sm:text-sm font-bold text-emerald-100 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
+            <span className="text-base sm:text-lg font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
         </div>
 
         {/* รายการสัญญาของลูกค้า */}
-        <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-sm">
-          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-xs">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
+        <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-sm">
+          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-sm sm:text-base">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
           
           {customerLoans.length === 0 ? (
-            <div className="text-slate-400 text-center py-6 text-[11px]">ไม่พบประวัติสัญญา</div>
+            <div className="text-slate-400 text-center py-6 text-xs sm:text-sm">ไม่พบประวัติสัญญา</div>
           ) : (
             <div className="space-y-3">
               {customerLoans.map((loan) => {
@@ -350,23 +350,23 @@ export default function CustomerDetail({
                 const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
 
                 return (
-                  <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 transition-all">
+                  <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 space-y-3 transition-all">
                     
                     <div className="flex justify-between items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs font-bold text-purple-800">บิล: {loan.bill_code}</span>
-                          <span className="text-xs font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
+                          <span className="font-mono text-sm sm:text-base font-bold text-purple-800">บิล: {loan.bill_code}</span>
+                          <span className="text-sm sm:text-base font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
                         </div>
                         
                         {/* 📌 ปรับแก้จัดเรียงข้อมูลรายละเอียดและป้ายตัดล่าสุดให้อยู่ในบรรทัดเดียวกันแบบแนวนอน */}
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 mt-1">
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-600 mt-1">
                           <span className="shrink-0">ประเภท: {loan.loan_type}</span> 
                           <span className="text-slate-300 hidden sm:inline">|</span> 
                           <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
                           <span className="text-slate-300 hidden sm:inline">|</span> 
-                          <span className="flex items-center gap-0.5 text-emerald-700 font-mono font-bold shrink-0">
-                            <Clock className="w-3 h-3" />
+                          <span className="flex items-center gap-1 text-emerald-700 font-mono font-bold shrink-0">
+                            <Clock className="w-3.5 h-3.5" />
                             สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
                           </span>
                           <span className="text-slate-300 hidden sm:inline">|</span>
@@ -375,7 +375,7 @@ export default function CustomerDetail({
                           {latestPayment && (
                             <>
                               <span className="text-slate-300 hidden sm:inline">|</span>
-                              <span className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 text-emerald-900 px-1.5 py-0.5 rounded font-mono font-bold text-[10px] shrink-0">
+                              <span className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold text-xs shrink-0">
                                 🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
                               </span>
                             </>
@@ -385,11 +385,11 @@ export default function CustomerDetail({
                       
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {hasFine && (
-                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] shadow-sm animate-pulse">
+                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
                             🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
                           </span>
                         )}
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                        <span className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 ${
                           loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                           loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
                           'bg-amber-100 text-amber-800 border border-amber-300'
@@ -399,33 +399,33 @@ export default function CustomerDetail({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-2.5 sm:p-3 rounded-xl border border-purple-100">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm bg-white p-3 sm:p-4 rounded-xl border border-purple-100">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">เงินต้น / ยอดขอกู้:</span>
-                        <span className="font-mono font-bold text-emerald-600">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
+                        <span className="text-slate-400 block text-xs">เงินต้น / ยอดขอกู้:</span>
+                        <span className="font-mono font-bold text-emerald-600 text-base">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">คงเหลือ:</span>
-                        <span className="font-mono font-bold text-amber-600">฿{currentRemaining.toLocaleString()}</span>
+                        <span className="text-slate-400 block text-xs">คงเหลือ:</span>
+                        <span className="font-mono font-bold text-amber-600 text-base">฿{currentRemaining.toLocaleString()}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">ดอกเบี้ย/วัน:</span>
-                        <span className="font-mono font-bold text-teal-700">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
+                        <span className="text-slate-400 block text-xs">ดอกเบี้ย/วัน:</span>
+                        <span className="font-mono font-bold text-teal-700 text-base">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">ดอกสะสมเรียลไทม์:</span>
-                        <span className="font-mono font-bold text-purple-800">฿{accrued.toLocaleString()}</span>
+                        <span className="text-slate-400 block text-xs">ดอกสะสมเรียลไทม์:</span>
+                        <span className="font-mono font-bold text-purple-800 text-base">฿{accrued.toLocaleString()}</span>
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
+                    <div className="flex gap-2.5 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
                       <button
                         type="button"
                         onClick={() => onDeleteLoan(loan.id, loan.bill_code)}
-                        className="px-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                        className="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
                         title="ลบรายการบิลนี้"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                         <span>ลบบิลนี้</span>
                       </button>
 
@@ -433,7 +433,7 @@ export default function CustomerDetail({
                         <button
                           type="button"
                           onClick={() => onOpenPaymentModal(loan)}
-                          className="flex-1 sm:flex-initial px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer"
+                          className="flex-1 sm:flex-initial px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
                         >
                           บันทึกรับชำระ
                         </button>
@@ -448,25 +448,25 @@ export default function CustomerDetail({
         </div>
 
         {/* ประวัติการชำระเงินย้อนหลัง */}
-        <div className="space-y-2.5 bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm">
-          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-1.5 text-xs">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
+        <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-sm">
+          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-sm sm:text-base">ประวัติการชำระเงินย้อนหลัง ({customerPayments.length} รายการ)</h4>
           {customerPayments.length === 0 ? (
-            <div className="text-slate-400 text-center py-4 text-[11px]">ยังไม่มีประวัติการชำระเงิน</div>
+            <div className="text-slate-400 text-center py-6 text-xs sm:text-sm">ยังไม่มีประวัติการชำระเงิน</div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {customerPayments.map((p) => (
-                <div key={p.id} className="bg-purple-50/20 p-2.5 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px]">
+                <div key={p.id} className="bg-purple-50/20 p-3 rounded-xl border border-purple-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 text-xs sm:text-sm">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded text-[10px] border border-purple-300">
+                    <span className="font-mono font-bold bg-purple-200 text-purple-900 px-2.5 py-0.5 rounded text-xs border border-purple-300">
                       บิล: {p.bill_code || '-'}
                     </span>
 
-                    <span className="font-mono font-bold text-purple-800 text-xs">฿{Number(p.payment_amount ?? p.amount ?? 0).toLocaleString()}</span>
-                    <span className="text-slate-600 bg-purple-100 px-1.5 py-0.5 rounded text-[10px]">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
+                    <span className="font-mono font-bold text-purple-800 text-sm sm:text-base">฿{Number(p.payment_amount ?? p.amount ?? 0).toLocaleString()}</span>
+                    <span className="text-slate-600 bg-purple-100 px-2 py-0.5 rounded text-xs">หมายเหตุ: {p.note || 'รับชำระปกติ'}</span>
                     {Number(p.fine_amount || 0) > 0 && <span className="text-rose-600 font-bold">(ค่าปรับ +{p.fine_amount})</span>}
                     {Number(p.discount_amount || 0) > 0 && <span className="text-blue-600 font-bold">(ส่วนลด -{p.discount_amount})</span>}
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono">
+                  <div className="text-xs text-slate-500 font-mono">
                     {new Date(p.created_at).toLocaleString('th-TH')}
                   </div>
                 </div>
@@ -480,40 +480,40 @@ export default function CustomerDetail({
       {/* ================= 📌 Notice Bill Modal ================= */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-sm">
             
-            <div className="flex justify-between items-center border-b border-rose-100 pb-2">
+            <div className="flex justify-between items-center border-b border-rose-100 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-xs">📄</span>
-                <h3 className="font-black text-rose-900 text-xs sm:text-sm">
+                <span className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-sm">📄</span>
+                <h3 className="font-black text-rose-900 text-sm sm:text-base">
                   ออกบิลแจ้งยอด (NOTICE): <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
                 </h3>
               </div>
               <button 
                 type="button"
                 onClick={() => setNoticeModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-[11px]">
+            <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-3.5 space-y-2 font-medium text-slate-700 text-xs sm:text-sm">
               <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name || selectedCustomerName}</span></div>
-              <div className="flex justify-between items-center border-t border-rose-200/60 pt-1 mt-1">
+              <div className="flex justify-between items-center border-t border-rose-200/60 pt-2 mt-1">
                 <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
                 <input 
                   type="number"
                   value={customNoticeAmount}
                   onChange={(e) => setCustomNoticeAmount(e.target.value)}
-                  className="w-32 text-right font-mono font-black text-rose-600 text-base bg-white border border-rose-300 rounded-lg p-1.5 outline-none"
+                  className="w-36 text-right font-mono font-black text-rose-600 text-lg bg-white border border-rose-300 rounded-xl p-2 outline-none"
                 />
               </div>
             </div>
 
             {adminBankList.length > 0 && (
-              <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
-                <label className="text-[10px] text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
+              <div className="space-y-1.5 bg-purple-50 p-3 rounded-xl border border-purple-200">
+                <label className="text-xs text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
                 <select
                   onChange={(e) => {
                     const idx = e.target.value;
@@ -521,7 +521,7 @@ export default function CustomerDetail({
                       setNoticeForm(adminBankList[idx]);
                     }
                   }}
-                  className="w-full border border-purple-300 rounded-lg p-2.5 text-base bg-white font-semibold outline-none text-slate-800"
+                  className="w-full border border-purple-300 rounded-xl p-2.5 text-sm bg-white font-semibold outline-none text-slate-800"
                 >
                   <option value="">-- คลิกเลือกบัญชี --</option>
                   {adminBankList.map((b, i) => (
@@ -533,16 +533,16 @@ export default function CustomerDetail({
               </div>
             )}
 
-            <div className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <div className="text-[11px] font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
+            <div className="space-y-2.5 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+              <div className="text-xs sm:text-sm font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
               
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div>
-                  <label className="text-[10px] text-slate-500 font-semibold">ธนาคาร:</label>
+                  <label className="text-xs text-slate-500 font-semibold">ธนาคาร:</label>
                   <select
                     value={noticeForm.bank_name}
                     onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 text-base font-bold bg-white outline-none text-slate-800"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-white outline-none text-slate-800"
                   >
                     <option value="">-- เลือกธนาคาร --</option>
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -559,33 +559,33 @@ export default function CustomerDetail({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500 font-semibold">เลขบัญชี:</label>
+                  <label className="text-xs text-slate-500 font-semibold">เลขบัญชี:</label>
                   <input 
                     type="text" placeholder="xxx-x-xxxxx-x"
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 text-base font-mono font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-mono font-bold bg-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500 font-semibold">ชื่อบัญชี:</label>
+                  <label className="text-xs text-slate-500 font-semibold">ชื่อบัญชี:</label>
                   <input 
                     type="text" placeholder="ชื่อเจ้าของบัญชี"
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 text-base font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-white outline-none"
                   />
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="w-10 h-10 border border-dashed border-slate-300 rounded-lg overflow-hidden bg-white flex items-center justify-center relative shrink-0">
+                <div className="flex items-center gap-2.5 pt-1">
+                  <div className="w-12 h-12 border border-dashed border-slate-300 rounded-xl overflow-hidden bg-white flex items-center justify-center relative shrink-0">
                     {noticeForm.qr_code_image ? (
                       <img src={noticeForm.qr_code_image} alt="QR Code" className="w-full h-full object-contain" />
                     ) : (
-                      <div className="text-center p-0.5 text-[8px] text-slate-400">QR</div>
+                      <div className="text-center p-0.5 text-[10px] text-slate-400">QR</div>
                     )}
                   </div>
-                  <label className="px-3 py-2 bg-white border border-rose-300 text-rose-700 font-bold rounded-lg text-xs hover:bg-rose-50 cursor-pointer text-center flex-1">
+                  <label className="px-3.5 py-2.5 bg-white border border-rose-300 text-rose-700 font-bold rounded-xl text-xs hover:bg-rose-50 cursor-pointer text-center flex-1">
                     📁 อัปโหลด QR Code
                     <input 
                       type="file" accept="image/*" className="hidden"
@@ -639,28 +639,28 @@ export default function CustomerDetail({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-rose-100 flex gap-2 justify-end">
+            <div className="pt-3 border-t border-rose-100 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => setNoticeModalOpen(false)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer text-xs sm:text-sm"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
                 onClick={handleDownloadNoticeImage}
-                className="px-3 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-4 h-4" />
                 <span>ดาวน์โหลดรูป</span>
               </button>
               <button
                 type="button"
                 onClick={handleShareNoticeImage}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm"
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-4 h-4" />
                 <span>แชร์ภาพ</span>
               </button>
             </div>
@@ -672,38 +672,38 @@ export default function CustomerDetail({
       {/* ================= 📌 Receipt Modal ================= */}
       {receiptModalOpen && latestPaymentRecord && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-sm">
             
-            <div className="flex justify-between items-center border-b border-emerald-100 pb-2">
+            <div className="flex justify-between items-center border-b border-emerald-100 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">🧾</span>
-                <h3 className="font-black text-emerald-900 text-xs sm:text-sm">
+                <span className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">🧾</span>
+                <h3 className="font-black text-emerald-900 text-sm sm:text-base">
                   ใบเสร็จรับเงิน (RECEIPT): <span className="font-mono text-emerald-700">{latestPaymentRecord.bill_code}</span>
                 </h3>
               </div>
               <button 
                 type="button"
                 onClick={() => setReceiptModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 space-y-2 text-slate-700 text-xs font-medium">
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 space-y-2 text-slate-700 text-xs sm:text-sm font-medium">
               <div className="flex justify-between">
                 <span>ชื่อลูกค้า:</span>
                 <span className="font-bold text-slate-900">{selectedCustomerName}</span>
               </div>
               <div className="flex justify-between">
                 <span>ยอดชำระล่าสุด:</span>
-                <span className="font-mono font-bold text-emerald-700 text-sm">฿{Number(latestPaymentRecord.payment_amount ?? latestPaymentRecord.amount ?? 0).toLocaleString()}</span>
+                <span className="font-mono font-bold text-emerald-700 text-base">฿{Number(latestPaymentRecord.payment_amount ?? latestPaymentRecord.amount ?? 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>หมายเหตุ:</span>
                 <span>{latestPaymentRecord.note || 'รับชำระปกติ'}</span>
               </div>
-              <div className="flex justify-between text-[10px] text-slate-500 border-t border-emerald-200/60 pt-1.5">
+              <div className="flex justify-between text-xs text-slate-500 border-t border-emerald-200/60 pt-2">
                 <span>วันที่ชำระ:</span>
                 <span>{new Date(latestPaymentRecord.created_at).toLocaleString('th-TH')}</span>
               </div>
@@ -733,28 +733,28 @@ export default function CustomerDetail({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-emerald-100 flex gap-2 justify-end">
+            <div className="pt-3 border-t border-emerald-100 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => setReceiptModalOpen(false)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer text-xs sm:text-sm"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
                 onClick={handleDownloadReceiptImage}
-                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-4 h-4" />
                 <span>ดาวน์โหลดใบเสร็จ</span>
               </button>
               <button
                 type="button"
                 onClick={handleShareReceiptImage}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm"
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-4 h-4" />
                 <span>แชร์ใบเสร็จ</span>
               </button>
             </div>
