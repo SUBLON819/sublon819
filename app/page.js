@@ -20,6 +20,9 @@ function getThaiTodayString() {
 // 📌 ฟังก์ชันแปลง Date เป็น YYYY-MM-DD ตามเวลาไทย
 function formatThaiDate(dateInput) {
   if (!dateInput) return '';
+  if (typeof dateInput === 'string' && dateInput.includes('T')) {
+    return dateInput.split('T')[0];
+  }
   const dateObj = new Date(dateInput);
   const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' };
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
