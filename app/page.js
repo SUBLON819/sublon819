@@ -164,10 +164,9 @@ export default function AdminDashboard() {
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
 
-  // 📌 State สำหรับหน้าต่างรับชำระแบบ 3 เงื่อนไข
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPaymentLoan, setSelectedPaymentLoan] = useState(null);
-  const [paymentMode, setPaymentMode] = useState('ชำระยอดปกติ'); // 'ชำระยอดปกติ' | 'ส่วนลด' | 'เพิ่มปรับ'
+  const [paymentMode, setPaymentMode] = useState('ชำระยอดปกติ');
   const [actionAmount, setActionAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
 
@@ -176,11 +175,11 @@ export default function AdminDashboard() {
 
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
   const reportRef = useRef(null);
+  const hiddenReportCaptureRef = useRef(null);
 
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
   const [noticeLoan, setNoticeLoan] = useState(null);
   const [customNoticeAmount, setCustomNoticeAmount] = useState('');
-  const [adminBankList, setAdminBankList] = useState([]);
   const [noticeForm, setNoticeForm] = useState({
     bank_name: '',
     account_number: '',
@@ -237,17 +236,6 @@ export default function AdminDashboard() {
     setTodayStr(todayStrThai);
     setSelectedReportDate(todayStrThai);
     setNewLoanData(prev => ({ ...prev, loan_date: todayStrThai, cycle_date: todayStrThai }));
-    
-    const savedBanks = localStorage.getItem('admin_saved_banks');
-    if (savedBanks) {
-      try {
-        const parsed = JSON.parse(savedBanks);
-        setAdminBankList(parsed);
-        if (parsed.length > 0) {
-          setNoticeForm(parsed[0]);
-        }
-      } catch (e) { console.error(e); }
-    }
 
     fetchData();
   }, []);
@@ -275,110 +263,87 @@ export default function AdminDashboard() {
     return dateObj.toISOString().split('T')[0];
   };
 
-  // 📌 ฟังก์ชันสั่งพิมพ์รายงาน (ปรับปรุงใหม่ ไม่ให้หน้าเว็บหลักเด้งรีเฟรช)
-  const handlePrintReport = (e) => {
-    if (e && typeof e.preventDefault === 'function') {
-      e.preventDefault();
-    }
-    const printContent = reportRef.current;
-    if (!printContent) return;
+  // 📌 ฟังก์ชันดาวน์โหลดภาพรายงานประจำวัน
+  const handleDownloadReportImage = async () => {
+    const element = hiddenReportCaptureRef.current;
+    if (!element) return;
 
-    const winPrint = window.open('', '_blank', 'width=900,height=650');
-    if (!winPrint) {
-      alert('เบราว์เซอร์ถูกบล็อกหน้าต่าง Pop-up กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้');
-      return;
-    }
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    winPrint.document.write(`
-      <html>
-        <head>
-          <title>รายงานสรุปยอดประจำวัน - วังทองล้น</title>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: 'Sarabun', sans-serif; padding: 20px; color: #1e293b; }
-            h1, h2, h3 { margin: 0; padding-bottom: 5px; }
-            .header { text-align: center; border-bottom: 2px solid #7c3aed; margin-bottom: 20px; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-            th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
-            th { background: #7c3aed; color: white; }
-          </style>
-        </head>
-        <body>
-          ${printContent.innerHTML}
-        </body>
-      </html>
-    `);
-    winPrint.document.close();
-    winPrint.focus();
-    setTimeout(() => {
-      winPrint.print();
-    }, 300);
+      const canvas = await html2canvas(element, { 
+        scale: 3, 
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 480,
+      });
+
+      const image = canvas.toDataURL('image/png');
+      const res = await fetch(image);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `DailyReport-${selectedReportDate || todayStr}.png`;
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 200);
+
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการดาวน์โหลดรายงาน: ' + err.message);
+    }
   };
 
-  // 📌 กรองเฉพาะรายการที่เป็นการรับเงินสดจริงๆ วันนี้ (ตัดส่วนลด และตัดรายการเพิ่มปรับออก)
-  const todayPayments = payments.filter(p => {
-    const payDate = formatThaiDate(p.created_at);
-    const isToday = payDate === todayStr;
-    if (!isToday) return false;
-
-    const note = (p.note || '').toLowerCase();
-    const amt = Number(p.amount || p.payment_amount || 0);
-
-    if (amt <= 0 || note.includes('ให้ส่วนลด')) return false;
-    if (note.includes('เพิ่มค่าปรับ') && Number(p.principal_paid || 0) === 0 && Number(p.interest_paid || 0) === 0) {
-      return false;
+  // 📌 ฟังก์ชันแชร์ภาพรายงานประจำวัน
+  const handleShareReportImage = async () => {
+    const element = hiddenReportCaptureRef.current;
+    if (!element) return;
+    try {
+      const canvas = await html2canvas(element, { 
+        scale: 3, 
+        useCORS: true, 
+        backgroundColor: '#ffffff',
+        windowWidth: 480,
+      });
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `DailyReport-${selectedReportDate || todayStr}.png`, { type: 'image/png' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'รายงานสรุปยอดประจำวัน',
+              text: `รายงานสรุปยอดประจำวัน วันที่ ${selectedReportDate || todayStr} - วังทองล้น`,
+            });
+          } catch (error) {
+            if (error.name !== 'AbortError') console.log('Share error:', error);
+          }
+        } else {
+          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง แนะนำให้กดดาวน์โหลดรูปภาพแทนครับ');
+        }
+      }, 'image/png');
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการสร้างภาพรายงานสำหรับแชร์: ' + err.message);
     }
+  };
 
-    return true;
-  });
-
-  const todayCollectedCash = todayPayments.reduce((sum, p) => sum + Number(p.amount || p.payment_amount || 0), 0);
-  
-  const totalAccruedInterestAll = loans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
-  const totalActivePrincipal = loans
-    .filter(l => (l.loan_type === 'ดอกลอย' || l.loan_type === 'จบต้นดอก') && l.status === 'อนุมัติแล้ว')
-    .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
-  
-  const totalPendingBalance = loans
-    .filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && l.status !== 'ปฏิเสธคำขอ')
-    .reduce((sum, l) => sum + Number(l.remaining_principal ?? l.principal_amount ?? 0), 0);
-  
-  const totalInterestCollected = payments.reduce((sum, p) => {
-    const note = (p.note || '').toLowerCase();
-    const amt = Number(p.amount || 0);
-    if ((note.includes('เพิ่มค่าปรับ') && Number(p.principal_paid || 0) === 0 && Number(p.interest_paid || 0) === 0) || note.includes('ให้ส่วนลด') || amt === 0) {
-      return sum;
-    }
-
-    const targetLoan = loans.find(l => String(l.id) === String(p.loan_id));
-    const isPendingClear = targetLoan && targetLoan.loan_type && targetLoan.loan_type.includes('รอเคลียร์');
-    
-    const profitFromThisPayment = isPendingClear 
-      ? Number(p.payment_amount || p.amount || 0) 
-      : (Number(p.interest_paid || 0) + Number(p.fine_amount || 0));
-
-    return sum + profitFromThisPayment;
-  }, 0);
-
-  const pendingApprovalCount = loans.filter(l => l.status === 'รออนุมัติ' || l.status === 'รอตรวจสอบ').length;
-
+  // 📌 ฟังก์ชันดาวน์โหลดรูปแจ้งยอด
   const handleDownloadNoticeImage = async () => {
     const element = hiddenCaptureRef.current;
     if (!element) return;
 
-    if (noticeForm.bank_name || noticeForm.account_number) {
-      const existing = [...adminBankList];
-      const index = existing.findIndex(b => b.account_number === noticeForm.account_number && b.bank_name === noticeForm.bank_name);
-      if (index >= 0) {
-        existing[index] = noticeForm;
-      } else {
-        existing.unshift(noticeForm);
-      }
-      setAdminBankList(existing);
-      localStorage.setItem('admin_saved_banks', JSON.stringify(existing));
-    }
-
     try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(element, { 
         scale: 3, 
         useCORS: true,
@@ -386,13 +351,24 @@ export default function AdminDashboard() {
         backgroundColor: '#ffffff',
         windowWidth: 400,
       });
+
       const image = canvas.toDataURL('image/png');
+      const res = await fetch(image);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
       const link = document.createElement('a');
-      link.href = image;
+      link.href = blobUrl;
       link.download = `Notice-${noticeLoan?.bill_code || 'Bill'}.png`;
+      
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 200);
+
     } catch (err) {
       alert('เกิดข้อผิดพลาดในการดาวน์โหลดภาพ: ' + err.message);
     }
@@ -493,7 +469,7 @@ export default function AdminDashboard() {
           bank_name: editBankName,
           account_number: String(editAccountNumber || '').trim()
         })
-        .eq('full_name', selectedCustomerName); // อัปเดตทุกสัญญาที่เป็นชื่อลูกค้ารายนี้
+        .eq('full_name', selectedCustomerName);
 
       if (error) throw error;
 
@@ -525,7 +501,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 📌 ฟังก์ชันจัดการบันทึกรับชำระตาม 3 เงื่อนไขที่เลือก
   const handleSavePayment = async (e) => {
     e.preventDefault();
     if (!selectedPaymentLoan) return;
@@ -664,8 +639,8 @@ export default function AdminDashboard() {
 
   const filteredLoans = loans.filter((loan) => {
     const matchQuery = (loan.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                       (loan.phone || '').includes(searchQuery) ||
-                       (loan.bill_code || '').toLowerCase().includes(searchQuery.toLowerCase());
+                      (loan.phone || '').includes(searchQuery) ||
+                      (loan.bill_code || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     if (!matchQuery) return false;
 
@@ -785,10 +760,10 @@ export default function AdminDashboard() {
                 type="button"
                 onClick={() => setDailyReportModalOpen(true)}
                 className="px-4 py-2.5 bg-purple-900/60 hover:bg-purple-900 border border-purple-300/40 text-white rounded-xl text-sm font-bold shadow flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
-                title="พิมพ์รายงานประจำวัน"
+                title="รายงานประจำวัน"
               >
                 <Printer className="w-4 h-4" />
-                <span className="hidden sm:inline">พิมพ์รายงาน</span>
+                <span className="hidden sm:inline">รายงานประจำวัน</span>
               </button>
 
               <button 
@@ -806,7 +781,6 @@ export default function AdminDashboard() {
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
-            {/* ยอดเก็บสดวันนี้: สีฟ้า */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดเก็บสดวันนี้');
@@ -823,7 +797,6 @@ export default function AdminDashboard() {
               <div className="text-xl sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm animate-pulse">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
 
-            {/* ดอกเบี้ย,ค่าปรับรอเก็บ: สีม่วง */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ย,ค่าปรับรอเก็บ');
@@ -833,57 +806,54 @@ export default function AdminDashboard() {
                 })).filter(l => l.calculated_accrued > 0);
                 setStatModalData(activeLoansWithInterest);
                 setStatModalOpen(true);
-              }}
-              className="bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-400 border border-purple-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-purple-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
-            >
-              <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
-              <div className="text-purple-100 text-xs sm:text-sm font-bold flex items-center justify-between">
-                <span>ดอกเบี้ย,ค่าปรับรอเก็บ</span>
-                <span className="text-[11px] text-purple-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-purple-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
-              </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalAccruedInterestAll.toLocaleString()}</div>
+            }}
+            className="bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-400 border border-purple-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-purple-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
+            <div className="text-purple-100 text-xs sm:text-sm font-bold flex items-center justify-between">
+              <span>ดอกเบี้ย,ค่าปรับรอเก็บ</span>
+              <span className="text-[11px] text-purple-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-purple-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
             </div>
+            <div className="text-xl sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalAccruedInterestAll.toLocaleString()}</div>
+          </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
-            {/* ทุนใหม่รอเก็บ: สีเหลือง */}
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ทุนใหม่รอเก็บ (เงินต้นคงเหลือ)');
                 const principalLoans = loans.filter(l => (!l.loan_type || !l.loan_type.includes('รอเคลียร์')) && l.status === 'อนุมัติแล้ว' && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
                 setStatModalData(principalLoans);
                 setStatModalOpen(true);
-              }}
-              className="bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-amber-500/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
-            >
-              <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/25 rounded-full blur-lg pointer-events-none"></div>
-              <div className="text-amber-950 text-xs sm:text-sm font-bold flex items-center justify-between">
-                <span>ทุนใหม่รอเก็บ</span>
-                <span className="text-[11px] text-amber-950 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-white/50 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
-              </div>
-              <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalActivePrincipal.toLocaleString()}</div>
+            }}
+            className="bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-amber-500/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/25 rounded-full blur-lg pointer-events-none"></div>
+            <div className="text-amber-950 text-xs sm:text-sm font-bold flex items-center justify-between">
+              <span>ทุนใหม่รอเก็บ</span>
+              <span className="text-[11px] text-amber-950 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-white/50 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
             </div>
+            <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalActivePrincipal.toLocaleString()}</div>
+          </div>
 
-            {/* ยอดค้างรอเคลียร์: สีส้มพระอาทิตย์ */}
-            <div 
+          <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดค้างรอเคลียร์');
                 const pendingLoans = loans.filter(l => l.loan_type && l.loan_type.includes('รอเคลียร์') && (l.status === 'อนุมัติแล้ว' || l.status === 'รอเคลียร์') && Number(l.remaining_principal ?? l.principal_amount ?? 0) > 0);
                 setStatModalData(pendingLoans);
                 setStatModalOpen(true);
-              }}
-              className="bg-gradient-to-tr from-orange-600 via-amber-600 to-yellow-500 border border-orange-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-orange-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
-            >
-              <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
-              <div className="text-orange-100 text-xs sm:text-sm font-bold flex items-center justify-between">
-                <span>ยอดค้างรอเคลียร์</span>
-                <span className="text-[11px] text-orange-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-orange-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
-              </div>
-              <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalPendingBalance.toLocaleString()}</div>
+            }}
+            className="bg-gradient-to-tr from-orange-600 via-amber-600 to-yellow-500 border border-orange-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-orange-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
+            <div className="text-orange-100 text-xs sm:text-sm font-bold flex items-center justify-between">
+              <span>ยอดค้างรอเคลียร์</span>
+              <span className="text-[11px] text-orange-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-orange-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
             </div>
+            <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalPendingBalance.toLocaleString()}</div>
+          </div>
 
-            {/* ดอกเก็บแล้ว: สีเขียวมรกตเข้ม */}
-            <div 
+          <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเก็บแล้ว');
                 const validPays = payments.filter(p => {
@@ -895,16 +865,16 @@ export default function AdminDashboard() {
                 });
                 setStatModalData(validPays);
                 setStatModalOpen(true);
-              }}
-              className="bg-gradient-to-br from-emerald-600 to-teal-800 border border-emerald-400/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-emerald-700/30 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden col-span-2 sm:col-span-1"
-            >
-              <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
-              <div className="text-emerald-100 text-xs sm:text-sm font-bold flex items-center justify-between">
-                <span>ดอกเก็บแล้ว</span>
-                <span className="text-[11px] text-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-emerald-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
-              </div>
-              <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalInterestCollected.toLocaleString()}</div>
+            }}
+            className="bg-gradient-to-br from-emerald-600 to-teal-800 border border-emerald-400/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-emerald-700/30 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden col-span-2 sm:col-span-1"
+          >
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
+            <div className="text-emerald-100 text-xs sm:text-sm font-bold flex items-center justify-between">
+              <span>ดอกเก็บแล้ว</span>
+              <span className="text-[11px] text-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-emerald-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
             </div>
+            <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalInterestCollected.toLocaleString()}</div>
+          </div>
           </div>
         </div>
 
@@ -934,30 +904,30 @@ export default function AdminDashboard() {
                   >
                     (กลับมาวันนี้)
                   </button>
-                )}
+              )}
               </div>
-            </div>
+          </div>
 
-            <div className="flex items-center gap-1 bg-purple-50 p-1.5 rounded-2xl border border-purple-200 overflow-x-auto w-full lg:w-auto">
-              {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด'].map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setFilterTab(tab)}
-                  className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap text-xs sm:text-sm shrink-0 relative flex items-center gap-1.5 ${
-                    filterTab === tab ? 'bg-purple-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>{tab}</span>
-                  {tab === 'รออนุมัติ' && pendingApprovalCount > 0 && (
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-black bg-rose-600 text-white rounded-full animate-bounce shadow-md">
-                      <Bell className="w-3 h-3 mr-0.5 animate-pulse" />
-                      {pendingApprovalCount}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-1 bg-purple-50 p-1.5 rounded-2xl border border-purple-200 overflow-x-auto w-full lg:w-auto">
+            {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setFilterTab(tab)}
+                className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap text-xs sm:text-sm shrink-0 relative flex items-center gap-1.5 ${
+                  filterTab === tab ? 'bg-purple-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
+                }`}
+            >
+                <span>{tab}</span>
+                {tab === 'รออนุมัติ' && pendingApprovalCount > 0 && (
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-black bg-rose-600 text-white rounded-full animate-bounce shadow-md">
+                    <Bell className="w-3 h-3 mr-0.5 animate-pulse" />
+                    {pendingApprovalCount}
+                  </span>
+                )}
+            </button>
+          ))}
+          </div>
         </div>
 
         <div className="space-y-3.5">
@@ -989,146 +959,146 @@ export default function AdminDashboard() {
                         >
                           {loan.full_name}
                         </span>
+                      </div>
+                       
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600">
+                        <span className="shrink-0 font-medium">ประเภท: {loan.loan_type}</span> 
+                        <span className="text-slate-300 hidden sm:inline">|</span> 
+                        <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
+                        <span className="text-slate-300 hidden sm:inline">|</span> 
+                        <span className="flex items-center gap-1 text-emerald-700 font-mono font-bold shrink-0">
+                          <Clock className="w-3.5 h-3.5" />
+                          สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
+                        </span>
+                        {!isPending && (
+                          <>
+                            <span className="text-slate-300 hidden sm:inline">|</span>
+                            <span className="shrink-0">ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></span>
+                          </>
+                        )}
+                      </div>
+
+                      {latestPayment && (
+                        <div className="pt-1">
+                          <span className="inline-flex flex-wrap items-center gap-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 px-3 py-1 rounded-xl font-mono text-xs sm:text-sm font-bold shadow-sm">
+                            <span>🟢 ตัดล่าสุด:</span>
+                            <span>{formatThaiDate(latestPayment.created_at)}</span>
+                            <span>{formatThaiTime(latestPayment.created_at)}</span>
+                            <span className="text-emerald-950 font-extrabold">
+                              (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
+                            </span>
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600">
-                      <span className="shrink-0 font-medium">ประเภท: {loan.loan_type}</span> 
-                      <span className="text-slate-300 hidden sm:inline">|</span> 
-                      <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
-                      <span className="text-slate-300 hidden sm:inline">|</span> 
-                      <span className="flex items-center gap-1 text-emerald-700 font-mono font-bold shrink-0">
-                        <Clock className="w-3.5 h-3.5" />
-                        สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
+                     
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      {hasFine && (
+                        <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3.5 py-1.5 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
+                          🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                        </span>
+                      )}
+                      <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${
+                        loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                        loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                        'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}>
+                        {loan.status || 'รออนุมัติ'}
                       </span>
-                      {!isPending && (
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs sm:text-sm bg-white p-4 rounded-2xl border border-purple-100 shadow-sm">
+                    <div>
+                      <span className="text-slate-400 block text-xs">เงินต้น / ยอดขอกู้:</span>
+                      <span className="font-mono font-bold text-emerald-600 text-sm sm:text-base">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-xs">คงเหลือ:</span>
+                      <span className="font-mono font-bold text-amber-600 text-sm sm:text-base">฿{currentRemaining.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-xs">ดอกเบี้ย/วัน:</span>
+                      <span className="font-mono font-bold text-teal-700 text-sm sm:text-base">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-xs">ดอกสะสมเรียลไทม์:</span>
+                      <span className="font-mono font-bold text-purple-800 text-sm sm:text-base">฿{accrued.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2.5 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLoan(loan.id, loan.bill_code)}
+                      className="px-4 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
+                      title="ลบรายการบิลนี้"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>ลบบิลนี้</span>
+                    </button>
+
+                    <div className="flex gap-2 flex-1 sm:justify-end flex-wrap">
+                      {isPending ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedLoanForApproval(loan);
+                            setApprovalData({
+                              loan_type: 'ดอกลอย',
+                              daily_interest: '',
+                              total_interest: '',
+                              installment_count: '',
+                              payment_schedule: loan.payment_schedule || 'จ่ายทุกวัน',
+                              schedule_start: '',
+                              schedule_end: '',
+                              calc_next_day: false,
+                            });
+                            setApprovalModalOpen(true);
+                          }}
+                          className="w-full sm:w-auto px-5 py-2.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer animate-pulse"
+                        >
+                          🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
+                        </button>
+                      ) : (
                         <>
-                          <span className="text-slate-300 hidden sm:inline">|</span>
-                          <span className="shrink-0">ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPaymentLoan(loan);
+                              setPaymentMode('ชำระยอดปกติ');
+                              setActionAmount('');
+                              setPaymentNote('');
+                              setPaymentModalOpen(true);
+                            }}
+                            className="flex-1 sm:flex-initial px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
+                          >
+                            บันทึกรับชำระ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNoticeLoan(loan);
+                              setCustomNoticeAmount(currentRemaining);
+                              setNoticeModalOpen(true);
+                            }}
+                            className="px-4.5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <FileText className="w-4 h-4" />
+                            <span>แจ้งยอด</span>
+                          </button>
                         </>
                       )}
                     </div>
-
-                    {latestPayment && (
-                      <div className="pt-1">
-                        <span className="inline-flex flex-wrap items-center gap-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 px-3 py-1 rounded-xl font-mono text-xs sm:text-sm font-bold shadow-sm">
-                          <span>🟢 ตัดล่าสุด:</span>
-                          <span>{formatThaiDate(latestPayment.created_at)}</span>
-                          <span>{formatThaiTime(latestPayment.created_at)}</span>
-                          <span className="text-emerald-950 font-extrabold">
-                            (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
-                          </span>
-                        </span>
-                      </div>
-                    )}
                   </div>
-                   
-                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                    {hasFine && (
-                      <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3.5 py-1.5 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
-                        🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
-                      </span>
-                    )}
-                    <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${
-                      loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                      loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                      'bg-amber-100 text-amber-800 border border-amber-300'
-                  }`}>
-                    {loan.status || 'รออนุมัติ'}
-                  </span>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs sm:text-sm bg-white p-4 rounded-2xl border border-purple-100 shadow-sm">
-                <div>
-                  <span className="text-slate-400 block text-xs">เงินต้น / ยอดขอกู้:</span>
-                  <span className="font-mono font-bold text-emerald-600 text-sm sm:text-base">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">คงเหลือ:</span>
-                  <span className="font-mono font-bold text-amber-600 text-sm sm:text-base">฿{currentRemaining.toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">ดอกเบี้ย/วัน:</span>
-                  <span className="font-mono font-bold text-teal-700 text-sm sm:text-base">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">ดอกสะสมเรียลไทม์:</span>
-                  <span className="font-mono font-bold text-purple-800 text-sm sm:text-base">฿{accrued.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2.5 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteLoan(loan.id, loan.bill_code)}
-                  className="px-4 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
-                  title="ลบรายการบิลนี้"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>ลบบิลนี้</span>
-                </button>
-
-                <div className="flex gap-2 flex-1 sm:justify-end flex-wrap">
-                  {isPending ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedLoanForApproval(loan);
-                        setApprovalData({
-                          loan_type: 'ดอกลอย',
-                          daily_interest: '',
-                          total_interest: '',
-                          installment_count: '',
-                          payment_schedule: loan.payment_schedule || 'จ่ายทุกวัน',
-                          schedule_start: '',
-                          schedule_end: '',
-                          calc_next_day: false,
-                        });
-                        setApprovalModalOpen(true);
-                      }}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer animate-pulse"
-                  >
-                    🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPaymentLoan(loan);
-                        setPaymentMode('ชำระยอดปกติ');
-                        setActionAmount('');
-                        setPaymentNote('');
-                        setPaymentModalOpen(true);
-                      }}
-                      className="flex-1 sm:flex-initial px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
-                    >
-                      บันทึกรับชำระ
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNoticeLoan(loan);
-                        setCustomNoticeAmount(currentRemaining);
-                        setNoticeModalOpen(true);
-                      }}
-                      className="px-4.5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span>แจ้งยอด</span>
-                    </button>
-                  </>
-                )}
-              </div>
-          </div>
-          </div>
-          );
-        })
-      )}
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
 
-    </div>
+      </div>
 
     {/* ================= MODALS ================= */}
 
@@ -1181,10 +1151,10 @@ export default function AdminDashboard() {
       </div>
     )}
 
-    {/* Daily Report Print Modal */}
+    {/* Daily Report Print / Image Modal */}
     {dailyReportModalOpen && (
       <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
-        <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-2xl w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
+        <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
           <div className="flex justify-between items-center border-b border-purple-100 pb-3 shrink-0">
             <h3 className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-2">
               <Printer className="w-4 h-4 text-purple-700" />
@@ -1197,7 +1167,7 @@ export default function AdminDashboard() {
             <div className="text-center border-b-2 border-purple-700 pb-3">
               <h2 className="text-base sm:text-lg font-black text-purple-900">วังทองล้น (ระบบจัดการสินเชื่อ)</h2>
               <p className="text-xs text-slate-600">รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บประจำวัน</p>
-              <p className="text-xs text-slate-500 mt-1 font-mono">วันที่ออกรายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="text-xs text-slate-500 mt-1 font-mono">วันที่ออกรายงาน: {selectedReportDate || todayStr}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1248,21 +1218,84 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="flex gap-2.5 shrink-0 pt-1">
+          {/* Hidden Element สำหรับแปลงภาพรายงาน */}
+          <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
+            <div ref={hiddenReportCaptureRef} style={{ width: '460px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px' }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #7c3aed', paddingBottom: '12px', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#581c87', margin: 0 }}>วังทองล้น (ระบบจัดการสินเชื่อ)</h2>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บ</p>
+                <p style={{ fontSize: '11px', color: '#475569', margin: '4px 0 0 0', fontFamily: 'monospace' }}>วันที่: {selectedReportDate || todayStr}</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>ยอดเก็บสดวันนี้:</div>
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#059669', fontFamily: 'monospace' }}>฿{todayCollectedCash.toLocaleString()}</div>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>ดอกเบี้ยเก็บแล้ว (+ค่าปรับ):</div>
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#7c3aed', fontFamily: 'monospace' }}>฿{totalInterestCollected.toLocaleString()}</div>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>ทุนใหม่รอเก็บ:</div>
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#d97706', fontFamily: 'monospace' }}>฿{totalActivePrincipal.toLocaleString()}</div>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>ยอดค้างรอเคลียร์:</div>
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#0d9488', fontFamily: 'monospace' }}>฿{totalPendingBalance.toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>รายการรับชำระวันนี้ ({todayPayments.length} รายการ)</div>
+              {todayPayments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '12px', background: '#f8fafc', borderRadius: '8px', color: '#94a3b8', fontSize: '11px' }}>ยังไม่มีรายการรับชำระในวันนี้</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ background: '#7c3aed', color: '#ffffff' }}>
+                      <th style={{ padding: '6px', border: '1px solid #cbd5e1', textAlign: 'left' }}>บิล</th>
+                      <th style={{ padding: '6px', border: '1px solid #cbd5e1', textAlign: 'left' }}>ลูกค้า</th>
+                      <th style={{ padding: '6px', border: '1px solid #cbd5e1', textAlign: 'right' }}>ยอดรับ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todayPayments.map((p, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace' }}>{p.bill_code}</td>
+                        <td style={{ padding: '6px', border: '1px solid #cbd5e1' }}>{p.full_name}</td>
+                        <td style={{ padding: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold', color: '#059669' }}>฿{Number(p.payment_amount || p.amount || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2 shrink-0 pt-1 flex-wrap">
             <button 
               type="button"
               onClick={(e) => handlePrintReport(e)}
-              className="flex-1 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>พิมพ์ / บันทึก PDF</span>
+              <span>พิมพ์</span>
             </button>
             <button 
               type="button"
-              onClick={() => setDailyReportModalOpen(false)}
-              className="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs sm:text-sm cursor-pointer"
+              onClick={handleDownloadReportImage}
+              className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              ปิด
+              <Download className="w-4 h-4" />
+              <span>ดาวน์โหลดรูป</span>
+            </button>
+            <button 
+              type="button"
+              onClick={handleShareReportImage}
+              className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>แชร์ภาพ</span>
             </button>
           </div>
         </div>
@@ -1302,28 +1335,6 @@ export default function AdminDashboard() {
               />
             </div>
           </div>
-
-          {adminBankList.length > 0 && (
-            <div className="space-y-1.5 bg-purple-50 p-3 rounded-2xl border border-purple-200">
-              <label className="text-xs text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
-              <select
-                onChange={(e) => {
-                  const idx = e.target.value;
-                  if (idx !== '') {
-                    setNoticeForm(adminBankList[idx]);
-                  }
-                }}
-                className="w-full border border-purple-300 rounded-xl p-2.5 text-base sm:text-sm bg-white font-semibold outline-none text-slate-800"
-              >
-                <option value="">-- คลิกเลือกบัญชี --</option>
-                {adminBankList.map((b, i) => (
-                  <option key={i} value={i}>
-                    {b.bank_name} ({b.account_number})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div className="space-y-2.5 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
             <div className="text-xs font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
