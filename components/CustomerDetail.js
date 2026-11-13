@@ -193,7 +193,7 @@ export default function CustomerDetail({
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800 touch-pan-y">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden animate-in fade-in duration-200 text-slate-800 touch-pan-y" style={{ touchAction: 'manipulation' }}>
       
       {/* Header ของ Modal ประวัติลูกค้า */}
       <div className="bg-purple-900 text-white px-4 sm:px-8 py-4 flex justify-between items-start sm:items-center gap-2.5 shadow-md shrink-0 relative">
@@ -506,7 +506,8 @@ export default function CustomerDetail({
                   type="number"
                   value={customNoticeAmount}
                   onChange={(e) => setCustomNoticeAmount(e.target.value)}
-                  className="w-36 text-right font-mono font-black text-rose-600 text-lg bg-white border border-rose-300 rounded-xl p-2 outline-none"
+                  style={{ fontSize: '16px' }}
+                  className="w-36 text-right font-mono font-black text-rose-600 bg-white border border-rose-300 rounded-xl p-2.5 outline-none"
                 />
               </div>
             </div>
@@ -521,7 +522,8 @@ export default function CustomerDetail({
                       setNoticeForm(adminBankList[idx]);
                     }
                   }}
-                  className="w-full border border-purple-300 rounded-xl p-2.5 text-sm bg-white font-semibold outline-none text-slate-800"
+                  style={{ fontSize: '16px' }}
+                  className="w-full border border-purple-300 rounded-xl p-2.5 bg-white font-semibold outline-none text-slate-800"
                 >
                   <option value="">-- คลิกเลือกบัญชี --</option>
                   {adminBankList.map((b, i) => (
@@ -542,7 +544,8 @@ export default function CustomerDetail({
                   <select
                     value={noticeForm.bank_name}
                     onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-white outline-none text-slate-800"
+                    style={{ fontSize: '16px' }}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold bg-white outline-none text-slate-800"
                   >
                     <option value="">-- เลือกธนาคาร --</option>
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -564,7 +567,8 @@ export default function CustomerDetail({
                     type="text" placeholder="xxx-x-xxxxx-x"
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-mono font-bold bg-white outline-none"
+                    style={{ fontSize: '16px' }}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold bg-white outline-none"
                   />
                 </div>
                 <div>
@@ -573,7 +577,8 @@ export default function CustomerDetail({
                     type="text" placeholder="ชื่อเจ้าของบัญชี"
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-white outline-none"
+                    style={{ fontSize: '16px' }}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold bg-white outline-none"
                   />
                 </div>
 
