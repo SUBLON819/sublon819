@@ -973,7 +973,7 @@ export default function AdminDashboard() {
                             className="text-base sm:text-lg font-black text-slate-900 hover:text-purple-700 underline cursor-pointer truncate max-w-[200px] sm:max-w-none"
                             title="คลิกเพื่อดูประวัติลูกค้าแบบเต็มจอ"
                           >
-                            - {loan.full_name} 🔍
+                            {loan.full_name}
                           </span>
                         </div>
                         
