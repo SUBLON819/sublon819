@@ -1964,7 +1964,7 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-purple-200">
                 <div className="space-y-1">
-                  <span className="text-xs text-slate-600 font-bold block">📷 ภาพถ่ายหน้าบ้าน / บัตร ปชช.:</span>
+                  <span className="text-xs text-slate-600 font-bold block">📷 ภาพถ่ายบ้าน/บัตร ปชช.:</span>
                   {selectedLoanForApproval.id_card_url ? (
                     <a 
                       href={selectedLoanForApproval.id_card_url} 
