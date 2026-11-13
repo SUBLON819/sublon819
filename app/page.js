@@ -837,12 +837,12 @@ export default function AdminDashboard() {
                 setStatModalData(pendingLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-gradient-to-tr from-orange-600 via-amber-600 to-yellow-500 border border-orange-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-orange-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
+              className="bg-gradient-to-tr from-rose-700 via-red-600 to-rose-500 border border-rose-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-rose-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
-              <div className="text-orange-100 text-xs sm:text-sm font-bold flex items-center justify-between">
+              <div className="text-rose-100 text-xs sm:text-sm font-bold flex items-center justify-between">
                 <span>ยอดค้างรอเคลียร์</span>
-                <span className="text-[11px] text-orange-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-orange-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
+                <span className="text-[11px] text-rose-100 opacity-0 group-hover:opacity-100 transition-opacity font-extrabold bg-rose-950/40 px-1.5 py-0.5 rounded">คลิกดู 🔍</span>
               </div>
               <div className="text-lg sm:text-xl font-black font-mono text-white truncate drop-shadow-sm">฿{totalPendingBalance.toLocaleString()}</div>
             </div>
