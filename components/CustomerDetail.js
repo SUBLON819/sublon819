@@ -315,21 +315,27 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 ช่อง */}
+        {/* ยอดสรุปตัวเลข 3 ช่อง (การ์ดละสี) */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 my-6 w-full">
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 transform transition-transform hover:scale-[1.01]">
+          {/* กล่องที่ 1: ดอกเบี้ยสะสม (โทนสีม่วง) */}
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-purple-600 via-purple-500 to-indigo-500 border border-purple-300/50 text-white shadow-md shadow-purple-600/20 transform transition-transform hover:scale-[1.01] overflow-hidden">
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
             <span className="text-xs sm:text-sm font-bold text-purple-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
-            <span className="text-base sm:text-lg font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
+            <span className="text-base sm:text-lg font-mono font-black text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30 transform transition-transform hover:scale-[1.01]">
-            <span className="text-xs sm:text-sm font-bold text-amber-100 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
-            <span className="text-base sm:text-lg font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
+          {/* กล่องที่ 2: ยอดหนี้คงเหลือ (โทนสีเหลืองทอง) */}
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 text-white shadow-md shadow-amber-500/20 transform transition-transform hover:scale-[1.01] overflow-hidden">
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/25 rounded-full blur-lg pointer-events-none"></div>
+            <span className="text-xs sm:text-sm font-bold text-amber-950 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
+            <span className="text-base sm:text-lg font-mono font-black text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 transform transition-transform hover:scale-[1.01]">
+          {/* กล่องที่ 3: ยอดชำระแล้ว (โทนสีเขียวมรกต) */}
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 border border-emerald-300/50 text-white shadow-md shadow-emerald-600/20 transform transition-transform hover:scale-[1.01] overflow-hidden">
+            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
             <span className="text-xs sm:text-sm font-bold text-emerald-100 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
-            <span className="text-base sm:text-lg font-mono font-bold text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
+            <span className="text-base sm:text-lg font-mono font-black text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
         </div>
 
@@ -359,7 +365,6 @@ export default function CustomerDetail({
                           <span className="text-sm sm:text-base font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
                         </div>
                         
-                        {/* 📌 ปรับแก้จัดเรียงข้อมูลรายละเอียดและป้ายตัดล่าสุดให้อยู่ในบรรทัดเดียวกันแบบแนวนอน */}
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-600 mt-1">
                           <span className="shrink-0">ประเภท: {loan.loan_type}</span> 
                           <span className="text-slate-300 hidden sm:inline">|</span> 
