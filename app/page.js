@@ -714,27 +714,27 @@ export default function AdminDashboard() {
   const customerInfo = customerLoans[0] || {};
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-base box-border overflow-x-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex font-sans text-slate-800 text-sm sm:text-base box-border overflow-x-hidden">
       
-      <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-4 lg:p-6 space-y-3 sm:space-y-6">
+      <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-5 lg:p-6 space-y-4 sm:space-y-6">
 
         {/* Header Control Panel */}
-        <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 relative w-full box-border text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        <div className="bg-gradient-to-r from-purple-800 via-fuchsia-700 to-pink-600 border border-purple-300/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 relative w-full box-border text-white">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white/20 border border-white/30 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+              <Wallet className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-base sm:text-2xl font-black text-white drop-shadow-sm">
+              <h1 className="text-lg sm:text-2xl font-black text-white drop-shadow-sm">
                 แผงควบคุมการบันทึกข้อมูลด่วน
               </h1>
-              <p className="text-[11px] sm:text-xs text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์</p>
+              <p className="text-xs sm:text-sm text-purple-100">ระบบจัดการสินเชื่อและบันทึกยอดค้างชำระเรียลไทม์</p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="w-4 h-4 text-purple-200 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="w-4 h-4 text-purple-200 absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
               <input 
                 type="text"
                 placeholder="ค้นหารายการ / ชื่อ / เบอร์..."
@@ -744,12 +744,12 @@ export default function AdminDashboard() {
                   setShowSearchSuggestions(true);
                 }}
                 onFocus={() => setShowSearchSuggestions(true)}
-                className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-9 pr-3 py-2.5 sm:py-2 text-base sm:text-xs text-white outline-none"
+                className="w-full bg-purple-950/40 border border-purple-300/40 rounded-xl pl-10 pr-3.5 py-2.5 text-sm sm:text-base text-white placeholder-purple-200/65 outline-none focus:bg-purple-950/70 transition-all"
               />
 
               {showSearchSuggestions && matchingSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-purple-900 border border-purple-400/50 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-md">
-                  <div className="p-1.5 text-xs text-purple-200 border-b border-purple-800 px-3 font-bold">รายชื่อสมาชิกที่ตรงกัน:</div>
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-purple-900 border border-purple-400/50 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-md">
+                  <div className="p-2 text-xs text-purple-200 border-b border-purple-800 px-3.5 font-bold">รายชื่อสมาชิกที่ตรงกัน:</div>
                   {matchingSuggestions.map((item, idx) => (
                     <div
                       key={idx}
@@ -757,10 +757,10 @@ export default function AdminDashboard() {
                         setSearchQuery(item.full_name);
                         setShowSearchSuggestions(false);
                       }}
-                      className="px-3 py-2 text-xs sm:text-sm hover:bg-purple-800/50 cursor-pointer flex justify-between items-center transition-colors border-b border-purple-800/40 last:border-b-0 text-white"
+                      className="px-3.5 py-2.5 text-sm hover:bg-purple-800/50 cursor-pointer flex justify-between items-center transition-colors border-b border-purple-800/40 last:border-b-0 text-white"
                     >
-                      <span className="font-bold flex items-center gap-1.5 truncate">
-                        <User className="w-3.5 h-3.5 text-purple-200 shrink-0" />
+                      <span className="font-bold flex items-center gap-2 truncate">
+                        <User className="w-4 h-4 text-purple-200 shrink-0" />
                         <span className="truncate">{item.full_name}</span>
                       </span>
                       <span className="text-xs text-purple-200/70 font-mono shrink-0">{item.phone || 'ไม่มีเบอร์'}</span>
@@ -770,10 +770,10 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <button 
                 onClick={() => setDailyReportModalOpen(true)}
-                className="px-3.5 py-3 sm:py-2.5 bg-purple-900/60 hover:bg-purple-900 border border-purple-300/40 text-white rounded-xl text-xs sm:text-sm font-bold shadow flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                className="px-4 py-2.5 bg-purple-900/60 hover:bg-purple-900 border border-purple-300/40 text-white rounded-xl text-sm font-bold shadow flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
                 title="พิมพ์รายงานประจำวัน"
               >
                 <Printer className="w-4 h-4" />
@@ -782,7 +782,7 @@ export default function AdminDashboard() {
 
               <button 
                 onClick={() => setNewLoanModalOpen(true)}
-                className="flex-1 sm:flex-initial px-4 py-3 sm:py-2.5 bg-white text-purple-900 hover:bg-purple-50 rounded-xl text-xs sm:text-sm font-bold shadow-lg flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all"
+                className="flex-1 sm:flex-initial px-4.5 py-2.5 bg-white text-purple-900 hover:bg-purple-50 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
               >
                 <Plus className="w-4 h-4 text-purple-700" />
                 <span>บันทึกรายการใหม่</span>
@@ -793,7 +793,7 @@ export default function AdminDashboard() {
 
         {/* Statistics Cards */}
         <div className="space-y-3 w-full">
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
             {/* ยอดเก็บสดวันนี้: สีฟ้า */}
             <div 
               onClick={() => {
@@ -801,7 +801,7 @@ export default function AdminDashboard() {
                 setStatModalData(todayPayments);
                 setStatModalOpen(true);
               }}
-              className="bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-400 border border-sky-300/50 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md shadow-sky-600/20 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all group relative overflow-hidden"
+              className="bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-400 border border-sky-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-sky-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-sky-100 text-xs sm:text-sm font-bold flex items-center justify-between">
@@ -822,7 +822,7 @@ export default function AdminDashboard() {
                 setStatModalData(activeLoansWithInterest);
                 setStatModalOpen(true);
               }}
-              className="bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-400 border border-purple-300/50 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md shadow-purple-600/20 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all group relative overflow-hidden"
+              className="bg-gradient-to-tr from-violet-600 via-purple-500 to-indigo-400 border border-purple-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-purple-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-purple-100 text-xs sm:text-sm font-bold flex items-center justify-between">
@@ -833,7 +833,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
             {/* ทุนใหม่รอเก็บ: สีเหลือง */}
             <div 
               onClick={() => {
@@ -842,7 +842,7 @@ export default function AdminDashboard() {
                 setStatModalData(principalLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md shadow-amber-500/20 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all group relative overflow-hidden"
+              className="bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-amber-500/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/25 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-amber-950 text-xs sm:text-sm font-bold flex items-center justify-between">
@@ -860,7 +860,7 @@ export default function AdminDashboard() {
                 setStatModalData(pendingLoans);
                 setStatModalOpen(true);
               }}
-              className="bg-gradient-to-tr from-orange-600 via-amber-600 to-yellow-500 border border-orange-300/50 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md shadow-orange-600/20 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all group relative overflow-hidden"
+              className="bg-gradient-to-tr from-orange-600 via-amber-600 to-yellow-500 border border-orange-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-orange-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-orange-100 text-xs sm:text-sm font-bold flex items-center justify-between">
@@ -884,7 +884,7 @@ export default function AdminDashboard() {
                 setStatModalData(validPays);
                 setStatModalOpen(true);
               }}
-              className="bg-gradient-to-br from-emerald-600 to-teal-800 border border-emerald-400/50 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-1 shadow-md shadow-emerald-700/30 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all group relative overflow-hidden col-span-2 sm:col-span-1"
+              className="bg-gradient-to-br from-emerald-600 to-teal-800 border border-emerald-400/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-emerald-700/30 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden col-span-2 sm:col-span-1"
             >
               <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
               <div className="text-emerald-100 text-xs sm:text-sm font-bold flex items-center justify-between">
@@ -897,22 +897,22 @@ export default function AdminDashboard() {
         </div>
 
         {/* Loan List Section */}
-        <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl space-y-4 w-full box-border">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-purple-100 pb-3">
+        <div className="bg-white/90 backdrop-blur-md border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl space-y-4 w-full box-border">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3.5 border-b border-purple-100 pb-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <h3 className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-purple-700" />
                 <span>รายการสินเชื่อและสัญญา ({filteredLoans.length})</span>
               </h3>
 
-              <div className="flex items-center gap-1.5 bg-purple-100/70 px-2.5 py-1.5 rounded-xl border border-purple-300">
+              <div className="flex items-center gap-2 bg-purple-100/70 px-3 py-1.5 rounded-xl border border-purple-300">
                 <Calendar className="w-4 h-4 text-purple-700" />
-                <span className="text-xs font-bold text-purple-900">ดูยอดของวันที่:</span>
+                <span className="text-xs sm:text-sm font-bold text-purple-900">ดูยอดของวันที่:</span>
                 <input 
                   type="date"
                   value={selectedReportDate}
                   onChange={(e) => setSelectedReportDate(e.target.value)}
-                  className="bg-white border border-purple-300 rounded-lg px-2 py-1 text-xs sm:text-sm font-mono font-bold text-purple-900 outline-none"
+                  className="bg-white border border-purple-300 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-mono font-bold text-purple-900 outline-none"
                 />
                 {selectedReportDate !== todayStr && (
                   <button 
@@ -925,18 +925,18 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 bg-purple-50 p-1 rounded-xl border border-purple-200 text-xs sm:text-sm overflow-x-auto w-full lg:w-auto pb-1 sm:pb-1">
+            <div className="flex items-center gap-1 bg-purple-50 p-1.5 rounded-2xl border border-purple-200 overflow-x-auto w-full lg:w-auto">
               {['บิลรอเก็บ', 'ตัดยอดแล้ว', 'อนุมัติวันนี้', 'รออนุมัติ', 'ทั้งหมด'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilterTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs sm:text-sm shrink-0 relative flex items-center gap-1.5 ${
-                    filterTab === tab ? 'bg-purple-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap text-xs sm:text-sm shrink-0 relative flex items-center gap-1.5 ${
+                    filterTab === tab ? 'bg-purple-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <span>{tab}</span>
                   {tab === 'รออนุมัติ' && pendingApprovalCount > 0 && (
-                    <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[11px] font-black bg-rose-600 text-white rounded-full animate-bounce shadow-md">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-black bg-rose-600 text-white rounded-full animate-bounce shadow-md">
                       <Bell className="w-3 h-3 mr-0.5 animate-pulse" />
                       {pendingApprovalCount}
                     </span>
@@ -946,7 +946,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {filteredLoans.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-sm">ไม่พบรายการสินเชื่อในระบบสำหรับแท็บนี้</div>
             ) : (
@@ -960,24 +960,24 @@ export default function AdminDashboard() {
                 const hasFine = Number(loan.fine_amount || 0) > 0;
 
                 return (
-                  <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3 sm:p-5 space-y-3 transition-all">
-                    <div className="flex justify-between items-start gap-2">
+                  <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-2xl p-4 sm:p-5 space-y-3.5 transition-all shadow-sm">
+                    <div className="flex justify-between items-start gap-3">
                       <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2.5 flex-wrap">
                           <span className="font-mono text-xs sm:text-sm font-bold text-purple-800 shrink-0">บิล: {loan.bill_code}</span>
                           <span 
                             onClick={() => {
                               setSelectedCustomerName(loan.full_name);
                               setCustomerProfileModalOpen(true);
-                           }}
-                           className="text-base sm:text-lg font-black text-slate-900 hover:text-purple-700 underline cursor-pointer truncate max-w-[200px] sm:max-w-none"
-                           title="คลิกเพื่อดูประวัติลูกค้าแบบเต็มจอ"
-                         >
-                           - {loan.full_name} 🔍
-                         </span>
+                            }}
+                            className="text-base sm:text-lg font-black text-slate-900 hover:text-purple-700 underline cursor-pointer truncate max-w-[200px] sm:max-w-none"
+                            title="คลิกเพื่อดูประวัติลูกค้าแบบเต็มจอ"
+                          >
+                            - {loan.full_name} 🔍
+                          </span>
                         </div>
                         
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-600">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600">
                           <span className="shrink-0 font-medium">ประเภท: {loan.loan_type}</span> 
                           <span className="text-slate-300 hidden sm:inline">|</span> 
                           <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800 font-bold">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
@@ -996,7 +996,7 @@ export default function AdminDashboard() {
 
                         {latestPayment && (
                           <div className="pt-1">
-                            <span className="inline-flex flex-wrap items-center gap-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 px-2.5 py-1 rounded-lg font-mono text-xs sm:text-sm font-bold shadow-sm">
+                            <span className="inline-flex flex-wrap items-center gap-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 px-3 py-1 rounded-xl font-mono text-xs sm:text-sm font-bold shadow-sm">
                               <span>🟢 ตัดล่าสุด:</span>
                               <span>{formatThaiDate(latestPayment.created_at)}</span>
                               <span>{formatThaiTime(latestPayment.created_at)}</span>
@@ -1010,11 +1010,11 @@ export default function AdminDashboard() {
                       
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {hasFine && (
-                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
+                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3.5 py-1.5 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
                             🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
                           </span>
                         )}
-                        <span className={`px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold shrink-0 ${
+                        <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${
                           loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                           loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
                           'bg-amber-100 text-amber-800 border border-amber-300'
@@ -1024,7 +1024,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm bg-white p-3 sm:p-4 rounded-xl border border-purple-100 shadow-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs sm:text-sm bg-white p-4 rounded-2xl border border-purple-100 shadow-sm">
                       <div>
                         <span className="text-slate-400 block text-xs">เงินต้น / ยอดขอกู้:</span>
                         <span className="font-mono font-bold text-emerald-600 text-sm sm:text-base">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
@@ -1043,11 +1043,11 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-2 flex-wrap sm:flex-nowrap justify-between items-center">
+                    <div className="flex gap-2.5 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
                       <button
                         type="button"
                         onClick={() => handleDeleteLoan(loan.id, loan.bill_code)}
-                        className="px-3.5 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
+                        className="px-4 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
                         title="ลบรายการบิลนี้"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1072,7 +1072,7 @@ export default function AdminDashboard() {
                               });
                               setApprovalModalOpen(true);
                             }}
-                            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer animate-pulse"
+                            className="w-full sm:w-auto px-5 py-2.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer animate-pulse"
                           >
                             🔍 ตรวจสอบ & อนุมัติคำขอจากลูกค้า
                           </button>
@@ -1087,7 +1087,7 @@ export default function AdminDashboard() {
                                 setPaymentNote('');
                                 setPaymentModalOpen(true);
                               }}
-                              className="flex-1 sm:flex-initial px-4 py-2.5 sm:py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
+                              className="flex-1 sm:flex-initial px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
                             >
                               บันทึกรับชำระ
                             </button>
@@ -1098,7 +1098,7 @@ export default function AdminDashboard() {
                                 setCustomNoticeAmount(currentRemaining);
                                 setNoticeModalOpen(true);
                               }}
-                              className="px-4 py-2.5 sm:py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="px-4.5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <FileText className="w-4 h-4" />
                               <span>แจ้งยอด</span>
@@ -1121,20 +1121,20 @@ export default function AdminDashboard() {
       {/* Stat Detail Modal */}
       {statModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
-          <div className="bg-white border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-purple-100 pb-2.5 shrink-0">
+          <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-xl w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-3 shrink-0">
               <h3 className="text-sm sm:text-base font-black text-purple-900 flex items-center gap-2">
                 <span>📊 {statModalTitle}</span>
               </h3>
               <button onClick={() => setStatModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 text-xs sm:text-sm">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs sm:text-sm">
               {statModalData.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">ไม่พบรายการข้อมูลในส่วนนี้</div>
               ) : (
                 statModalData.map((item, idx) => (
-                  <div key={idx} className="bg-purple-50/50 border border-purple-100 p-3 rounded-xl flex justify-between items-center">
+                  <div key={idx} className="bg-purple-50/50 border border-purple-100 p-3.5 rounded-2xl flex justify-between items-center">
                     <div>
                       <div className="font-bold text-slate-900 flex items-center gap-2">
                         <span className="font-mono text-purple-700">{item.bill_code}</span>
@@ -1154,10 +1154,10 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <div className="shrink-0 pt-2 border-t border-purple-100">
+            <div className="shrink-0 pt-3 border-t border-purple-100">
               <button 
                 onClick={() => setStatModalOpen(false)}
-                className="w-full py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow"
+                className="w-full py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow"
               >
                 ปิดหน้าต่าง
               </button>
@@ -1169,8 +1169,8 @@ export default function AdminDashboard() {
       {/* Daily Report Print Modal */}
       {dailyReportModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
-          <div className="bg-white border border-purple-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-2xl w-full space-y-3 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-purple-100 pb-2.5 shrink-0">
+          <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-2xl w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-3 shrink-0">
               <h3 className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-2">
                 <Printer className="w-4 h-4 text-purple-700" />
                 <span>รายงานสรุปยอดประจำวัน</span>
@@ -1178,53 +1178,53 @@ export default function AdminDashboard() {
               <button onClick={() => setDailyReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-xs sm:text-sm" ref={reportRef}>
-              <div className="text-center border-b-2 border-purple-700 pb-2.5">
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 text-xs sm:text-sm" ref={reportRef}>
+              <div className="text-center border-b-2 border-purple-700 pb-3">
                 <h2 className="text-base sm:text-lg font-black text-purple-900">วังทองล้น (ระบบจัดการสินเชื่อ)</h2>
                 <p className="text-xs text-slate-600">รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บประจำวัน</p>
-                <p className="text-xs text-slate-500 mt-0.5 font-mono">วันที่ออกรายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-xs text-slate-500 mt-1 font-mono">วันที่ออกรายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                   <div className="text-slate-500 text-xs">ยอดเก็บสดวันนี้:</div>
                   <div className="font-mono font-bold text-emerald-600 text-base sm:text-lg">฿{todayCollectedCash.toLocaleString()}</div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                   <div className="text-slate-500 text-xs">ดอกเบี้ยเก็บแล้ว (+ค่าปรับ):</div>
                   <div className="font-mono font-bold text-purple-700 text-base sm:text-lg">฿{totalInterestCollected.toLocaleString()}</div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                   <div className="text-slate-500 text-xs">ทุนใหม่รอเก็บ:</div>
                   <div className="font-mono font-bold text-amber-600 text-base sm:text-lg">฿{totalActivePrincipal.toLocaleString()}</div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-200">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                   <div className="text-slate-500 text-xs">ยอดค้างรอเคลียร์:</div>
                   <div className="font-mono font-bold text-teal-600 text-base sm:text-lg">฿{totalPendingBalance.toLocaleString()}</div>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-700 mb-1.5 text-xs sm:text-sm">รายการรับชำระเงินสดวันนี้ ({todayPayments.length} รายการ)</h4>
+                <h4 className="font-bold text-slate-700 mb-2 text-xs sm:text-sm">รายการรับชำระเงินสดวันนี้ ({todayPayments.length} รายการ)</h4>
                 {todayPayments.length === 0 ? (
-                  <div className="text-slate-400 text-center py-3 bg-white rounded-lg border border-slate-200 text-xs">ยังไม่มีรายการรับชำระในวันนี้</div>
+                  <div className="text-slate-400 text-center py-4 bg-white rounded-xl border border-slate-200 text-xs">ยังไม่มีรายการรับชำระในวันนี้</div>
                 ) : (
-                  <table className="w-full border-collapse bg-white text-xs sm:text-sm">
+                  <table className="w-full border-collapse bg-white text-xs sm:text-sm rounded-xl overflow-hidden">
                     <thead>
                       <tr className="bg-purple-800 text-white">
-                        <th className="p-2 border">บิล</th>
-                        <th className="p-2 border">ลูกค้า</th>
-                        <th className="p-2 border text-right">ยอดรับ</th>
-                        <th className="p-2 border text-right">ดอกเบี้ย/ค่าปรับ</th>
+                        <th className="p-2.5 border">บิล</th>
+                        <th className="p-2.5 border">ลูกค้า</th>
+                        <th className="p-2.5 border text-right">ยอดรับ</th>
+                        <th className="p-2.5 border text-right">ดอกเบี้ย/ค่าปรับ</th>
                       </tr>
                     </thead>
                     <tbody>
                       {todayPayments.map((p, idx) => (
                         <tr key={idx} className="border-b">
-                          <td className="p-2 border font-mono">{p.bill_code}</td>
-                          <td className="p-2 border">{p.full_name}</td>
-                          <td className="p-2 border text-right font-mono font-bold text-emerald-700">฿{Number(p.payment_amount || p.amount || 0).toLocaleString()}</td>
-                          <td className="p-2 border text-right font-mono text-slate-600">฿{(Number(p.interest_paid || 0) + Number(p.fine_amount || 0)).toLocaleString()}</td>
+                          <td className="p-2.5 border font-mono">{p.bill_code}</td>
+                          <td className="p-2.5 border">{p.full_name}</td>
+                          <td className="p-2.5 border text-right font-mono font-bold text-emerald-700">฿{Number(p.payment_amount || p.amount || 0).toLocaleString()}</td>
+                          <td className="p-2.5 border text-right font-mono text-slate-600">฿{(Number(p.interest_paid || 0) + Number(p.fine_amount || 0)).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1233,17 +1233,17 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 pt-1">
+            <div className="flex gap-2.5 shrink-0 pt-1">
               <button 
                 onClick={handlePrintReport}
-                className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>พิมพ์ / บันทึก PDF</span>
               </button>
               <button 
                 onClick={() => setDailyReportModalOpen(false)}
-                className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs sm:text-sm cursor-pointer"
+                className="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs sm:text-sm cursor-pointer"
               >
                 ปิด
               </button>
@@ -1255,11 +1255,11 @@ export default function AdminDashboard() {
       {/* Notice Bill Modal */}
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs sm:text-sm">
+          <div className="bg-white rounded-3xl w-[92%] max-w-sm p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs sm:text-sm">
             
-            <div className="flex justify-between items-center border-b border-rose-100 pb-2">
+            <div className="flex justify-between items-center border-b border-rose-100 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-xs">📄</span>
+                <span className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-xs">📄</span>
                 <h3 className="font-black text-rose-900 text-sm">
                   แจ้งยอด: <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
                 </h3>
@@ -1272,21 +1272,21 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-xs sm:text-sm">
+            <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-3.5 space-y-2 font-medium text-slate-700 text-xs sm:text-sm">
               <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name}</span></div>
-              <div className="flex justify-between items-center border-t border-rose-200/60 pt-1.5 mt-1">
+              <div className="flex justify-between items-center border-t border-rose-200/60 pt-2 mt-1">
                 <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
                 <input 
                   type="number"
                   value={customNoticeAmount}
                   onChange={(e) => setCustomNoticeAmount(e.target.value)}
-                  className="w-32 text-right font-mono font-black text-rose-600 text-base sm:text-lg bg-white border border-rose-300 rounded-lg p-1.5 outline-none"
+                  className="w-32 text-right font-mono font-black text-rose-600 text-base sm:text-lg bg-white border border-rose-300 rounded-xl p-2 outline-none"
                 />
               </div>
             </div>
 
             {adminBankList.length > 0 && (
-              <div className="space-y-1 bg-purple-50 p-2.5 rounded-xl border border-purple-200">
+              <div className="space-y-1.5 bg-purple-50 p-3 rounded-2xl border border-purple-200">
                 <label className="text-xs text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
                 <select
                   onChange={(e) => {
@@ -1295,7 +1295,7 @@ export default function AdminDashboard() {
                       setNoticeForm(adminBankList[idx]);
                     }
                   }}
-                  className="w-full border border-purple-300 rounded-lg p-2 text-base sm:text-xs bg-white font-semibold outline-none text-slate-800"
+                  className="w-full border border-purple-300 rounded-xl p-2.5 text-xs sm:text-sm bg-white font-semibold outline-none text-slate-800"
                 >
                   <option value="">-- คลิกเลือกบัญชี --</option>
                   {adminBankList.map((b, i) => (
@@ -1307,16 +1307,16 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <div className="space-y-2.5 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
               <div className="text-xs font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
               
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">ธนาคาร:</label>
                   <select
                     value={noticeForm.bank_name}
                     onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none text-slate-800"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-bold bg-white outline-none text-slate-800"
                   >
                     <option value="">-- เลือกธนาคาร --</option>
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -1338,7 +1338,7 @@ export default function AdminDashboard() {
                     type="text" placeholder="xxx-x-xxxxx-x"
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-mono font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-mono font-bold bg-white outline-none"
                   />
                 </div>
                 <div>
@@ -1347,19 +1347,19 @@ export default function AdminDashboard() {
                     type="text" placeholder="ชื่อเจ้าของบัญชี"
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
-                    className="w-full border border-slate-300 rounded-lg p-2 text-base sm:text-xs font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm font-bold bg-white outline-none"
                   />
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="w-10 h-10 border border-dashed border-slate-300 rounded-lg overflow-hidden bg-white flex items-center justify-center relative shrink-0">
+                <div className="flex items-center gap-2.5 pt-1">
+                  <div className="w-12 h-12 border border-dashed border-slate-300 rounded-xl overflow-hidden bg-white flex items-center justify-center relative shrink-0">
                     {noticeForm.qr_code_image ? (
                       <img src={noticeForm.qr_code_image} alt="QR Code" className="w-full h-full object-contain" />
                     ) : (
-                      <div className="text-center p-0.5 text-[9px] text-slate-400">QR</div>
+                      <div className="text-center p-0.5 text-[10px] text-slate-400">QR</div>
                     )}
                   </div>
-                  <label className="px-3 py-2 bg-white border border-rose-300 text-rose-700 font-bold rounded-lg text-xs hover:bg-rose-50 cursor-pointer text-center flex-1">
+                  <label className="px-3.5 py-2.5 bg-white border border-rose-300 text-rose-700 font-bold rounded-xl text-xs hover:bg-rose-50 cursor-pointer text-center flex-1 transition-colors">
                     📁 อัปโหลด QR Code
                     <input 
                       type="file" accept="image/*" className="hidden"
@@ -1413,18 +1413,18 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-rose-100 flex gap-2 justify-end">
+            <div className="pt-3 border-t border-rose-100 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => setNoticeModalOpen(false)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer text-xs"
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer text-xs"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
                 onClick={handleDownloadNoticeImage}
-                className="px-3 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer text-xs"
+                className="px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs"
               >
                 <Download className="w-4 h-4" />
                 <span>ดาวน์โหลดรูป</span>
@@ -1432,7 +1432,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={handleShareNoticeImage}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1 cursor-pointer text-xs"
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer text-xs"
               >
                 <Share2 className="w-4 h-4" />
                 <span>แชร์ภาพ</span>
@@ -1475,15 +1475,15 @@ export default function AdminDashboard() {
 
       {/* New Loan Modal */}
       {newLoanModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-2 z-50 overflow-y-auto">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-5 max-w-sm w-full space-y-3 text-slate-800 my-auto shadow-2xl max-h-[85vh] overflow-y-auto relative text-xs sm:text-sm">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 sm:p-6 max-w-sm w-full space-y-3.5 text-slate-800 my-auto shadow-2xl max-h-[85vh] overflow-y-auto relative text-xs sm:text-sm">
             
-            <div className="flex justify-between items-center border-b border-emerald-200 pb-2">
+            <div className="flex justify-between items-center border-b border-emerald-200 pb-3">
               <h3 className="font-black text-emerald-900 text-sm sm:text-base">📝 บันทึกรายการปล่อยกู้ใหม่</h3>
               <button type="button" onClick={() => setNewLoanModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold text-lg cursor-pointer">✕</button>
             </div>
 
-            <form onSubmit={handleSaveNewLoan} className="space-y-2.5">
+            <form onSubmit={handleSaveNewLoan} className="space-y-3">
               <div className="relative">
                 <label className="font-semibold text-emerald-900 text-xs">ชื่อ-นามสกุลลูกค้า</label>
                 <input 
@@ -1491,10 +1491,10 @@ export default function AdminDashboard() {
                   value={newLoanData.full_name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   onFocus={() => setShowSearchSuggestions(true)}
-                  className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-bold outline-none bg-white text-base sm:text-xs"
+                  className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-bold outline-none bg-white text-sm sm:text-base shadow-sm"
                 />
                 {showSearchSuggestions && customerSuggestions.filter(c => c.full_name.toLowerCase().includes((newLoanData.full_name || '').toLowerCase())).length > 0 && newLoanData.full_name.trim() !== '' && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-emerald-300 rounded-xl shadow-lg z-50 max-h-36 overflow-y-auto">
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-emerald-300 rounded-2xl shadow-xl z-50 max-h-40 overflow-y-auto">
                     {customerSuggestions
                       .filter(c => c.full_name.toLowerCase().includes(newLoanData.full_name.toLowerCase()))
                       .map((item, idx) => (
@@ -1511,7 +1511,7 @@ export default function AdminDashboard() {
                             }));
                             setShowSearchSuggestions(false);
                           }}
-                          className="px-3 py-2 hover:bg-emerald-50 cursor-pointer border-b border-slate-100 last:border-b-0 flex justify-between items-center text-xs"
+                          className="px-3.5 py-2.5 hover:bg-emerald-50 cursor-pointer border-b border-slate-100 last:border-b-0 flex justify-between items-center text-xs"
                         >
                           <span className="font-bold text-emerald-950">{item.full_name}</span>
                           <span className="text-xs text-slate-500 font-mono">{item.phone || 'ไม่มีเบอร์'}</span>
@@ -1521,14 +1521,14 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="font-semibold text-emerald-900 text-xs">เบอร์โทร</label>
                   <input 
                     type="text" placeholder="08x-xxx-xxxx" 
                     value={newLoanData.phone} 
                     onChange={(e) => setNewLoanData({...newLoanData, phone: e.target.value})} 
-                    className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono bg-white text-base sm:text-xs" 
+                    className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-mono bg-white text-sm sm:text-base shadow-sm" 
                   />
                 </div>
                 <div>
@@ -1537,18 +1537,18 @@ export default function AdminDashboard() {
                     type="text" placeholder="ลิงก์เฟสบุ๊ค..." 
                     value={newLoanData.facebook_link} 
                     onChange={(e) => setNewLoanData({...newLoanData, facebook_link: e.target.value})} 
-                    className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono bg-white text-base sm:text-xs" 
+                    className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-mono bg-white text-sm sm:text-base shadow-sm" 
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+              <div className="grid grid-cols-2 gap-2.5 bg-white/70 p-3 rounded-2xl border border-emerald-200">
                 <div className="space-y-1">
                   <label className="font-semibold text-emerald-900 text-xs">ธนาคารรับเงิน</label>
                   <select
                     value={newLoanData.bank_name} 
                     onChange={(e) => setNewLoanData({...newLoanData, bank_name: e.target.value})}
-                    className="w-full border border-emerald-300 rounded-lg p-2 text-base sm:text-xs bg-white outline-none font-bold text-slate-900"
+                    className="w-full border border-emerald-300 rounded-xl p-2.5 text-xs sm:text-sm bg-white outline-none font-bold text-slate-900 shadow-sm"
                   >
                     <option value="">-- เลือกธนาคาร --</option>
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -1570,12 +1570,12 @@ export default function AdminDashboard() {
                     type="text" placeholder="เลขบัญชี..."
                     value={newLoanData.account_number} 
                     onChange={(e) => setNewLoanData({...newLoanData, account_number: e.target.value})}
-                    className="w-full border border-emerald-300 rounded-lg p-2 text-base sm:text-xs font-mono font-bold outline-none bg-white"
+                    className="w-full border border-emerald-300 rounded-xl p-2.5 text-xs sm:text-sm font-mono font-bold outline-none bg-white shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+              <div className="grid grid-cols-2 gap-2.5 bg-white/70 p-3 rounded-2xl border border-emerald-200">
                 <div className="space-y-1">
                   <label className="font-semibold text-emerald-800 flex items-center gap-1 text-xs">
                     <Calendar className="w-3.5 h-3.5 text-emerald-600" /> วันที่กู้ / เริ่มสัญญา
@@ -1584,7 +1584,7 @@ export default function AdminDashboard() {
                     type="date" required
                     value={newLoanData.loan_date}
                     onChange={(e) => setNewLoanData({...newLoanData, loan_date: e.target.value})}
-                    className="w-full border border-emerald-400 bg-emerald-50/80 rounded-lg p-2 font-mono text-base sm:text-xs outline-none font-bold text-emerald-900"
+                    className="w-full border border-emerald-400 bg-emerald-50/80 rounded-xl p-2.5 font-mono text-xs sm:text-sm outline-none font-bold text-emerald-900 shadow-sm"
                   />
                 </div>
 
@@ -1596,12 +1596,12 @@ export default function AdminDashboard() {
                     type="date" required
                     value={newLoanData.cycle_date}
                     onChange={(e) => setNewLoanData({...newLoanData, cycle_date: e.target.value})}
-                    className="w-full border border-amber-300 bg-amber-50/60 rounded-lg p-2 font-mono text-base sm:text-xs outline-none font-bold text-amber-900"
+                    className="w-full border border-amber-300 bg-amber-50/60 rounded-xl p-2.5 font-mono text-xs sm:text-sm outline-none font-bold text-amber-900 shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+              <div className="space-y-2 bg-white/70 p-3 rounded-2xl border border-emerald-200">
                 <label className="font-semibold text-emerald-900 block text-xs">รอบการจ่าย / นัดเก็บเงิน</label>
                 <select
                   value={['จ่ายทุกวัน', 'จ่ายทุกสิ้นเดือน'].includes(newLoanData.payment_schedule) ? newLoanData.payment_schedule : 'กำหนดช่วงวัน'}
@@ -1613,7 +1613,7 @@ export default function AdminDashboard() {
                       setNewLoanData({...newLoanData, payment_schedule: val, schedule_start: '', schedule_end: ''});
                     }
                   }}
-                  className="w-full border border-emerald-300 rounded-lg p-2 text-base sm:text-xs bg-white outline-none font-bold"
+                  className="w-full border border-emerald-300 rounded-xl p-2.5 text-xs sm:text-sm bg-white outline-none font-bold shadow-sm"
                 >
                   <option value="จ่ายทุกวัน">จ่ายทุกวัน</option>
                   <option value="กำหนดช่วงวัน">กำหนดช่วงวัน (เช่น วันที่ 1 ถึง 10)</option>
@@ -1630,7 +1630,7 @@ export default function AdminDashboard() {
                         const end = newLoanData.schedule_end || '';
                         setNewLoanData({...newLoanData, schedule_start: start, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 border border-emerald-300 rounded-lg p-2 text-base sm:text-xs bg-white font-mono"
+                      className="w-1/2 border border-emerald-300 rounded-xl p-2.5 text-xs sm:text-sm bg-white font-mono shadow-sm"
                     />
                     <span className="text-slate-500">ถึง</span>
                     <input 
@@ -1641,19 +1641,19 @@ export default function AdminDashboard() {
                         const end = e.target.value;
                         setNewLoanData({...newLoanData, schedule_end: end, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 border border-emerald-300 rounded-lg p-2 text-base sm:text-xs bg-white font-mono"
+                      className="w-1/2 border border-emerald-300 rounded-xl p-2.5 text-xs sm:text-sm bg-white font-mono shadow-sm"
                     />
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="font-semibold text-emerald-900 text-xs">ประเภทรายการ</label>
                   <select
                     value={newLoanData.loan_type}
                     onChange={(e) => setNewLoanData({...newLoanData, loan_type: e.target.value})}
-                    className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-bold bg-white text-base sm:text-xs"
+                    className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-bold bg-white text-xs sm:text-sm shadow-sm"
                   >
                     <option value="ดอกลอย">ดอกลอย</option>
                     <option value="จบต้นดอก">จบต้นดอก</option>
@@ -1667,18 +1667,18 @@ export default function AdminDashboard() {
                     type="number" required placeholder="เช่น 1000" 
                     value={newLoanData.principal_amount} 
                     onChange={(e) => setNewLoanData({...newLoanData, principal_amount: e.target.value})} 
-                    className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-base sm:text-xs" 
+                    className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-mono font-bold text-emerald-900 bg-white text-sm sm:text-base shadow-sm" 
                   />
                 </div>
               </div>
 
               {newLoanData.loan_type === 'ดอกลอย' && (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div>
                     <label className="font-semibold text-emerald-900 text-xs">ดอกเบี้ย (บาทต่อวัน)</label>
-                    <input type="number" step="0.01" placeholder="เช่น 40" value={newLoanData.daily_interest || ''} onChange={(e) => setNewLoanData({...newLoanData, daily_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-base sm:text-xs" />
+                    <input type="number" step="0.01" placeholder="เช่น 40" value={newLoanData.daily_interest || ''} onChange={(e) => setNewLoanData({...newLoanData, daily_interest: e.target.value})} className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-mono font-bold text-emerald-900 bg-white text-sm sm:text-base shadow-sm" />
                   </div>
-                  <div className="bg-emerald-100/60 p-2.5 rounded-lg border border-emerald-200 flex items-center gap-2">
+                  <div className="bg-emerald-100/60 p-3 rounded-xl border border-emerald-200 flex items-center gap-2.5">
                     <input 
                       type="checkbox"
                       id="calc_next_day_checkbox"
@@ -1694,19 +1694,19 @@ export default function AdminDashboard() {
               )}
 
               {newLoanData.loan_type === 'จบต้นดอก' && (
-                <div className="grid grid-cols-2 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+                <div className="grid grid-cols-2 gap-2.5 bg-white/70 p-3 rounded-2xl border border-emerald-200">
                   <div>
                     <label className="font-semibold text-emerald-900 text-xs">ดอกเบี้ยรวม (บาท)</label>
-                    <input type="number" placeholder="ดอกเบี้ยรวม..." value={newLoanData.total_interest} onChange={(e) => setNewLoanData({...newLoanData, total_interest: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-emerald-900 bg-white text-base sm:text-xs" />
+                    <input type="number" placeholder="ดอกเบี้ยรวม..." value={newLoanData.total_interest} onChange={(e) => setNewLoanData({...newLoanData, total_interest: e.target.value})} className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-mono font-bold text-emerald-900 bg-white text-sm sm:text-base shadow-sm" />
                   </div>
                   <div>
                     <label className="font-semibold text-emerald-900 text-xs">จำนวนงวด</label>
-                    <input type="number" placeholder="เช่น 10" value={newLoanData.installment_count} onChange={(e) => setNewLoanData({...newLoanData, installment_count: e.target.value})} className="w-full border border-emerald-300 rounded-lg p-2 mt-0.5 font-mono font-bold text-slate-700 bg-white text-base sm:text-xs" />
+                    <input type="number" placeholder="เช่น 10" value={newLoanData.installment_count} onChange={(e) => setNewLoanData({...newLoanData, installment_count: e.target.value})} className="w-full border border-emerald-300 rounded-xl p-2.5 mt-1 font-mono font-bold text-slate-700 bg-white text-sm sm:text-base shadow-sm" />
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2 sticky bottom-0 bg-emerald-50 py-1">
+              <div className="flex gap-2.5 pt-3 sticky bottom-0 bg-emerald-50 py-1.5">
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
@@ -1720,7 +1720,7 @@ export default function AdminDashboard() {
                   type="button" 
                   disabled={isSubmitting}
                   onClick={() => setNewLoanModalOpen(false)} 
-                  className="px-4 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow-md transition-colors"
+                  className="px-5 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow-md transition-colors"
                 >
                   ปิด
                 </button>
@@ -1733,11 +1733,11 @@ export default function AdminDashboard() {
       {/* Payment Modal */}
       {paymentModalOpen && selectedPaymentLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs sm:text-sm">
+          <div className="bg-white rounded-3xl w-[92%] max-w-sm p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-xs sm:text-sm">
             
-            <div className="flex justify-between items-center border-b border-purple-100 pb-2">
+            <div className="flex justify-between items-center border-b border-purple-100 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">💵</span>
+                <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">💵</span>
                 <h3 className="font-black text-purple-900 text-sm">
                   บันทึกรับชำระ: <span className="font-mono text-purple-700">{selectedPaymentLoan.bill_code}</span>
                 </h3>
@@ -1751,22 +1751,22 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-1.5 font-medium text-slate-700 text-xs sm:text-sm">
+            <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 space-y-2 font-medium text-slate-700 text-xs sm:text-sm">
               <div>ลูกค้า: <span className="font-bold text-slate-900">{selectedPaymentLoan.full_name}</span></div>
               <div>ประเภท: <span className="font-bold text-purple-700">{selectedPaymentLoan.loan_type || '-'}</span></div>
-              <div className="flex justify-between items-center border-t border-purple-200/60 pt-1.5 mt-1">
+              <div className="flex justify-between items-center border-t border-purple-200/60 pt-2 mt-1">
                 <span>ยอดคงเหลือ: <span className="font-mono font-bold text-amber-600">฿{Number(selectedPaymentLoan.remaining_principal || selectedPaymentLoan.principal_amount || 0).toLocaleString()}</span></span>
                 <span>ดอกเบี้ยสะสม: <span className="font-mono font-bold text-[color:#ff007f]">฿{calculateAccruedInterest(selectedPaymentLoan).toLocaleString()}</span></span>
               </div>
             </div>
 
-            <form onSubmit={handleSavePayment} className="space-y-3">
+            <form onSubmit={handleSavePayment} className="space-y-3.5">
               <div>
                 <label className="block text-slate-700 font-bold mb-1">1. เลือกฟังก์ชันการใช้งาน</label>
                 <select
                   value={paymentMode}
                   onChange={(e) => setPaymentMode(e.target.value)}
-                  className="w-full border border-purple-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-purple-600 bg-white font-bold text-purple-900"
+                  className="w-full border border-purple-300 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-purple-600 bg-white font-bold text-purple-900 shadow-sm"
                 >
                   <option value="ชำระยอดปกติ">ชำระยอดปกติ</option>
                   <option value="ส่วนลด">ส่วนลด</option>
@@ -1785,7 +1785,7 @@ export default function AdminDashboard() {
                   value={actionAmount}
                   onChange={(e) => setActionAmount(e.target.value)}
                   placeholder="0"
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold text-slate-900"
+                  className="w-full border border-purple-200 rounded-2xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-purple-600 bg-purple-50/20 font-mono font-bold text-slate-900 shadow-sm"
                 />
               </div>
 
@@ -1796,21 +1796,21 @@ export default function AdminDashboard() {
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
                   placeholder={paymentMode === 'ส่วนลด' ? 'ให้ส่วนลดพิเศษ...' : paymentMode === 'เพิ่มปรับ' ? 'ปรับค่าปรับล่าช้า...' : 'ชำระงวดประจำวัน...'}
-                  className="w-full border border-purple-200 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-purple-600 bg-purple-50/20 text-slate-900"
+                  className="w-full border border-purple-200 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-purple-600 bg-purple-50/20 text-slate-900 shadow-sm"
                 />
               </div>
 
-              <div className="pt-2 border-t border-purple-100 flex gap-2 justify-end">
+              <div className="pt-3 border-t border-purple-100 flex gap-2.5 justify-end">
                 <button
                   type="button"
                   onClick={() => setPaymentModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer text-xs sm:text-sm"
+                  className="px-4.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer text-xs sm:text-sm transition-colors"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer text-xs sm:text-sm"
+                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl shadow-md cursor-pointer text-xs sm:text-sm transition-colors"
                 >
                   ยืนยันทำรายการ
                 </button>
@@ -1825,7 +1825,7 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-sky-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-sky-50 border-2 border-sky-600 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 text-slate-800 text-xs sm:text-sm max-h-[90vh] overflow-y-auto">
             
-            <div className="flex justify-between items-center border-b border-sky-200 pb-2.5">
+            <div className="flex justify-between items-center border-b border-sky-200 pb-3">
               <h3 className="font-black text-sky-900 text-sm sm:text-base flex items-center gap-1.5">
                 <span>✏️</span> แก้ไขข้อมูลลูกค้าประจำบิล
               </h3>
@@ -1837,7 +1837,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveCustomerInfo} className="space-y-3">
+            <form onSubmit={handleSaveCustomerInfo} className="space-y-3.5">
               <div>
                 <label className="block text-sky-900 font-bold mb-1">ชื่อ-นามสกุล *</label>
                 <input 
@@ -1845,7 +1845,7 @@ export default function AdminDashboard() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
+                  className="w-full bg-white border border-sky-300 rounded-2xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
                 />
               </div>
 
@@ -1855,7 +1855,7 @@ export default function AdminDashboard() {
                   type="text" 
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
+                  className="w-full bg-white border border-sky-300 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
                 />
               </div>
 
@@ -1866,7 +1866,7 @@ export default function AdminDashboard() {
                   value={editFacebook}
                   onChange={(e) => setEditFacebook(e.target.value)}
                   placeholder="facebook.com/username"
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 shadow-sm"
+                  className="w-full bg-white border border-sky-300 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-sky-600 text-slate-900 shadow-sm"
                 />
               </div>
 
@@ -1875,7 +1875,7 @@ export default function AdminDashboard() {
                 <select
                   value={editBankName}
                   onChange={(e) => setEditBankName(e.target.value)}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
+                  className="w-full bg-white border border-sky-300 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-sky-600 text-slate-900 font-bold shadow-sm"
                 >
                   <option value="">-- เลือกธนาคาร --</option>
                   <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -1899,15 +1899,15 @@ export default function AdminDashboard() {
                   value={editAccountNumber}
                   onChange={(e) => setEditAccountNumber(e.target.value)}
                   placeholder="เช่น 1234567890 หรือเบอร์โทรพร้อมเพย์"
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3.5 py-2.5 text-base sm:text-xs outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
+                  className="w-full bg-white border border-sky-300 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm outline-none focus:border-sky-600 font-mono text-slate-900 shadow-sm"
                 />
               </div>
 
-              <div className="pt-3 border-t border-sky-200 flex gap-2 justify-end">
+              <div className="pt-3 border-t border-sky-200 flex gap-2.5 justify-end">
                 <button
                   type="button"
                   onClick={() => setEditCustomerModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-xs sm:text-sm"
+                  className="px-4.5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-xs sm:text-sm"
                 >
                   ยกเลิก
                 </button>
@@ -1926,13 +1926,13 @@ export default function AdminDashboard() {
       {/* Approval Modal */}
       {approvalModalOpen && selectedLoanForApproval && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 max-w-md w-full space-y-3 text-slate-900 relative shadow-2xl max-h-[85vh] overflow-y-auto text-xs sm:text-sm">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 max-w-md w-full space-y-4 text-slate-900 relative shadow-2xl max-h-[85vh] overflow-y-auto text-xs sm:text-sm">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <h3 className="font-bold text-sm sm:text-base text-purple-800 truncate">อนุมัติคำขอกู้: {selectedLoanForApproval.full_name}</h3>
-              <button type="button" onClick={() => setApprovalModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer text-base">✕</button>
+              <button type="button" onClick={() => setApprovalModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold cursor-pointer text-lg">✕</button>
             </div>
 
-            <div className="bg-purple-50 p-3 rounded-xl border border-purple-200 text-xs sm:text-sm space-y-2 text-slate-800">
+            <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 text-xs sm:text-sm space-y-2.5 text-slate-800">
               <p>📱 เบอร์โทร: <span className="text-purple-700 font-mono font-bold">{selectedLoanForApproval.phone || '-'}</span></p>
               
               <div className="flex items-center gap-2">
@@ -1942,7 +1942,7 @@ export default function AdminDashboard() {
                     href={selectedLoanForApproval.facebook_link.startsWith('http') ? selectedLoanForApproval.facebook_link : `https://${selectedLoanForApproval.facebook_link}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs inline-flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                   >
                     <span>🔗 ไปที่ Facebook ลูกค้า</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1954,13 +1954,13 @@ export default function AdminDashboard() {
 
               <p>💰 ยอดขอกู้: <span className="text-pink-600 font-bold font-mono">฿{Number(selectedLoanForApproval.principal_amount || 0).toLocaleString()}</span></p>
               <p>🏦 ธนาคาร: <span className="text-purple-900 font-semibold">{selectedLoanForApproval.bank_name} ({selectedLoanForApproval.account_number})</span></p>
-              <div className="grid grid-cols-2 gap-1 pt-1 border-t border-purple-200 font-mono text-xs">
+              <div className="grid grid-cols-2 gap-1 pt-1.5 border-t border-purple-200 font-mono text-xs">
                 <p>📅 วันกู้: <span className="font-bold text-slate-900">{selectedLoanForApproval.loan_date || selectedLoanForApproval.created_at?.split('T')[0] || '-'}</span></p>
                 <p>📅 วันคืน: <span className="font-bold text-amber-700">{selectedLoanForApproval.cycle_date || '-'}</span></p>
               </div>
 
               {/* 📌 ส่วนแสดงรูปถ่ายหน้าบ้าน/บัตรประชาชน และ รูปสแกนหน้า */}
-              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-purple-200">
+              <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-purple-200">
                 <div className="space-y-1">
                   <span className="text-xs text-slate-600 font-bold block">📷 ภาพถ่ายหน้าบ้าน / บัตร ปชช.:</span>
                   {selectedLoanForApproval.id_card_url ? (
@@ -1968,7 +1968,7 @@ export default function AdminDashboard() {
                       href={selectedLoanForApproval.id_card_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="block border border-purple-200 rounded-lg overflow-hidden bg-white h-28 hover:opacity-90 transition-opacity"
+                      className="block border border-purple-200 rounded-xl overflow-hidden bg-white h-32 hover:opacity-90 transition-opacity shadow-sm"
                     >
                       <img 
                         src={selectedLoanForApproval.id_card_url} 
@@ -1977,7 +1977,7 @@ export default function AdminDashboard() {
                       />
                     </a>
                   ) : (
-                    <div className="h-28 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-xs text-slate-400 bg-white">
+                    <div className="h-32 border border-dashed border-slate-300 rounded-xl flex items-center justify-center text-xs text-slate-400 bg-white">
                       ไม่มีภาพถ่าย
                     </div>
                   )}
@@ -1990,7 +1990,7 @@ export default function AdminDashboard() {
                       href={selectedLoanForApproval.face_image_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="block border border-purple-200 rounded-lg overflow-hidden bg-white h-28 hover:opacity-90 transition-opacity"
+                      className="block border border-purple-200 rounded-xl overflow-hidden bg-white h-32 hover:opacity-90 transition-opacity shadow-sm"
                     >
                       <img 
                         src={selectedLoanForApproval.face_image_url} 
@@ -1999,7 +1999,7 @@ export default function AdminDashboard() {
                       />
                     </a>
                   ) : (
-                    <div className="h-28 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-xs text-slate-400 bg-white">
+                    <div className="h-32 border border-dashed border-slate-300 rounded-xl flex items-center justify-center text-xs text-slate-400 bg-white">
                       ไม่มีรูปสแกนหน้า
                     </div>
                   )}
@@ -2039,21 +2039,21 @@ export default function AdminDashboard() {
               } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
               }
-            }} className="space-y-3">
+            }} className="space-y-3.5">
               
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">ประเภทรายการ</label>
                 <select
                   value={approvalData.loan_type}
                   onChange={(e) => setApprovalData({...approvalData, loan_type: e.target.value})}
-                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 font-bold text-slate-900 outline-none text-base sm:text-xs"
+                  className="w-full bg-white border border-slate-300 rounded-2xl p-3 font-bold text-slate-900 outline-none text-xs sm:text-sm shadow-sm"
                 >
                   <option value="ดอกลอย">ดอกลอย</option>
                   <option value="จบต้นดอก">จบต้นดอก</option>
                 </select>
               </div>
 
-              <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <label className="font-semibold text-slate-700 block text-xs">รอบการจ่าย / นัดเก็บเงิน</label>
                 <select
                   value={['จ่ายทุกวัน', 'จ่ายทุกสิ้นเดือน'].includes(approvalData.payment_schedule) ? approvalData.payment_schedule : 'กำหนดช่วงวัน'}
@@ -2065,7 +2065,7 @@ export default function AdminDashboard() {
                       setApprovalData({...approvalData, payment_schedule: val, schedule_start: '', schedule_end: ''});
                     }
                   }}
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-base sm:text-xs text-slate-900 outline-none font-bold"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm text-slate-900 outline-none font-bold shadow-sm"
                 >
                   <option value="จ่ายทุกวัน">จ่ายทุกวัน</option>
                   <option value="กำหนดช่วงวัน">กำหนดช่วงวัน (เช่น 1 ถึง 10)</option>
@@ -2082,7 +2082,7 @@ export default function AdminDashboard() {
                         const end = approvalData.schedule_end || '';
                         setApprovalData({...approvalData, schedule_start: start, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 bg-white border border-slate-300 rounded-lg p-2 text-base sm:text-xs text-slate-900 font-mono"
+                      className="w-1/2 bg-white border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm text-slate-900 font-mono shadow-sm"
                     />
                     <span className="text-slate-500">ถึง</span>
                     <input 
@@ -2093,7 +2093,7 @@ export default function AdminDashboard() {
                         const end = e.target.value;
                         setApprovalData({...approvalData, schedule_end: end, payment_schedule: `${start}-${end}`});
                       }}
-                      className="w-1/2 bg-white border border-slate-300 rounded-lg p-2 text-base sm:text-xs text-slate-900 font-mono"
+                      className="w-1/2 bg-white border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm text-slate-900 font-mono shadow-sm"
                     />
                   </div>
                 )}
@@ -2107,10 +2107,10 @@ export default function AdminDashboard() {
                       type="number" step="0.01" required placeholder="เช่น 40" 
                       value={approvalData.daily_interest} 
                       onChange={(e) => setApprovalData({...approvalData, daily_interest: e.target.value})} 
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2.5 font-mono font-bold text-purple-700 outline-none text-base sm:text-xs" 
+                      className="w-full bg-white border border-slate-300 rounded-xl p-3 font-mono font-bold text-purple-700 outline-none text-sm sm:text-base shadow-sm" 
                     />
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                     <input 
                       type="checkbox"
                       id="admin_calc_next_day"
@@ -2126,19 +2126,19 @@ export default function AdminDashboard() {
               )}
 
               {approvalData.loan_type === 'จบต้นดอก' && (
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-2 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                   <div>
                     <label className="font-semibold text-slate-700 block mb-1">ดอกเบี้ยรวม</label>
-                    <input type="number" placeholder="ดอกเบี้ยรวม..." value={approvalData.total_interest} onChange={(e) => setApprovalData({...approvalData, total_interest: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-base sm:text-xs text-slate-900 outline-none" />
+                    <input type="number" placeholder="ดอกเบี้ยรวม..." value={approvalData.total_interest} onChange={(e) => setApprovalData({...approvalData, total_interest: e.target.value})} className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm text-slate-900 outline-none shadow-sm" />
                   </div>
                   <div>
                     <label className="font-semibold text-slate-700 block mb-1">จำนวนงวด</label>
-                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...approvalData, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-base sm:text-xs text-slate-900 outline-none" />
+                    <input type="number" placeholder="เช่น 10" value={approvalData.installment_count} onChange={(e) => setApprovalData({...approvalData, installment_count: e.target.value})} className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs sm:text-sm text-slate-900 outline-none shadow-sm" />
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2.5 pt-2">
                 <button 
                   type="submit" 
                   className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow-md"
@@ -2166,7 +2166,7 @@ export default function AdminDashboard() {
                       }
                     }
                   }}
-                  className="px-4 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow-md"
+                  className="px-5 py-3 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow-md"
                 >
                   ❌ ปฏิเสธ
                 </button>
