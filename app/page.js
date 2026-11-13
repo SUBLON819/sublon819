@@ -628,8 +628,9 @@ export default function AdminDashboard() {
     }
 
     if (filterTab === 'อนุมัติวันนี้') {
-      return status === 'อนุมัติแล้ว' && loan.created_at && formatThaiDate(loan.created_at) === targetCheckDate;
-    } 
+      const checkDate = loan.loan_date || (loan.created_at ? loan.created_at.split('T')[0] : '');
+      return status === 'อนุมัติแล้ว' && checkDate === targetCheckDate;
+   }
 
     if (filterTab === 'รออนุมัติ') {
       return status === 'รออนุมัติ' || status === 'รอตรวจสอบ';
