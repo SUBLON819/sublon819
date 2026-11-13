@@ -969,12 +969,12 @@ export default function AdminDashboard() {
                             onClick={() => {
                               setSelectedCustomerName(loan.full_name);
                               setCustomerProfileModalOpen(true);
-                            }}
-                            className="text-xs sm:text-base font-bold text-slate-900 hover:text-purple-700 underline cursor-pointer truncate max-w-[200px] sm:max-w-none"
-                            title="คลิกเพื่อดูประวัติลูกค้าแบบเต็มจอ"
-                          >
-                            - {loan.full_name} 🔍
-                          </span>
+                           }}
+                           className="text-base sm:text-lg font-black text-slate-900 hover:text-purple-700 underline cursor-pointer truncate max-w-[200px] sm:max-w-none"
+                           title="คลิกเพื่อดูประวัติลูกค้าแบบเต็มจอ"
+                         >
+                           - {loan.full_name} 🔍
+                         </span>
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-600">
