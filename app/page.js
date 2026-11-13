@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Share2, Trash2, ExternalLink, Clock, Bell, Download
+  FileText, Search, Calendar, Plus, Wallet, Share2, Trash2, ExternalLink, Clock, Bell, Download
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -174,9 +174,6 @@ export default function AdminDashboard() {
   const [selectedCustomerName, setSelectedCustomerName] = useState('');
 
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
-  const [reportLogo, setReportLogo] = useState('');
-  const [logoScale, setLogoScale] = useState(1);
-  const [logoPosition, setLogoPosition] = useState({ x: 0, y: 0 });
 
   const reportRef = useRef(null);
   const hiddenReportCaptureRef = useRef(null);
@@ -294,7 +291,7 @@ export default function AdminDashboard() {
             if (error.name !== 'AbortError') console.log('Share error:', error);
           }
         } else {
-          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง แนะนำให้ใช้ปุ่มพิมพ์แทนครับ');
+          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง');
         }
       }, 'image/png');
     } catch (err) {
@@ -755,7 +752,7 @@ export default function AdminDashboard() {
                 className="px-4 py-2.5 bg-purple-900/60 hover:bg-purple-900 border border-purple-300/40 text-white rounded-xl text-sm font-bold shadow flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
                 title="รายงานประจำวัน"
               >
-                <Printer className="w-4 h-4" />
+                <FileText className="w-4 h-4" />
                 <span className="hidden sm:inline">รายงานประจำวัน</span>
               </button>
 
@@ -1143,146 +1140,20 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Daily Report Print / Image Modal */}
+      {/* Daily Report Modal (ตัดปุ่ม Print ออกเรียบร้อย) */}
       {dailyReportModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center border-b border-purple-100 pb-3 shrink-0">
               <h3 className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-2">
-                <Printer className="w-4 h-4 text-purple-700" />
+                <FileText className="w-4 h-4 text-purple-700" />
                 <span>รายงานสรุปยอดประจำวัน</span>
               </h3>
               <button type="button" onClick={() => setDailyReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="bg-purple-50/70 border border-purple-200 p-3 rounded-2xl space-y-3 shrink-0">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-14 h-14 rounded-full bg-slate-900 overflow-hidden relative shrink-0 cursor-grab active:cursor-grabbing shadow-inner flex items-center justify-center select-none"
-                  onMouseDown={(e) => {
-                    const startX = e.clientX;
-                    const startY = e.clientY;
-                    const startPosX = logoPosition.x;
-                    const startPosY = logoPosition.y;
-
-                    const onMouseMove = (moveEvent) => {
-                      const dx = moveEvent.clientX - startX;
-                      const dy = moveEvent.clientY - startY;
-                      setLogoPosition({ x: startPosX + dx, y: startPosY + dy });
-                    };
-
-                    const onMouseUp = () => {
-                      window.removeEventListener('mousemove', onMouseMove);
-                      window.removeEventListener('mouseup', onMouseUp);
-                    };
-
-                    window.addEventListener('mousemove', onMouseMove);
-                    window.addEventListener('mouseup', onMouseUp);
-                  }}
-                  onTouchStart={(e) => {
-                    const touch = e.touches[0];
-                    const startX = touch.clientX;
-                    const startY = touch.clientY;
-                    const startPosX = logoPosition.x;
-                    const startPosY = logoPosition.y;
-
-                    const onTouchMove = (moveEvent) => {
-                      const t = moveEvent.touches[0];
-                      const dx = t.clientX - startX;
-                      const dy = t.clientY - startY;
-                      setLogoPosition({ x: startPosX + dx, y: startPosY + dy });
-                    };
-
-                    const onTouchEnd = () => {
-                      window.removeEventListener('touchmove', onTouchMove);
-                      window.removeEventListener('touchend', onTouchEnd);
-                    };
-
-                    window.addEventListener('touchmove', onTouchMove);
-                    window.addEventListener('touchend', onTouchEnd);
-                  }}
-                  title="คลิกค้างแล้วลากเพื่อเลื่อนตำแหน่งภาพ"
-                >
-                  {reportLogo ? (
-                    <img 
-                      src={reportLogo} 
-                      alt="Logo Preview" 
-                      style={{
-                        transform: `translate(${logoPosition.x}px, ${logoPosition.y}px) scale(${logoScale})`,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        position: 'absolute',
-                        pointerEvents: 'none'
-                      }} 
-                    />
-                  ) : (
-                    <span className="text-xl">👑</span>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-purple-900">ปรับแต่งโลโก้ (ซูม & เลื่อนตำแหน่ง)</div>
-                  <div className="text-[11px] text-slate-500 truncate">ลากรูปในวงกลมเพื่อปรับมุมมอง หรือเปลี่ยนรูปใหม่</div>
-                </div>
-                
-                <label className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-sm shrink-0 transition-colors">
-                  เปลี่ยนรูป
-                  <input 
-                    type="file" accept="image/*" className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setReportLogo(reader.result);
-                          setLogoScale(1);
-                          setLogoPosition({ x: 0, y: 0 });
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-
-              {reportLogo && (
-                <div className="flex items-center gap-3 pt-1 border-t border-purple-200/60">
-                  <span className="text-[11px] font-bold text-purple-900 shrink-0">ขนาด (Zoom):</span>
-                  <input 
-                    type="range" min="1" max="3" step="0.05"
-                    value={logoScale}
-                    onChange={(e) => setLogoScale(parseFloat(e.target.value))}
-                    className="w-full accent-purple-700 cursor-pointer h-1.5 bg-purple-200 rounded-lg"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => { setLogoScale(1); setLogoPosition({ x: 0, y: 0 }); }}
-                    className="text-[10px] text-purple-700 underline font-bold shrink-0 hover:text-purple-900 cursor-pointer"
-                  >
-                    รีเซ็ต
-                  </button>
-                </div>
-              )}
-            </div>
-
             <div className="flex-1 overflow-y-auto p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 text-xs sm:text-sm" ref={reportRef}>
               <div className="text-center border-b-2 border-purple-700 pb-3 flex flex-col items-center">
-                {reportLogo && (
-                  <div className="w-16 h-16 rounded-full overflow-hidden mb-2 shadow-md bg-slate-900 relative flex items-center justify-center">
-                    <img 
-                      src={reportLogo} 
-                      alt="Shop Logo" 
-                      style={{
-                        transform: `translate(${logoPosition.x}px, ${logoPosition.y}px) scale(${logoScale})`,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        position: 'absolute'
-                      }} 
-                    />
-                  </div>
-                )}
                 <h2 className="text-base sm:text-lg font-black text-purple-900">วังทองล้น (ทรัพย์ล้น 819)</h2>
                 <p className="text-xs text-slate-600">รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บประจำวัน</p>
                 <p className="text-xs text-slate-500 mt-1 font-mono">วันที่ออกรายงาน: {selectedReportDate || todayStr}</p>
@@ -1336,24 +1207,10 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Hidden Element สำหรับแปลงภาพรายงานตอนแชร์ */}
             <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
               <div ref={hiddenReportCaptureRef} style={{ width: '460px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #7c3aed', paddingBottom: '14px', marginBottom: '16px' }}>
-                  {reportLogo && (
-                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', margin: '0 auto 8px auto', background: '#000000', position: 'relative' }}>
-                      <img 
-                        src={reportLogo} 
-                        alt="Logo" 
-                        style={{ 
-                          transform: `translate(${logoPosition.x}px, ${logoPosition.y}px) scale(${logoScale})`,
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover',
-                          position: 'absolute'
-                        }} 
-                      />
-                    </div>
-                  )}
                   <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#581c87', margin: 0 }}>วังทองล้น (ทรัพย์ล้น 819)</h2>
                   <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>รายงานสรุปผลการดำเนินงานและยอดการจัดเก็บ</p>
                   <p style={{ fontSize: '11px', color: '#475569', margin: '4px 0 0 0', fontFamily: 'monospace' }}>วันที่: {selectedReportDate || todayStr}</p>
@@ -1407,19 +1264,11 @@ export default function AdminDashboard() {
             <div className="flex gap-2.5 shrink-0 pt-1">
               <button 
                 type="button"
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>พิมพ์รายงาน</span>
-              </button>
-              <button 
-                type="button"
                 onClick={handleShareReportImage}
-                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
-                <span>แชร์ภาพรายงาน</span>
+                <span>แชร์ภาพรายงานประจำวัน</span>
               </button>
             </div>
           </div>
