@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Share2, Trash2, ExternalLink, Clock, Bell
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Share2, Trash2, ExternalLink, Clock, Bell, Download
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -1143,7 +1143,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Daily Report Print / Image Modal (ตัดปุ่มดาวน์โหลดออกแล้ว) */}
+      {/* Daily Report Print / Image Modal */}
       {dailyReportModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
@@ -1155,7 +1155,6 @@ export default function AdminDashboard() {
               <button type="button" onClick={() => setDailyReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             </div>
 
-            {/* ส่วนตั้งค่าโลโก้ร้านแบบปรับซูม & เลื่อนตำแหน่ง (ไร้ขอบ) */}
             <div className="bg-purple-50/70 border border-purple-200 p-3 rounded-2xl space-y-3 shrink-0">
               <div className="flex items-center gap-3">
                 <div 
@@ -1337,7 +1336,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Hidden Element สำหรับแปลงภาพรายงานตอนแชร์ */}
             <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
               <div ref={hiddenReportCaptureRef} style={{ width: '460px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #7c3aed', paddingBottom: '14px', marginBottom: '16px' }}>
@@ -1406,7 +1404,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* ปุ่มด้านล่าง (เหลือแค่ พิมพ์ และ แชร์ภาพ เพื่อความสะอาดตา) */}
             <div className="flex gap-2.5 shrink-0 pt-1">
               <button 
                 type="button"
