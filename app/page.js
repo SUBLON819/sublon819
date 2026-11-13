@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  FileText, Search, Calendar, Plus, Wallet, Printer, User, Download, Share2, Trash2, ExternalLink, Clock, Bell
+  FileText, Search, Calendar, Plus, Wallet, Printer, User, Share2, Trash2, ExternalLink, Clock, Bell
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -174,7 +174,10 @@ export default function AdminDashboard() {
   const [selectedCustomerName, setSelectedCustomerName] = useState('');
 
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
-  const [reportLogo, setReportLogo] = useState(''); // State เก็บรูปโลโก้ร้าน
+  const [reportLogo, setReportLogo] = useState('');
+  const [logoScale, setLogoScale] = useState(1);
+  const [logoPosition, setLogoPosition] = useState({ x: 0, y: 0 });
+
   const reportRef = useRef(null);
   const hiddenReportCaptureRef = useRef(null);
 
@@ -264,44 +267,6 @@ export default function AdminDashboard() {
     return dateObj.toISOString().split('T')[0];
   };
 
-  // 📌 ฟังก์ชันดาวน์โหลดภาพรายงานประจำวัน
-  const handleDownloadReportImage = async () => {
-    const element = hiddenReportCaptureRef.current;
-    if (!element) return;
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(element, { 
-        scale: 3, 
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 480,
-      });
-
-      const image = canvas.toDataURL('image/png');
-      const res = await fetch(image);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `DailyReport-${selectedReportDate || todayStr}.png`;
-      
-      document.body.appendChild(link);
-      link.click();
-      
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-      }, 200);
-
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการดาวน์โหลดรายงาน: ' + err.message);
-    }
-  };
-
   // 📌 ฟังก์ชันแชร์ภาพรายงานประจำวัน
   const handleShareReportImage = async () => {
     const element = hiddenReportCaptureRef.current;
@@ -329,7 +294,7 @@ export default function AdminDashboard() {
             if (error.name !== 'AbortError') console.log('Share error:', error);
           }
         } else {
-          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง แนะนำให้กดดาวน์โหลดรูปภาพแทนครับ');
+          alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง แนะนำให้ใช้ปุ่มพิมพ์แทนครับ');
         }
       }, 'image/png');
     } catch (err) {
@@ -1178,7 +1143,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Daily Report Print / Image Modal */}
+      {/* Daily Report Print / Image Modal (ตัดปุ่มดาวน์โหลดออกแล้ว) */}
       {dailyReportModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 z-50 overflow-y-auto">
           <div className="bg-white border border-purple-200 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl relative my-auto text-slate-800 max-h-[85vh] flex flex-col">
@@ -1190,40 +1155,133 @@ export default function AdminDashboard() {
               <button type="button" onClick={() => setDailyReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             </div>
 
-            {/* ส่วนตั้งค่าโลโก้ร้านในหน้าจอแสดงผล */}
-            <div className="bg-purple-50/70 border border-purple-200 p-3 rounded-2xl flex items-center gap-3 shrink-0">
-              <div className="w-12 h-12 rounded-xl bg-white border border-purple-300 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-                {reportLogo ? (
-                  <img src={reportLogo} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xl">👑</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-purple-900">โลโก้ / ตราสัญลักษณ์ร้านในรายงาน</div>
-                <div className="text-[11px] text-slate-500 truncate">อัปโหลดรูปโลโก้เพื่อแสดงบนหัวบิลรายงาน</div>
-              </div>
-              <label className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-sm shrink-0 transition-colors">
-                เปลี่ยนโลโก้
-                <input 
-                  type="file" accept="image/*" className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => setReportLogo(reader.result);
-                      reader.readAsDataURL(file);
-                    }
+            {/* ส่วนตั้งค่าโลโก้ร้านแบบปรับซูม & เลื่อนตำแหน่ง (ไร้ขอบ) */}
+            <div className="bg-purple-50/70 border border-purple-200 p-3 rounded-2xl space-y-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-14 h-14 rounded-full bg-slate-900 overflow-hidden relative shrink-0 cursor-grab active:cursor-grabbing shadow-inner flex items-center justify-center select-none"
+                  onMouseDown={(e) => {
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startPosX = logoPosition.x;
+                    const startPosY = logoPosition.y;
+
+                    const onMouseMove = (moveEvent) => {
+                      const dx = moveEvent.clientX - startX;
+                      const dy = moveEvent.clientY - startY;
+                      setLogoPosition({ x: startPosX + dx, y: startPosY + dy });
+                    };
+
+                    const onMouseUp = () => {
+                      window.removeEventListener('mousemove', onMouseMove);
+                      window.removeEventListener('mouseup', onMouseUp);
+                    };
+
+                    window.addEventListener('mousemove', onMouseMove);
+                    window.addEventListener('mouseup', onMouseUp);
                   }}
-                />
-              </label>
+                  onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    const startX = touch.clientX;
+                    const startY = touch.clientY;
+                    const startPosX = logoPosition.x;
+                    const startPosY = logoPosition.y;
+
+                    const onTouchMove = (moveEvent) => {
+                      const t = moveEvent.touches[0];
+                      const dx = t.clientX - startX;
+                      const dy = t.clientY - startY;
+                      setLogoPosition({ x: startPosX + dx, y: startPosY + dy });
+                    };
+
+                    const onTouchEnd = () => {
+                      window.removeEventListener('touchmove', onTouchMove);
+                      window.removeEventListener('touchend', onTouchEnd);
+                    };
+
+                    window.addEventListener('touchmove', onTouchMove);
+                    window.addEventListener('touchend', onTouchEnd);
+                  }}
+                  title="คลิกค้างแล้วลากเพื่อเลื่อนตำแหน่งภาพ"
+                >
+                  {reportLogo ? (
+                    <img 
+                      src={reportLogo} 
+                      alt="Logo Preview" 
+                      style={{
+                        transform: `translate(${logoPosition.x}px, ${logoPosition.y}px) scale(${logoScale})`,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        position: 'absolute',
+                        pointerEvents: 'none'
+                      }} 
+                    />
+                  ) : (
+                    <span className="text-xl">👑</span>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-purple-900">ปรับแต่งโลโก้ (ซูม & เลื่อนตำแหน่ง)</div>
+                  <div className="text-[11px] text-slate-500 truncate">ลากรูปในวงกลมเพื่อปรับมุมมอง หรือเปลี่ยนรูปใหม่</div>
+                </div>
+                
+                <label className="px-3.5 py-1.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs cursor-pointer shadow-sm shrink-0 transition-colors">
+                  เปลี่ยนรูป
+                  <input 
+                    type="file" accept="image/*" className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setReportLogo(reader.result);
+                          setLogoScale(1);
+                          setLogoPosition({ x: 0, y: 0 });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {reportLogo && (
+                <div className="flex items-center gap-3 pt-1 border-t border-purple-200/60">
+                  <span className="text-[11px] font-bold text-purple-900 shrink-0">ขนาด (Zoom):</span>
+                  <input 
+                    type="range" min="1" max="3" step="0.05"
+                    value={logoScale}
+                    onChange={(e) => setLogoScale(parseFloat(e.target.value))}
+                    className="w-full accent-purple-700 cursor-pointer h-1.5 bg-purple-200 rounded-lg"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => { setLogoScale(1); setLogoPosition({ x: 0, y: 0 }); }}
+                    className="text-[10px] text-purple-700 underline font-bold shrink-0 hover:text-purple-900 cursor-pointer"
+                  >
+                    รีเซ็ต
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 text-xs sm:text-sm" ref={reportRef}>
               <div className="text-center border-b-2 border-purple-700 pb-3 flex flex-col items-center">
                 {reportLogo && (
-                  <div className="w-14 h-14 rounded-full border-2 border-purple-600 overflow-hidden mb-2 shadow-md bg-white">
-                    <img src={reportLogo} alt="Shop Logo" className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-full overflow-hidden mb-2 shadow-md bg-slate-900 relative flex items-center justify-center">
+                    <img 
+                      src={reportLogo} 
+                      alt="Shop Logo" 
+                      style={{
+                        transform: `translate(${logoPosition.x}px, ${logoPosition.y}px) scale(${logoScale})`,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        position: 'absolute'
+                      }} 
+                    />
                   </div>
                 )}
                 <h2 className="text-base sm:text-lg font-black text-purple-900">วังทองล้น (ทรัพย์ล้น 819)</h2>
@@ -1279,13 +1337,23 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Hidden Element สำหรับแปลงภาพรายงาน */}
+            {/* Hidden Element สำหรับแปลงภาพรายงานตอนแชร์ */}
             <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
               <div ref={hiddenReportCaptureRef} style={{ width: '460px', background: '#ffffff', padding: '24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #7c3aed', paddingBottom: '14px', marginBottom: '16px' }}>
                   {reportLogo && (
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', border: '2px solid #7c3aed', overflow: 'hidden', margin: '0 auto 8px auto', background: '#ffffff' }}>
-                      <img src={reportLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', margin: '0 auto 8px auto', background: '#000000', position: 'relative' }}>
+                      <img 
+                        src={reportLogo} 
+                        alt="Logo" 
+                        style={{ 
+                          transform: `translate(${logoPosition.x}px, ${logoPosition.y}px) scale(${logoScale})`,
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          position: 'absolute'
+                        }} 
+                      />
                     </div>
                   )}
                   <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#581c87', margin: 0 }}>วังทองล้น (ทรัพย์ล้น 819)</h2>
@@ -1338,30 +1406,23 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 pt-1 flex-wrap">
+            {/* ปุ่มด้านล่าง (เหลือแค่ พิมพ์ และ แชร์ภาพ เพื่อความสะอาดตา) */}
+            <div className="flex gap-2.5 shrink-0 pt-1">
               <button 
                 type="button"
                 onClick={() => window.print()}
-                className="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>พิมพ์</span>
-              </button>
-              <button 
-                type="button"
-                onClick={handleDownloadReportImage}
-                className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>ดาวน์โหลดรูป</span>
+                <span>พิมพ์รายงาน</span>
               </button>
               <button 
                 type="button"
                 onClick={handleShareReportImage}
-                className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
-                <span>แชร์ภาพ</span>
+                <span>แชร์ภาพรายงาน</span>
               </button>
             </div>
           </div>
