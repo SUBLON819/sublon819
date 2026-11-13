@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle, Camera, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, User, CreditCard, CheckCircle, Phone, MapPin, Upload, ArrowRight, Loader2, Globe, AlertTriangle, Camera, RefreshCw, X, Send, Bot } from 'lucide-react';
 import liff from '@line/liff'; // 🟢 นำเข้า LIFF SDK
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทยแบบปลอดภัย
@@ -71,6 +71,14 @@ export default function ApplyPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // 🤖 State สำหรับ AI พี่ลลิล (Chatbot)
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'bot', text: 'สวัสดีค่ะ! พี่ลลิล ผู้ช่วยดูแลระบบ SUBLON819 ยินดีให้บริการค่ะ มีข้อสงสัยเรื่องการกู้ยืม การระบุพิกัด หรือการถ่ายรูป สอบถามพี่ลลิลได้เลยนะคะ' }
+  ]);
+  const chatMessagesEndRef = useRef(null);
+
   useEffect(() => {
     const todayThai = getThaiTodayString();
     setFormData(prev => ({ 
@@ -79,6 +87,11 @@ export default function ApplyPage() {
       cycle_date: prev.cycle_date || todayThai 
     }));
     fetchSiteSettings();
+
+    // 🤖 เลื่อนแชทลงล่างสุดอัตโนมัติเมื่อมีการพิมพ์ตอบ
+    if (chatOpen) {
+      chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
 
     // 🟢 ผสานการทำงานร่วมกับ LINE LIFF SDK เพื่อดึง User ID อัตโนมัติ
     const initLiffAndGetProfile = async () => {
@@ -114,7 +127,7 @@ export default function ApplyPage() {
     };
 
     initLiffAndGetProfile();
-  }, []);
+  }, [chatOpen, chatMessages]);
 
   const fetchSiteSettings = async () => {
     setCheckingSystem(true);
@@ -155,6 +168,7 @@ export default function ApplyPage() {
     }
   };
 
+  // 🟢⚪ ปรับแต่งธีมสีเขียว / ขาว สไตล์กสิกรไทย
   const getThemeClasses = (color) => {
     switch (color) {
       case 'purple':
@@ -193,29 +207,51 @@ export default function ApplyPage() {
           headerBg: 'bg-[#003366] text-white',
           inputBg: 'bg-white/5 text-white border-blue-500/30 placeholder-slate-500',
         };
-      case 'mystic':
-        return {
-          pageBg: 'from-stone-950 via-emerald-950 to-teal-950 text-stone-100',
-          cardBg: 'bg-stone-900/95 text-stone-200 border-amber-500/30 shadow-2xl backdrop-blur-md',
-          badge: 'bg-amber-500 text-stone-950 font-black',
-          button: 'bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-stone-950 font-black shadow-lg border border-amber-400/40',
-          headerBg: 'bg-[#15291F] text-amber-300 border-b border-amber-500/20',
-          inputBg: 'bg-stone-950/60 text-stone-100 border-amber-500/30 focus:border-amber-400 placeholder-stone-500',
-        };
+      case 'kbank':
       case 'emerald':
       default:
         return {
-          pageBg: 'from-emerald-950 via-slate-900 to-teal-950 text-white',
-          cardBg: 'bg-slate-900/90 text-slate-200 border-white/10',
-          badge: 'bg-emerald-600 text-white',
-          button: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white',
-          headerBg: 'bg-[#006435] text-white',
-          inputBg: 'bg-white/5 text-white border-white/10 placeholder-slate-500',
+          pageBg: 'from-emerald-900 via-green-950 to-teal-950 text-slate-100',
+          cardBg: 'bg-white text-slate-800 border-emerald-200 shadow-2xl',
+          badge: 'bg-[#00A859] text-white font-bold',
+          button: 'bg-gradient-to-r from-[#00A859] to-[#008f4b] hover:from-[#00964e] hover:to-[#007a3f] text-white shadow-md font-bold',
+          headerBg: 'bg-[#00A859] text-white',
+          inputBg: 'bg-slate-50 text-slate-900 border-slate-300 placeholder-slate-400 focus:border-[#00A859] focus:ring-1 focus:ring-[#00A859]',
         };
     }
   };
 
   const theme = getThemeClasses(siteConfig.theme_color);
+
+  // 🤖 ระบบตอบคำถามอัตโนมัติของพี่ลลิล
+  const handleSendChat = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const userText = chatInput.trim();
+    const newMessages = [...chatMessages, { sender: 'user', text: userText }];
+    setChatMessages(newMessages);
+    setChatInput('');
+
+    setTimeout(() => {
+      let botReply = 'พี่ลลิลอาจจะยังไม่เข้าใจคำถามนี้อย่างถ่องแท้ค่ะ สามารถติดต่อแอดมินโดยตรงผ่าน LINE: ' + siteConfig.line_contact + ' ได้เลยนะคะ';
+      const lower = userText.toLowerCase();
+
+      if (lower.includes('เบอร์') || lower.includes('โทร')) {
+        botReply = '📱 การกรอกเบอร์โทรศัพท์: ให้กรอกเบอร์มือถือ 10 หลักในช่องแรก ระบบจะตรวจสอบข้อมูลลูกค้าเก่าให้อัตโนมัติค่ะ';
+      } else if (lower.includes('พิกัด') || lower.includes('gps') || lower.includes('เปิดไม่ได้')) {
+        botReply = '📍 ปัญหาพิกัด GPS: หากกดแชร์พิกัดไม่ได้ พี่ลลิลแนะนำให้คัดลอกลิงก์เว็บไซต์ไปเปิดในแอป Google Chrome หรือ Safari โดยตรง (เพราะแอป Facebook/LINE มักบล็อก GPS) หรือกดปุ่มข้ามเพื่อใช้ภาพถ่ายหน้าบ้านแทนได้ค่ะ';
+      } else if (lower.includes('สแกนหน้า') || lower.includes('กล้อง') || lower.includes('ถ่ายรูป')) {
+        botReply = '📸 การถ่ายภาพคู่บัตร: ให้ถือบัตรประชาชนชิดใบหน้าในกรอบวงรีให้ชัดเจน ระบบจะจับภาพอัตโนมัติใน 3 วินาที หรือกดปุ่ม "กดถ่ายภาพทันที" ด้านล่างได้เลยค่ะ';
+      } else if (lower.includes('ลูกค้าเก่า') || lower.includes('ประวัติ')) {
+        botReply = '👤 ลูกค้าเก่า: ระบบจะตรวจสอบเบอร์โทรศัพท์ของคุณอัตโนมัติค่ะ หากเคยสมัครแล้ว ระบบจะดึงข้อมูลชื่อและยอดเดิมมาแสดงให้ทันที สามารถเปลี่ยนธนาคารหรือแก้ไขเลขบัญชีได้เลยนะคะ';
+      } else if (lower.includes('ติดต่อ') || lower.includes('แอดมิน') || lower.includes('line')) {
+        botReply = `💬 ติดต่อแอดมิน: สามารถทักแชท LINE Official ของร้านได้ที่ LINE: ${siteConfig.line_contact} เลยค่ะ`;
+      }
+
+      setChatMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
+    }, 600);
+  };
 
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
@@ -444,7 +480,7 @@ export default function ApplyPage() {
         `📅 รอบบิล: ${formData.cycle_date}\n` +
         `🏦 ธนาคารรับเงิน: ${formData.bank_name}\n` +
         `💳 เลขบัญชี: ${formData.account_number}\n\n` +
-        `📌 พิกัด GPS: ${location.lat ? location.lat.toFixed(4) : 'ไม่ระบุ'}, ${location.lng ? location.lng.toFixed(4) : 'ไม่ระบุ'}\n`
+        `📌 พิกัด GPS: ${location.lat ? location.lat.toFixed(4) : 'ไม่ระบุ'}, ${location.lng ? location.lng.toFixed(4) : 'ไม่ระบุ'}\n`;
 
       const encodedMessage = encodeURIComponent(lineMessage);
       const lineShareUrl = `https://line.me/R/oaMessage/${siteConfig.line_contact}/?${encodedMessage}`;
@@ -462,9 +498,9 @@ export default function ApplyPage() {
 
   if (checkingSystem) {
     return (
-      <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
+      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4 font-sans text-emerald-900">
         <div className="text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#232159] mx-auto" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#00A859] mx-auto" />
           <p className="text-xs text-slate-500">กำลังตรวจสอบสถานะระบบ...</p>
         </div>
       </div>
@@ -473,18 +509,18 @@ export default function ApplyPage() {
 
   if (!isSystemOpen) {
     return (
-      <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
-        <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
+      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4 font-sans text-slate-800">
+        <div className="bg-white border border-emerald-100 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
           <div className="w-16 h-16 bg-red-100 text-[#D93838] rounded-full flex items-center justify-center mx-auto">
             <AlertTriangle className="w-8 h-8 animate-pulse" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ปิดปรับปรุงชั่วคราว</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">ปิดปรับปรุงชั่วคราว</h2>
           <p className="text-xs sm:text-sm text-slate-600">
             ขณะนี้ระบบปิดรับสมัครคำขอกู้ยืมชั่วคราวโดยผู้ดูแลระบบ กรุณาติดต่อแอดมินผ่าน LINE: <span className="font-bold">{siteConfig.line_contact}</span>
           </p>
           <button 
             onClick={() => window.location.reload()}
-            className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-md"
+            className="w-full py-3 bg-[#00A859] hover:bg-[#008f4b] text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-md"
           >
             รีเฟรชหน้าจอเพื่อตรวจสอบอีกครั้ง
           </button>
@@ -495,14 +531,14 @@ export default function ApplyPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#F5F7FC] flex items-center justify-center p-4 font-sans text-[#2D3748]">
-        <div className="bg-white border border-[#D0D9EB] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
-          <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto animate-bounce" />
-          <h2 className="text-xl sm:text-2xl font-bold text-[#232159]">ส่งคำขอกู้และภาพยืนยันตัวตนสำเร็จ!</h2>
+      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4 font-sans text-slate-800">
+        <div className="bg-white border border-emerald-100 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-xl">
+          <CheckCircle className="w-16 h-16 text-[#00A859] mx-auto animate-bounce" />
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">ส่งคำขอกู้และภาพยืนยันตัวตนสำเร็จ!</h2>
           <p className="text-xs sm:text-sm text-slate-600">ระบบบันทึกข้อมูลและภาพถ่ายคู่บัตรประชาชนเรียบร้อยแล้ว กรุณารอแอดมินตรวจสอบ</p>
           <button 
             onClick={() => { setSuccess(false); setStep('phone'); setPhone(''); setLocation({ lat: null, lng: null, status: '' }); }}
-            className="w-full py-3 bg-[#232159] hover:bg-[#313875] text-white rounded-xl text-sm font-bold shadow-md cursor-pointer"
+            className="w-full py-3 bg-[#00A859] hover:bg-[#008f4b] text-white rounded-xl text-sm font-bold shadow-md cursor-pointer"
           >
             กลับสู่หน้าแรก
           </button>
@@ -516,22 +552,22 @@ export default function ApplyPage() {
       <div className={`${theme.cardBg} backdrop-blur-xl border rounded-3xl max-w-md w-full shadow-2xl relative z-10 overflow-hidden`}>
         
         {/* Header */}
-        <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-black/10 transition-colors duration-300 relative`}>
+        <div className={`${theme.headerBg} p-5 sm:p-6 text-center space-y-1.5 border-b border-black/15 transition-colors duration-300 relative`}>
           <button 
             type="button"
             onClick={handleRefreshData}
             disabled={loading}
-            className="absolute top-4 right-4 px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+            className="absolute top-4 right-4 px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
             title="รีเฟรชข้อมูลปัจจุบัน"
           >
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
             <span>รีเฟรช</span>
           </button>
 
-          <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight">
+          <h1 className="text-lg sm:text-2xl font-black tracking-wider leading-tight text-white">
             {siteConfig.banner_title}
           </h1>
-          <p className="text-xs opacity-90">
+          <p className="text-xs opacity-90 text-white">
             {siteConfig.banner_subtitle}
           </p>
         </div>
@@ -541,17 +577,16 @@ export default function ApplyPage() {
           {/* STEP 1: กรอกเบอร์โทรศัพท์ */}
           {step === 'phone' && (
             <form onSubmit={handlePhoneSubmit} className="space-y-3">
-              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
+              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-slate-200 bg-emerald-50 text-emerald-900 flex items-center gap-2">
                 <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>1</span>
                 <span>กรอกเบอร์โทรศัพท์มือถือ (ตรวจสอบลูกค้าเก่าอัตโนมัติ)</span>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-[#00A859] shrink-0" />
                   <span>เบอร์โทรศัพท์มือถือ</span>
                 </label>
-                {/* 🟢 กำหนด text-base เพื่อป้องกันมือถือซูมและหน้าจอเลื่อน */}
                 <input 
                   type="tel" required placeholder="08x-xxx-xxxx"
                   value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -577,7 +612,7 @@ export default function ApplyPage() {
                 )}
               </button>
 
-              <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
+              <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100 space-y-0.5">
                 <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
                 <p>
                   LINE:{' '}
@@ -585,7 +620,7 @@ export default function ApplyPage() {
                     href="https://line.me/R/ti/p/@306fgwvw" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="font-mono font-bold underline transition-colors"
+                    className="font-mono font-bold text-[#00A859] underline transition-colors"
                   >
                     {siteConfig.line_contact}
                   </a>
@@ -597,26 +632,26 @@ export default function ApplyPage() {
           {/* STEP 2: พิกัด GPS */}
           {step === 'gps' && (
             <div className="space-y-3">
-              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-black/10 bg-black/5 flex items-center gap-2">
+              <div className="text-[11px] font-bold px-3 py-2.5 rounded-xl border border-slate-200 bg-emerald-50 text-emerald-900 flex items-center gap-2">
                 <span className={`w-4 h-4 ${theme.badge} rounded-full flex items-center justify-center text-[9px] shrink-0 font-bold`}>2</span>
                 <span>ระบุพิกัดตำแหน่ง GPS ปัจจุบัน ({phone})</span>
               </div>
 
-              <div className="p-4 rounded-2xl border border-black/10 bg-black/5 text-center space-y-3">
-                <MapPin className="w-8 h-8 text-emerald-500 mx-auto animate-pulse" />
-                <p className="text-xs opacity-80">ระบบต้องการเข้าถึงพิกัดตำแหน่งของคุณเพื่อใช้ประกอบการอนุมัติสินเชื่อ</p>
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-center space-y-3">
+                <MapPin className="w-8 h-8 text-[#00A859] mx-auto animate-pulse" />
+                <p className="text-xs text-slate-600">ระบบต้องการเข้าถึงพิกัดตำแหน่งของคุณเพื่อใช้ประกอบการอนุมัติสินเชื่อ</p>
                 
-                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-left space-y-1.5 text-[11px] text-amber-700 dark:text-amber-200">
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-left space-y-1.5 text-[11px] text-amber-800">
                   <p className="font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                     <span>ทำไมบางครั้งถึงระบุพิกัดไม่ได้?</span>
                   </p>
-                  <p className="opacity-90 leading-relaxed">
+                  <p className="opacity-90 leading-relaxed text-slate-700">
                     1. เปิดเว็บผ่านแอป Facebook / LINE (ทำให้ระบบบล็อกพิกัด)<br/>
                     2. ปิดบริการระบุตำแหน่ง (Location) ในมือถือ<br/>
                     3. เผลอกดปฏิเสธสิทธิ์ (Block) บนเบราว์เซอร์
                   </p>
-                  <p className="pt-1 font-semibold">
+                  <p className="pt-1 font-semibold text-amber-900">
                     👉 <b>วิธีแก้เบื้องต้น:</b> แนะนำให้คัดลอกลิงก์ไปเปิดในแอป **Google Chrome** หรือ **Safari** โดยตรงครับ
                   </p>
                 </div>
@@ -625,7 +660,7 @@ export default function ApplyPage() {
                   <button 
                     type="button" 
                     onClick={() => setStep('phone')} 
-                    className="w-1/3 py-3 bg-black/10 opacity-80 rounded-xl text-xs font-bold hover:opacity-100 transition-all cursor-pointer"
+                    className="w-1/3 py-3 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-300 transition-all cursor-pointer"
                   >
                     ย้อนกลับ
                   </button>
@@ -649,17 +684,17 @@ export default function ApplyPage() {
                   </button>
                 </div>
 
-                <div className="pt-2 border-t border-black/10 space-y-2">
-                  <p className="text-[11px] opacity-80">หากลองแล้วยังไม่ได้ สามารถใช้แอปถ่ายภาพพิกัดแทนได้</p>
+                <div className="pt-2 border-t border-slate-200 space-y-2">
+                  <p className="text-[11px] text-slate-500">หากลองแล้วยังไม่ได้ สามารถใช้แอปถ่ายภาพพิกัดแทนได้</p>
                   <button 
                     type="button"
                     onClick={() => {
                       setLocation({ lat: null, lng: null, status: 'ลูกค้าใช้ภาพถ่ายหน้าบ้านแทนพิกัด GPS' });
                       setStep('form');
                     }}
-                    className="w-full py-2.5 bg-amber-500/25 hover:bg-amber-500/35 border border-amber-500/40 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Upload className="w-4 h-4" />
+                    <Upload className="w-4 h-4 text-amber-700" />
                     <span>ข้ามพิกัด & ใช้แอปถ่ายภาพหน้าบ้านแทน</span>
                   </button>
                 </div>
@@ -670,53 +705,51 @@ export default function ApplyPage() {
           {/* STEP 3 & 4: กรอกข้อมูลฟอร์มหลัก */}
           {step === 'form' && (
             <form onSubmit={handlePreSubmitForm} className="space-y-2.5">
-              <div className="text-[11px] font-bold px-3 py-2 rounded-xl border border-black/10 bg-black/5 text-center">
+              <div className="text-[11px] font-bold px-3 py-2 rounded-xl border border-slate-200 bg-emerald-50 text-emerald-900 text-center">
                 {isOldCustomer ? '👤 ข้อมูลลูกค้าเก่า (ดึงข้อมูลเดิมให้ สามารถเปลี่ยนธนาคารและแก้ไขเลขบัญชีได้ทันที)' : '✨ กรอกข้อมูลกู้ & แนบเอกสารสำคัญ'}
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#00A859] shrink-0" />
                   <span>ชื่อ-นามสกุลจริง <span className="text-red-500">*</span></span>
                 </label>
-                {/* 🟢 ใช้ text-base เพื่อป้องกันจอมือถือซูมและดีดเลื่อน */}
                 <input 
                   type="text" required placeholder="กรอกชื่อ-นามสกุล..."
                   value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-bold`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-bold text-slate-900`}
                 />
               </div>
 
               {!isOldCustomer && (
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                     <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     <span>ลิงค์ Facebook ส่วนตัว <span className="text-red-500">*</span></span>
                   </label>
                   <input 
                     type="url" required placeholder="https://www.facebook.com/yourname"
                     value={formData.facebook_link} onChange={(e) => setFormData({...formData, facebook_link: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base outline-none font-mono text-slate-900`}
                   />
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-[#00A859] shrink-0" />
                   <span>ยอดเงินที่ต้องการกู้/ยืม <span className="text-red-500">*</span></span>
                 </label>
                 <input 
                   type="number" required placeholder="เช่น 3000"
                   value={formData.principal_amount} onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
-                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-bold outline-none font-mono`}
+                  className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-bold outline-none font-mono text-slate-900`}
                 />
               </div>
 
-              {/* 🟢 ปรับช่องกำหนดคืนให้กะทัดรัดและไม่ขยายล้นจอ */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5 flex-wrap">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 flex-wrap">
+                  <Calendar className="w-3.5 h-3.5 text-[#00A859] shrink-0" />
                   <span>กำหนดคืน <span className="text-red-500">*</span> <span className="text-[10px] opacity-75">(ต้องมากกว่าวันกู้)</span></span>
                 </label>
                 <div className="flex">
@@ -726,55 +759,55 @@ export default function ApplyPage() {
                     min={formData.loan_date || ''}
                     value={formData.cycle_date}
                     onChange={(e) => setFormData({...formData, cycle_date: e.target.value})}
-                    className={`w-auto inline-block ${theme.inputBg} border rounded-xl px-4 py-2.5 text-base outline-none font-mono font-bold cursor-pointer text-white`}
-                    style={{ colorScheme: 'dark' }}
+                    className="w-auto inline-block bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-base outline-none font-mono font-bold cursor-pointer text-slate-900 focus:border-[#00A859] focus:ring-1 focus:ring-[#00A859]"
+                    style={{ colorScheme: 'light' }}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-[#00A859] shrink-0" />
                     <span>ธนาคารรับเงิน (เปลี่ยนได้)</span>
                   </label>
                   <select
                     value={formData.bank_name} 
                     onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
-                    className="w-full bg-slate-900 text-white border border-white/10 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer"
+                    className="w-full bg-slate-50 text-slate-900 border border-slate-300 rounded-xl px-3 py-2.5 text-base outline-none font-bold cursor-pointer focus:border-[#00A859] focus:ring-1 focus:ring-[#00A859]"
                   >
-                    <option value="ธนาคารทหารไทยธนชาติ (TTB)" className="bg-slate-900 text-white">ธนาคารทหารไทยธนชาติ (TTB)</option>
-                    <option value="ธนาคารกสิกรไทย (KBANK)" className="bg-slate-900 text-white">ธนาคารกสิกรไทย (KBANK)</option>
-                    <option value="ธนาคารไทยพาณิชย์ (SCB)" className="bg-slate-900 text-white">ธนาคารไทยพาณิชย์ (SCB)</option>
-                    <option value="ธนาคารกรุงไทย (KTB)" className="bg-slate-900 text-white">ธนาคารกรุงไทย (KTB)</option>
-                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)" className="bg-slate-900 text-white">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
-                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)" className="bg-slate-900 text-white">ธนาคารเกียรตินาคินภัทร (KKP)</option>
-                    <option value="ธนาคารออมสิน (GSB)" className="bg-slate-900 text-white">ธนาคารออมสิน (GSB)</option>
-                    <option value="ธ.ก.ส. (BAAC)" className="bg-slate-900 text-white">ธ.ก.ส. (BAAC)</option>
-                    <option value="ธนาคารกรุงเทพ (BBL)" className="bg-slate-900 text-white">ธนาคารกรุงเทพ (BBL)</option>
-                    <option value="พร้อมเพย์ (PromptPay)" className="bg-slate-900 text-white">พร้อมเพย์ (PromptPay)</option>
-                    <option value="วอเลต" className="bg-slate-900 text-white">วอเลต (TrueMoney Wallet)</option>
+                    <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
+                    <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                    <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                    <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา (Krungsri)">ธนาคารกรุงศรีอยุธยา (Krungsri)</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                    <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                    <option value="ธ.ก.ส. (BAAC)">ธ.ก.ส. (BAAC)</option>
+                    <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                    <option value="พร้อมเพย์ (PromptPay)">พร้อมเพย์ (PromptPay)</option>
+                    <option value="วอเลต">วอเลต (TrueMoney Wallet)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold opacity-80">เลขบัญชี / พร้อมเพย์ <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-semibold text-slate-700">เลขบัญชี / พร้อมเพย์ <span className="text-red-500">*</span></label>
                   <input 
                     type="text" required placeholder="เลขบัญชี หรือเบอร์..."
                     value={formData.account_number} 
                     onChange={(e) => setFormData({...formData, account_number: e.target.value})}
-                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-mono font-bold outline-none`}
+                    className={`w-full ${theme.inputBg} border rounded-xl px-3 py-2.5 text-base font-mono font-bold outline-none text-slate-900`}
                   />
                 </div>
               </div>
 
               {!isOldCustomer ? (
-                <div className="space-y-1 pt-1 border-t border-black/10">
-                  <label className="text-xs font-semibold opacity-80 flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <div className="space-y-1 pt-1 border-t border-slate-200">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5 text-[#00A859] shrink-0" />
                     <span>แนบเอกสาร (บัตรประชาชน / ภาพถ่ายพิกัดหน้าบ้าน) <span className="text-red-500">*</span></span>
                   </label>
                   
-                  <div className="border border-black/10 bg-black/5 rounded-xl p-2 flex items-center justify-between gap-2">
+                  <div className="border border-slate-200 bg-slate-50 rounded-xl p-2 flex items-center justify-between gap-2">
                     <label className={`px-2.5 py-1.5 ${theme.badge} rounded-lg text-xs font-bold cursor-pointer transition-all shrink-0`}>
                       เลือกไฟล์
                       <input 
@@ -784,16 +817,16 @@ export default function ApplyPage() {
                         className="hidden" 
                       />
                     </label>
-                    <span className="text-xs opacity-70 truncate text-right flex-1">{file ? file.name : 'ไม่ได้เลือกไฟล์ใด'}</span>
+                    <span className="text-xs text-slate-500 truncate text-right flex-1">{file ? file.name : 'ไม่ได้เลือกไฟล์ใด'}</span>
                   </div>
                 </div>
               ) : (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 text-center font-bold">
+                <div className="bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-xs text-emerald-800 text-center font-bold">
                   ✅ ลูกค้าเก่า: ดึงข้อมูลเดิมมาแสดง แต่ท่านสามารถเลือกเปลี่ยนธนาคารและแก้ไขเลขบัญชีได้ทันที
                 </div>
               )}
 
-              <div className="border border-black/10 bg-black/5 p-2 rounded-xl text-[10px] opacity-80 leading-relaxed">
+              <div className="border border-slate-200 bg-slate-50 p-2 rounded-xl text-[10px] text-slate-600 leading-relaxed">
                 💡 <strong>หมายเหตุ:</strong> "ข้าพเจ้ารับทราบว่าเงินกู้ยืมนี้ไม่ใช่รายได้ แต่เป็นเครดิตที่เอาไว้ใช้ในยามฉุกเฉิน..."
               </div>
 
@@ -805,7 +838,7 @@ export default function ApplyPage() {
                 <Camera className="w-4 h-4" />
               </button>
 
-              <div className="text-center text-xs opacity-70 pt-2 border-t border-black/10 space-y-0.5">
+              <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100 space-y-0.5">
                 <p>สอบถามข้อมูลเพิ่มเติมผ่านเจ้าหน้าที่</p>
                 <p>
                   LINE:{' '}
@@ -813,7 +846,7 @@ export default function ApplyPage() {
                     href="https://line.me/R/ti/p/@306fgwvw" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="font-mono font-bold underline transition-colors"
+                    className="font-mono font-bold text-[#00A859] underline transition-colors"
                   >
                     {siteConfig.line_contact}
                   </a>
@@ -825,13 +858,84 @@ export default function ApplyPage() {
         </div>
       </div>
 
+      {/* ================= 🤖 พี่ลลิล (AI ผู้ช่วยแนะนำปัญหาหน้าบ้าน) ================= */}
+      <div className="fixed bottom-4 right-4 z-50">
+        {!chatOpen ? (
+          <button
+            onClick={() => setChatOpen(true)}
+            className="bg-[#00A859] hover:bg-[#008f4b] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 transition-all transform hover:scale-105 cursor-pointer border-2 border-white/20 animate-bounce"
+            title="ปรึกษาพี่ลลิล ผู้ช่วย AI"
+          >
+            <Bot className="w-6 h-6" />
+            <span className="text-xs font-bold pr-1 hidden sm:inline">ปรึกษา "พี่ลลิล" AI</span>
+          </button>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-3xl w-80 sm:w-96 h-[420px] shadow-2xl flex flex-col overflow-hidden text-slate-800 animate-in fade-in zoom-in duration-200">
+            {/* Header แชท */}
+            <div className="bg-[#00A859] p-3.5 flex justify-between items-center border-b border-emerald-600 text-white">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">พี่ลลิล (AI ผู้ช่วยดูแลระบบ)</h4>
+                  <p className="text-[10px] text-emerald-100">พร้อมช่วยเหลือตลอด 24 ชม.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setChatOpen(false)}
+                className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* กล่องข้อความแชท */}
+            <div className="flex-1 p-3 overflow-y-auto space-y-2.5 text-xs bg-slate-50">
+              {chatMessages.map((msg, index) => (
+                <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-2.5 rounded-2xl leading-relaxed ${msg.sender === 'user' ? 'bg-[#00A859] text-white rounded-br-none shadow-sm' : 'bg-white text-slate-700 rounded-bl-none border border-slate-200 shadow-sm'}`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatMessagesEndRef} />
+            </div>
+
+            {/* ปุ่มคำถามยอดฮิตเบื้องต้น */}
+            <div className="px-3 py-1.5 bg-slate-100 border-t border-slate-200 flex gap-1 overflow-x-auto no-scrollbar text-[10px]">
+              <button onClick={() => setChatInput('กรอกเบอร์โทรยังไงคะ?')} className="bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-200 cursor-pointer">📱 กรอกเบอร์โทร?</button>
+              <button onClick={() => setChatInput('ระบุพิกัด GPS ไม่ได้ทำไงดี?')} className="bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-200 cursor-pointer">📍 พิกัด GPS ไม่ได้?</button>
+              <button onClick={() => setChatInput('ถ่ายรูปยืนยันตัวตนยังไงคะ?')} className="bg-white hover:bg-emerald-50 text-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-200 cursor-pointer">📸 ถ่ายรูปสแกนหน้า?</button>
+            </div>
+
+            {/* ช่องพิมพ์ข้อความ */}
+            <form onSubmit={handleSendChat} className="p-2.5 bg-white border-t border-slate-200 flex gap-2">
+              <input 
+                type="text" 
+                placeholder="พิมพ์ถามพี่ลลิลได้เลยค่ะ..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-slate-100 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none placeholder-slate-400 focus:border-[#00A859]"
+              />
+              <button 
+                type="submit" 
+                className="bg-[#00A859] hover:bg-[#008f4b] p-2.5 rounded-xl text-white cursor-pointer transition-all flex items-center justify-center"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
       {/* ================= 📸 MODAL สแกนหน้าเต็มจอ ================= */}
       {scanModalOpen && (
         <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-between p-4 text-white">
           <div className="w-full max-w-md pt-4 text-center space-y-1">
-            <h3 className="text-base font-black text-emerald-400">📸 ถ่ายภาพคู่บัตรประชาชน</h3>
+            <h3 className="text-base font-black text-[#00A859]">📸 ถ่ายภาพคู่บัตรประชาชน</h3>
             <p className="text-xs text-slate-300">กรุณาถือบัตรประชาชนชิดใบหน้าให้เห็นชัดเจน ระบบจะจับภาพให้อัตโนมัติ</p>
-            <div className="bg-emerald-500/25 border border-emerald-500/50 py-1.5 px-3 rounded-full text-xs font-bold text-emerald-200 inline-block mt-1 animate-pulse">
+            <div className="bg-emerald-500/25 border border-[#00A859]/50 py-1.5 px-3 rounded-full text-xs font-bold text-emerald-200 inline-block mt-1 animate-pulse">
               {autoCaptureStatus}
             </div>
           </div>
@@ -856,7 +960,7 @@ export default function ApplyPage() {
               <button 
                 type="button"
                 onClick={triggerAutoCapture}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg cursor-pointer flex items-center justify-center gap-2 text-sm tracking-wider uppercase"
+                className="w-full py-3.5 bg-[#00A859] hover:bg-[#008f4b] text-white font-bold rounded-2xl shadow-lg cursor-pointer flex items-center justify-center gap-2 text-sm tracking-wider uppercase"
               >
                 <Camera className="w-5 h-5" /> กดถ่ายภาพทันที
               </button>
@@ -873,7 +977,7 @@ export default function ApplyPage() {
                   type="button"
                   disabled={loading}
                   onClick={handleFinalSubmit}
-                  className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-500 text-white font-bold rounded-2xl shadow cursor-pointer flex items-center justify-center gap-2 text-xs"
+                  className="flex-1 py-3.5 bg-[#00A859] hover:bg-[#008f4b] disabled:bg-slate-500 text-white font-bold rounded-2xl shadow cursor-pointer flex items-center justify-center gap-2 text-xs"
                 >
                   <CheckCircle className="w-4 h-4" /> {loading ? 'กำลังส่งข้อมูล...' : 'ยืนยันรูปนี้และส่งคำขอ'}
                 </button>
