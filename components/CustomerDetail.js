@@ -512,45 +512,67 @@ export default function CustomerDetail({
                   value={customNoticeAmount}
                   onChange={(e) => setCustomNoticeAmount(e.target.value)}
                   style={{ fontSize: '16px' }}
-                  className="w-36 text-right font-mono font-black text-rose-600 bg-white border border-rose-300 rounded-xl p-2.5 outline-none"
+                  className="w-36 text-right font-mono font-black text-rose-600 bg-white border border-rose-300 rounded-xl p-2.5 outline-none text-base"
                 />
               </div>
             </div>
 
-            {adminBankList.length > 0 && (
-              <div className="space-y-1.5 bg-purple-50 p-3 rounded-xl border border-purple-200">
-                <label className="text-xs text-purple-900 font-bold block">📁 เลือกบัญชีแอดมินเดิม:</label>
-                <select
-                  onChange={(e) => {
-                    const idx = e.target.value;
-                    if (idx !== '') {
-                      setNoticeForm(adminBankList[idx]);
-                    }
-                  }}
-                  style={{ fontSize: '16px' }}
-                  className="w-full border border-purple-300 rounded-xl p-2.5 bg-white font-semibold outline-none text-slate-800"
-                >
-                  <option value="">-- คลิกเลือกบัญชี --</option>
-                  {adminBankList.map((b, i) => (
-                    <option key={i} value={i}>
-                      {b.bank_name} ({b.account_number})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             <div className="space-y-2.5 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
-              <div className="text-xs sm:text-sm font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
+              <div className="text-xs font-bold text-slate-700 flex justify-between items-center">
+                <span>ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</span>
+                <span className="text-[10px] text-purple-600 font-normal">คลิกปุ่มด่วนด้านล่างเพื่อเติมข้อมูล</span>
+              </div>
+
+              {/* 📌 ปุ่มตัวเลือกด่วนบัญชีแอดมิน */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setNoticeForm({
+                    ...noticeForm,
+                    bank_name: 'ธนาคารกรุงศรีอยุธยา (Krungsri)',
+                    account_number: '8039319819',
+                    account_name: 'หนึ่งฤดี นาน้อย'
+                  })}
+                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🟡</span> กรุงศรี (8039)
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setNoticeForm({
+                    ...noticeForm,
+                    bank_name: 'ธนาคารออมสิน (GSB)',
+                    account_number: '020409437819',
+                    account_name: 'หนึ่งฤดี นาน้อย'
+                  })}
+                  className="px-2.5 py-1.5 bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-900 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🩷</span> ออมสิน (4378)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNoticeForm({
+                    ...noticeForm,
+                    bank_name: 'วอเลต',
+                    account_number: '0929237819',
+                    account_name: 'หนึ่งฤดี นาน้อย'
+                  })}
+                  className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🟠</span> วอเลต (7819)
+                </button>
+              </div>
               
-              <div className="space-y-2.5">
+              <div className="space-y-2.5 pt-1">
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">ธนาคาร:</label>
                   <select
                     value={noticeForm.bank_name}
                     onChange={(e) => setNoticeForm({...noticeForm, bank_name: e.target.value})}
                     style={{ fontSize: '16px' }}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold bg-white outline-none text-slate-800"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold bg-white outline-none text-slate-800 text-base"
                   >
                     <option value="">-- เลือกธนาคาร --</option>
                     <option value="ธนาคารทหารไทยธนชาติ (TTB)">ธนาคารทหารไทยธนชาติ (TTB)</option>
@@ -573,7 +595,7 @@ export default function CustomerDetail({
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({...noticeForm, account_number: e.target.value})}
                     style={{ fontSize: '16px' }}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-mono font-bold bg-white outline-none text-base"
                   />
                 </div>
                 <div>
@@ -583,7 +605,7 @@ export default function CustomerDetail({
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({...noticeForm, account_name: e.target.value})}
                     style={{ fontSize: '16px' }}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold bg-white outline-none"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold bg-white outline-none text-base"
                   />
                 </div>
 
@@ -730,7 +752,7 @@ export default function CustomerDetail({
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{latestPaymentRecord.bill_code}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{selectedCustomerName}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>วันที่ชำระ:</span> <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{new Date(latestPaymentRecord.created_at).toLocaleString('th-TH')}</span></div>
-                  
+
                   <div style={{ borderTop: '1px solid #a7f3d0', paddingTop: '10px', marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>จำนวนเงินที่ชำระ:</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#059669', fontSize: '20px' }}>฿{Number(latestPaymentRecord.payment_amount ?? latestPaymentRecord.amount ?? 0).toLocaleString()}</span>
