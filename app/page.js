@@ -1082,7 +1082,9 @@ export default function AdminDashboard() {
                               type="button"
                               onClick={() => {
                                 setNoticeLoan(loan);
-                                setCustomNoticeAmount(currentRemaining);
+                                const currentPrin = Number(loan.remaining_principal || loan.principal_amount || 0);
+                                const accruedInt = calculateAccruedInterest(loan);
+                                setCustomNoticeAmount(currentPrin + accruedInt);
                                 setNoticeModalOpen(true);
                               }}
                               className="px-4.5 py-2.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
