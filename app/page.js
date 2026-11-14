@@ -1316,9 +1316,54 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-2.5 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
-              <div className="text-xs font-bold text-slate-700">ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</div>
+              <div className="text-xs font-bold text-slate-700 flex justify-between items-center">
+                <span>ข้อมูลบัญชีโอนชำระ / สแกนจ่าย</span>
+                <span className="text-[10px] text-purple-600 font-normal">คลิกปุ่มด่วนด้านล่างเพื่อเติมข้อมูล</span>
+              </div>
 
-              <div className="space-y-2.5">
+              {/* 📌 ปุ่มตัวเลือกด่วนบัญชีแอดมิน */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setNoticeForm({
+                    ...noticeForm,
+                    bank_name: 'ธนาคารกรุงศรีอยุธยา (Krungsri)',
+                    account_number: '8039319819',
+                    account_name: 'หนึ่งฤดี นาน้อย'
+                  })}
+                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🟡</span> กรุงศรี (8039)
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setNoticeForm({
+                    ...noticeForm,
+                    bank_name: 'ธนาคารออมสิน (GSB)',
+                    account_number: '020409437819',
+                    account_name: 'หนึ่งฤดี นาน้อย'
+                  })}
+                  className="px-2.5 py-1.5 bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-900 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🩷</span> ออมสิน (4378)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNoticeForm({
+                    ...noticeForm,
+                    bank_name: 'วอเลต',
+                    account_number: '0929237819',
+                    account_name: 'หนึ่งฤดี นาน้อย'
+                  })}
+                  className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>🟠</span> วอเลต (7819)
+                </button>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">ธนาคาร:</label>
                   <select
@@ -1343,7 +1388,8 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">เลขบัญชี:</label>
                   <input
-                    type="text" placeholder="xxx-x-xxxxx-x"
+                    type="text" 
+                    placeholder="xxx-x-xxxxx-x"
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({ ...noticeForm, account_number: e.target.value })}
                     className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm font-mono font-bold bg-white outline-none"
@@ -1352,7 +1398,8 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">ชื่อบัญชี:</label>
                   <input
-                    type="text" placeholder="ชื่อเจ้าของบัญชี"
+                    type="text" 
+                    placeholder="ชื่อเจ้าของบัญชี"
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({ ...noticeForm, account_name: e.target.value })}
                     className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm font-bold bg-white outline-none"
