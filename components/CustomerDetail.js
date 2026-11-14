@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { User, Edit3, Trash2, ExternalLink, FileText, Clock, Download, Share2, Printer } from 'lucide-react';
+import { User, Edit3, Trash2, ExternalLink, FileText, Clock, Download, Share2, Printer, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 // 📌 ฟังก์ชันดึงวันที่ปัจจุบัน (YYYY-MM-DD) ตามเวลาประเทศไทย
@@ -48,7 +48,6 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  // 🔍 บังคับนับรวมวันทำรายการด้วยเสมอ (บวก 1 วัน) เพื่อให้ยอดตรงกัน
   diffDays += 1;
   
   const days = Math.max(0, diffDays);
@@ -77,7 +76,6 @@ export default function CustomerDetail({
   onOpenPaymentModal,
   adminBankList = []
 }) {
-  // 📌 State สำหรับ Notice Modal
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
   const [noticeLoan, setNoticeLoan] = useState(null);
   const [customNoticeAmount, setCustomNoticeAmount] = useState('');
@@ -89,34 +87,35 @@ export default function CustomerDetail({
   });
   const hiddenCaptureRef = useRef(null);
 
-  // 📌 State สำหรับ Receipt Modal (ใบเสร็จรับเงิน)
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [latestPaymentRecord, setLatestPaymentRecord] = useState(null);
   const receiptCaptureRef = useRef(null);
 
-  const totalCustomerRemaining = customerLoans
-    .filter(l => l.status === 'อนุมัติแล้ว')
+  // 📌 State สำหรับเปิด-ปิดดูประวัติบิลที่ปิดยอดแล้ว
+  const [showClosedLoans, setShowClosedLoans] = useState(false);
+
+  // 🔍 แยกประเภทบิล: Active (ยังไม่จบ) vs Closed (ชำระครบแล้ว)
+  const activeLoans = customerLoans.filter(l => {
+    const remPrin = Number(l.remaining_principal ?? l.principal_amount ?? 0);
+    const isPaidStatus = l.status === 'ชำระแล้ว';
+    return !isPaidStatus && remPrin > 0;
+  });
+
+  const closedLoans = customerLoans.filter(l => {
+    const remPrin = Number(l.remaining_principal ?? l.principal_amount ?? 0);
+    const isPaidStatus = l.status === 'ชำระแล้ว';
+    return isPaidStatus || remPrin === 0;
+  });
+
+  const totalCustomerRemaining = activeLoans
     .reduce((sum, l) => sum + Number((l.remaining_principal ?? l.principal_amount) || 0), 0);
   
   const totalCustomerAccruedInterest = customerLoans.reduce((sum, l) => sum + calculateAccruedInterest(l), 0);
   
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
 
-  // 📌 ฟังก์ชันดาวน์โหลดรูปภาพบิล Notice
   const handleDownloadNoticeImage = async () => {
     if (!hiddenCaptureRef.current) return;
-
-    if (noticeForm.bank_name || noticeForm.account_number) {
-      const existing = [...adminBankList];
-      const index = existing.findIndex(b => b.account_number === noticeForm.account_number && b.bank_name === noticeForm.bank_name);
-      if (index >= 0) {
-        existing[index] = noticeForm;
-      } else {
-        existing.unshift(noticeForm);
-      }
-      localStorage.setItem('admin_saved_banks', JSON.stringify(existing));
-    }
-
     try {
       const canvas = await html2canvas(hiddenCaptureRef.current, { scale: 2, useCORS: true });
       const image = canvas.toDataURL('image/png');
@@ -130,7 +129,6 @@ export default function CustomerDetail({
     }
   };
 
-  // 📌 ฟังก์ชันแชร์รูปภาพบิล Notice
   const handleShareNoticeImage = async () => {
     if (!hiddenCaptureRef.current) return;
     try {
@@ -153,7 +151,6 @@ export default function CustomerDetail({
     }
   };
 
-  // 📌 ฟังก์ชันดาวน์โหลดใบเสร็จรับเงิน (Receipt)
   const handleDownloadReceiptImage = async () => {
     if (!receiptCaptureRef.current) return;
     try {
@@ -169,7 +166,6 @@ export default function CustomerDetail({
     }
   };
 
-  // 📌 ฟังก์ชันแชร์ใบเสร็จรับเงิน (Receipt)
   const handleShareReceiptImage = async () => {
     if (!receiptCaptureRef.current) return;
     try {
@@ -232,10 +228,9 @@ export default function CustomerDetail({
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 max-w-4xl mx-auto w-full box-border text-sm">
         
-        {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ (ซ้าย) และ ออกบิลแจ้งยอด (ขวา) */}
+        {/* ข้อมูลติดต่อ + ปุ่มพิมพ์ใบเสร็จ และ ออกบิลแจ้งยอด */}
         <div className="bg-purple-50 p-4 sm:p-5 rounded-2xl border border-purple-200 space-y-3 shadow-sm relative">
-          
-          {customerLoans.length > 0 && (
+          {activeLoans.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 justify-end sm:absolute sm:right-4 sm:top-4">
               <button
                 type="button"
@@ -256,7 +251,7 @@ export default function CustomerDetail({
               <button
                 type="button"
                 onClick={() => {
-                  const targetLoan = customerLoans[0];
+                  const targetLoan = activeLoans[0] || customerLoans[0];
                   setNoticeLoan(targetLoan);
                   const remPrin = Number((targetLoan.remaining_principal ?? targetLoan.principal_amount) || 0);
                   const accInt = calculateAccruedInterest(targetLoan);
@@ -315,49 +310,45 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ยอดสรุปตัวเลข 3 ช่อง (การ์ดละสี) */}
+        {/* ยอดสรุปตัวเลข 3 ช่อง */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 my-6 w-full">
-          {/* กล่องที่ 1: ดอกเบี้ยสะสม (โทนสีม่วง) */}
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-purple-600 via-purple-500 to-indigo-500 border border-purple-300/50 text-white shadow-md shadow-purple-600/20 transform transition-transform hover:scale-[1.01] overflow-hidden">
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
-            <span className="text-xs sm:text-sm font-bold text-purple-100 text-center px-0.5 leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
-            <span className="text-base sm:text-lg font-mono font-black text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-purple-600 via-purple-500 to-indigo-500 border border-purple-300/50 text-white shadow-md overflow-hidden">
+            <span className="text-xs sm:text-sm font-bold text-purple-100 text-center leading-tight">ดอกเบี้ยสะสม (+ค่าปรับ)</span>
+            <span className="text-base sm:text-lg font-mono font-black text-white text-center mt-2 truncate w-full">฿{totalCustomerAccruedInterest.toLocaleString()}</span>
           </div>
 
-          {/* กล่องที่ 2: ยอดหนี้คงเหลือ (โทนสีเหลืองทอง) */}
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 text-white shadow-md shadow-amber-500/20 transform transition-transform hover:scale-[1.01] overflow-hidden">
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/25 rounded-full blur-lg pointer-events-none"></div>
-            <span className="text-xs sm:text-sm font-bold text-amber-950 text-center px-0.5 leading-tight">ยอดหนี้คงเหลือ</span>
-            <span className="text-base sm:text-lg font-mono font-black text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerRemaining.toLocaleString()}</span>
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-300 border border-amber-200/60 text-white shadow-md overflow-hidden">
+            <span className="text-xs sm:text-sm font-bold text-amber-950 text-center leading-tight">ยอดหนี้คงเหลือ</span>
+            <span className="text-base sm:text-lg font-mono font-black text-white text-center mt-2 truncate w-full">฿{totalCustomerRemaining.toLocaleString()}</span>
           </div>
 
-          {/* กล่องที่ 3: ยอดชำระแล้ว (โทนสีเขียวมรกต) */}
-          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 border border-emerald-300/50 text-white shadow-md shadow-emerald-600/20 transform transition-transform hover:scale-[1.01] overflow-hidden">
-            <div className="absolute -top-8 -right-8 w-20 h-20 bg-white/20 rounded-full blur-lg pointer-events-none"></div>
-            <span className="text-xs sm:text-sm font-bold text-emerald-100 text-center px-0.5 leading-tight">ยอดชำระแล้ว</span>
-            <span className="text-base sm:text-lg font-mono font-black text-white text-center px-0.5 mt-2 truncate w-full drop-shadow-sm">฿{totalCustomerPaid.toLocaleString()}</span>
+          <div className="relative flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-4 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 border border-emerald-300/50 text-white shadow-md overflow-hidden">
+            <span className="text-xs sm:text-sm font-bold text-emerald-100 text-center leading-tight">ยอดชำระแล้ว</span>
+            <span className="text-base sm:text-lg font-mono font-black text-white text-center mt-2 truncate w-full">฿{totalCustomerPaid.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* รายการสัญญาของลูกค้า */}
+        {/* ================= 📌 โซนที่ 1: รายการสัญญาที่ยังเปิดใช้งาน (Active Loans) ================= */}
         <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-sm">
-          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-sm sm:text-base">รายการสัญญาของลูกค้ารายนี้ ({customerLoans.length} บิล)</h4>
+          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-sm sm:text-base flex items-center justify-between">
+            <span>📝 สัญญาที่ต้องติดตามเก็บเงิน ({activeLoans.length} บิล)</span>
+          </h4>
           
-          {customerLoans.length === 0 ? (
-            <div className="text-slate-400 text-center py-6 text-xs sm:text-sm">ไม่พบประวัติสัญญา</div>
+          {activeLoans.length === 0 ? (
+            <div className="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center text-xs sm:text-sm font-bold">
+              🎉 ลูกค้ารายนี้ไม่มีบิลค้างชำระ (ปิดยอดครบทุกสัญญาแล้ว)
+            </div>
           ) : (
             <div className="space-y-3">
-              {customerLoans.map((loan) => {
+              {activeLoans.map((loan) => {
                 const accrued = calculateAccruedInterest(loan);
                 const currentRemaining = Number(loan.remaining_principal ?? loan.principal_amount ?? 0);
                 const hasFine = Number(loan.fine_amount || 0) > 0;
-
                 const loanPayments = customerPayments.filter(p => String(p.loan_id) === String(loan.id));
                 const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
 
                 return (
                   <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 space-y-3 transition-all">
-                    
                     <div className="flex justify-between items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -394,11 +385,7 @@ export default function CustomerDetail({
                             🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
                           </span>
                         )}
-                        <span className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 ${
-                          loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                          loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                          'bg-amber-100 text-amber-800 border border-amber-300'
-                        }`}>
+                        <span className="px-2.5 py-1 rounded text-xs font-bold shrink-0 bg-emerald-100 text-emerald-800 border border-emerald-300">
                           {loan.status || 'อนุมัติแล้ว'}
                         </span>
                       </div>
@@ -444,13 +431,77 @@ export default function CustomerDetail({
                         </button>
                       </div>
                     </div>
-
                   </div>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* ================= 📌 โซนที่ 2: สัญญาที่ปิดยอด/ชำระครบแล้ว (Closed / Completed Loans) ================= */}
+        {closedLoans.length > 0 && (
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div 
+              onClick={() => setShowClosedLoans(!showClosedLoans)}
+              className="flex justify-between items-center cursor-pointer select-none"
+            >
+              <h4 className="font-bold text-slate-700 text-sm sm:text-base flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span>ประวัติสัญญาที่ปิดยอดแล้ว ({closedLoans.length} บิล)</span>
+              </h4>
+              <button type="button" className="text-xs text-purple-700 font-bold flex items-center gap-1 bg-purple-100 hover:bg-purple-200 px-3 py-1.5 rounded-xl transition-colors">
+                {showClosedLoans ? (
+                  <>ซ่อนรายละเอียด <ChevronUp className="w-4 h-4" /></>
+                ) : (
+                  <>แสดงรายการ <ChevronDown className="w-4 h-4" /></>
+                )}
+              </button>
+            </div>
+
+            {showClosedLoans && (
+              <div className="space-y-3 pt-2 border-t border-slate-200 animate-in fade-in duration-150">
+                {closedLoans.map((loan) => (
+                  <div key={loan.id} className="bg-white border border-emerald-200 rounded-xl p-3.5 space-y-2 shadow-sm">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded text-xs">บิล: {loan.bill_code}</span>
+                        <span className="font-bold text-slate-800 text-xs sm:text-sm">{loan.loan_type}</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> ปิดยอดแล้ว
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-mono">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">เงินต้นเดิม:</span>
+                        <span className="font-bold text-slate-700">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">ยอดค้างปัจจุบัน:</span>
+                        <span className="font-bold text-emerald-600">฿0</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">วันที่สร้าง:</span>
+                        <span className="font-bold text-slate-600">{loan.loan_date || '-'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1">
+                      <button
+                        type="button"
+                        onClick={() => onDeleteLoan(loan.id, loan.bill_code)}
+                        className="text-xs text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> ลบบิลนี้ออกจากประวัติ
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ประวัติการชำระเงินย้อนหลัง */}
         <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-sm">
@@ -486,7 +537,6 @@ export default function CustomerDetail({
       {noticeModalOpen && noticeLoan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-sm">
-            
             <div className="flex justify-between items-center border-b border-rose-100 pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-sm">📄</span>
@@ -523,7 +573,6 @@ export default function CustomerDetail({
                 <span className="text-[10px] text-purple-600 font-normal">คลิกปุ่มด่วนด้านล่างเพื่อเติมข้อมูล</span>
               </div>
 
-              {/* 📌 ปุ่มตัวเลือกด่วนบัญชีแอดมิน */}
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
@@ -696,7 +745,6 @@ export default function CustomerDetail({
                 <span>แชร์ภาพ</span>
               </button>
             </div>
-
           </div>
         </div>
       )}
@@ -705,7 +753,6 @@ export default function CustomerDetail({
       {receiptModalOpen && latestPaymentRecord && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-sm">
-            
             <div className="flex justify-between items-center border-b border-emerald-100 pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">🧾</span>
@@ -752,7 +799,7 @@ export default function CustomerDetail({
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{latestPaymentRecord.bill_code}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{selectedCustomerName}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>วันที่ชำระ:</span> <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{new Date(latestPaymentRecord.created_at).toLocaleString('th-TH')}</span></div>
-
+                  
                   <div style={{ borderTop: '1px solid #a7f3d0', paddingTop: '10px', marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>จำนวนเงินที่ชำระ:</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#059669', fontSize: '20px' }}>฿{Number(latestPaymentRecord.payment_amount ?? latestPaymentRecord.amount ?? 0).toLocaleString()}</span>
@@ -790,7 +837,6 @@ export default function CustomerDetail({
                 <span>แชร์ใบเสร็จ</span>
               </button>
             </div>
-
           </div>
         </div>
       )}
