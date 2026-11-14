@@ -65,7 +65,7 @@ function isDateInSchedule(scheduleStr, targetDateStr) {
   }
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับค้างชำระเรียลไทม์
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับค้างชำระเรียลไทม์ (รองรับ calc_next_day อย่างถูกต้อง)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
 
@@ -93,7 +93,11 @@ function calculateAccruedInterest(loan) {
 
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  diffDays += 1;
+  
+  // ถ้าระบบไม่ได้ตั้งค่าให้เริ่มนับวันพรุ่งนี้ (calc_next_day เป็น false) ให้บวกวันแรกเข้าไปด้วย
+  if (!loan.calc_next_day) {
+    diffDays += 1;
+  }
 
   const days = Math.max(0, diffDays);
   const origPrin = Number(loan.principal_amount || 0);
