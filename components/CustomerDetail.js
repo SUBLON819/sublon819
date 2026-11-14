@@ -19,7 +19,7 @@ function formatThaiDate(dateInput) {
   return new Intl.DateTimeFormat('en-CA', options).format(dateObj);
 }
 
-// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (นับรวมวันทำรายการด้วยเสมอ)
+// 📌 ฟังก์ชันคำนวณดอกเบี้ยสะสม + รวมค่าปรับเรียลไทม์ (รองรับเงื่อนไขเริ่มนับดอกเบี้ยวันพรุ่งนี้)
 function calculateAccruedInterest(loan) {
   if (!loan || loan.status !== 'อนุมัติแล้ว') return 0;
   
@@ -48,7 +48,16 @@ function calculateAccruedInterest(loan) {
   const diffTime = today - startDate;
   let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  diffDays += 1;
+  // 🔍 ตรวจสอบว่าบิลนี้ตั้งค่าเริ่มนับวันพรุ่งนี้ (calc_next_day) หรือไม่
+  const isCalcNextDay = loan.calc_next_day === true || loan.calc_next_day === 'true';
+
+  if (!isCalcNextDay) {
+    // ถ้าไม่ได้ติ๊ก ให้บวก 1 วันตามปกติเพื่อให้คิดดอกเบี้ยตั้งแต่วันทำรายการ
+    diffDays += 1;
+  } else {
+    // ถ้าติ๊กเริ่มนับวันพรุ่งนี้ วันแรก (diffDays === 0) จะไม่บวกเพิ่ม ดอกเบี้ยจะเป็น 0
+    diffDays = Math.max(0, diffDays);
+  }
   
   const days = Math.max(0, diffDays);
   const origPrin = Number(loan.principal_amount || 0);
