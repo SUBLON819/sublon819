@@ -778,7 +778,13 @@ export default function AdminDashboard() {
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ยอดเก็บสดวันนี้');
-                setStatModalData(todayPayments);
+                // 📌 กรองเฉพาะรายการเก็บสดจริง ๆ (ตัดรายการส่วนลดและยอดเงิน 0 ออก)
+                const cleanTodayPayments = (todayPayments || []).filter(p => {
+                  const note = p.note || '';
+                  const amt = Number(p.payment_amount ?? p.amount ?? 0);
+                  return !note.includes('ให้ส่วนลด') && amt > 0;
+                });
+                setStatModalData(cleanTodayPayments);
                 setStatModalOpen(true);
               }}
               className="bg-gradient-to-tr from-cyan-600 via-sky-500 to-blue-400 border border-sky-300/50 p-4 sm:p-5 rounded-2xl space-y-1 shadow-md shadow-sky-600/20 cursor-pointer hover:scale-[1.01] hover:shadow-lg transition-all group relative overflow-hidden"
@@ -790,7 +796,7 @@ export default function AdminDashboard() {
               </div>
               <div className="text-xl sm:text-2xl font-black font-mono text-white truncate drop-shadow-sm animate-pulse">฿{todayCollectedCash.toLocaleString()}</div>
             </div>
-
+            
             <div 
               onClick={() => {
                 setStatModalTitle('ที่มาของยอด: ดอกเบี้ย,ค่าปรับรอเก็บ');
