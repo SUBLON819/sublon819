@@ -991,16 +991,16 @@ export default function AdminDashboard() {
 
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {hasFine && (
-                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3.5 py-1.5 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
+                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
                             🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
                           </span>
                         )}
                         {loan.status === 'ชำระแล้ว' || Number(loan.remaining_principal || loan.principal_amount || 0) === 0 ? (
-                          <span className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 bg-rose-100 text-rose-700 border border-rose-300 shadow-sm flex items-center gap-1">
-                            🔴ปิดยอดแล้ว
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 bg-rose-100 text-rose-700 border border-rose-300 shadow-sm flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>ปิดยอดแล้ว
                           </span>
                         ) : (
-                          <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 ${loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                               'bg-amber-100 text-amber-800 border border-amber-300'
                             }`}>
                             {loan.status || 'รออนุมัติ'}
