@@ -995,15 +995,14 @@ export default function AdminDashboard() {
                             🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
                           </span>
                         )}
-                        {loan.status === 'ชำระแล้ว' || currentRemaining === 0 ? (
-                          <span className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black shrink-0 bg-rose-600 text-white border border-rose-700 shadow-sm flex items-center gap-1">
-                            🔴 ปิดยอดแล้ว
+                        {loan.status === 'ชำระแล้ว' || Number(loan.remaining_principal || loan.principal_amount || 0) === 0 ? (
+                          <span className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 bg-rose-100 text-rose-700 border border-rose-300 shadow-sm flex items-center gap-1">
+                            🔴ปิดยอดแล้ว
                           </span>
                         ) : (
-                          <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${
-                            loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                            'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}>
+                          <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                              'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}>
                             {loan.status || 'รออนุมัติ'}
                           </span>
                         )}
@@ -1343,7 +1342,7 @@ export default function AdminDashboard() {
                 >
                   <span>🟡</span> กรุงศรี (8039)
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={() => setNoticeForm({
@@ -1396,7 +1395,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">เลขบัญชี:</label>
                   <input
-                    type="text" 
+                    type="text"
                     placeholder="xxx-x-xxxxx-x"
                     value={noticeForm.account_number}
                     onChange={(e) => setNoticeForm({ ...noticeForm, account_number: e.target.value })}
@@ -1406,7 +1405,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-xs text-slate-500 font-semibold">ชื่อบัญชี:</label>
                   <input
-                    type="text" 
+                    type="text"
                     placeholder="ชื่อเจ้าของบัญชี"
                     value={noticeForm.account_name}
                     onChange={(e) => setNoticeForm({ ...noticeForm, account_name: e.target.value })}
