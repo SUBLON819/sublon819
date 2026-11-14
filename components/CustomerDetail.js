@@ -77,7 +77,7 @@ export default function CustomerDetail({
   adminBankList = []
 }) {
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
-  const [noticeLoan, setNoticeLoan] = useState(null);
+  const [noticeLoans, setNoticeLoans] = useState([]); // บิลที่เลือกสำหรับออกใบแจ้งยอด
   const [customNoticeAmount, setCustomNoticeAmount] = useState('');
   const [noticeForm, setNoticeForm] = useState({
     bank_name: '',
@@ -101,6 +101,9 @@ export default function CustomerDetail({
     return !isPaidStatus && remPrin > 0;
   });
 
+  // 📌 State เก็บ ID บิลที่ถูกเลือกติ๊กในหน้าประวัติลูกค้า (เริ่มต้นเลือกทุกบิล Active)
+  const [selectedLoanIds, setSelectedLoanIds] = useState(() => activeLoans.map(l => l.id));
+
   const closedLoans = customerLoans.filter(l => {
     const remPrin = Number(l.remaining_principal ?? l.principal_amount ?? 0);
     const isPaidStatus = l.status === 'ชำระแล้ว';
@@ -114,6 +117,36 @@ export default function CustomerDetail({
   
   const totalCustomerPaid = customerPayments.reduce((sum, p) => sum + Number(p.payment_amount ?? p.amount ?? 0), 0);
 
+  // ฟังก์ชันสลับการเลือกบิล
+  const toggleSelectLoan = (loanId) => {
+    if (selectedLoanIds.includes(loanId)) {
+      setSelectedLoanIds(selectedLoanIds.filter(id => id !== loanId));
+    } else {
+      setSelectedLoanIds([...selectedLoanIds, loanId]);
+    }
+  };
+
+  // เลือกทั้งหมด / ยกเลิกเลือกทั้งหมดเฉพาะบิล Active
+  const handleSelectAllActive = () => {
+    const activeIds = activeLoans.map(l => l.id);
+    if (selectedLoanIds.length === activeIds.length) {
+      setSelectedLoanIds([]);
+    } else {
+      setSelectedLoanIds(activeIds);
+    }
+  };
+
+  // คำนวณยอดรวมเฉพาะบิลที่ถูกติ๊กเลือก (เงินต้นคงเหลือ + ดอกเบี้ยสะสมเรียลไทม์)
+  const calculateSelectedTotalAmount = () => {
+    return activeLoans
+      .filter(l => selectedLoanIds.includes(l.id))
+      .reduce((sum, loan) => {
+        const prin = Number(loan.remaining_principal ?? loan.principal_amount ?? 0);
+        const accrued = calculateAccruedInterest(loan);
+        return sum + prin + accrued;
+      }, 0);
+  };
+
   const handleDownloadNoticeImage = async () => {
     if (!hiddenCaptureRef.current) return;
     try {
@@ -121,7 +154,7 @@ export default function CustomerDetail({
       const image = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = image;
-      a.download = `Notice-${noticeLoan?.bill_code || 'Customer'}.png`;
+      a.download = `Notice-${selectedCustomerName}.png`;
       a.click();
     } catch (err) {
       console.error('Error generating image:', err);
@@ -135,7 +168,7 @@ export default function CustomerDetail({
       const canvas = await html2canvas(hiddenCaptureRef.current, { scale: 2, useCORS: true });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], `Notice-${noticeLoan?.bill_code || 'Customer'}.png`, { type: 'image/png' });
+        const file = new File([blob], `Notice-${selectedCustomerName}.png`, { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
@@ -250,12 +283,16 @@ export default function CustomerDetail({
 
               <button
                 type="button"
+                disabled={selectedLoanIds.length === 0}
                 onClick={() => {
-                  const targetLoan = activeLoans[0] || customerLoans[0];
-                  setNoticeLoan(targetLoan);
-                  const remPrin = Number((targetLoan.remaining_principal ?? targetLoan.principal_amount) || 0);
-                  const accInt = calculateAccruedInterest(targetLoan);
-                  setCustomNoticeAmount(remPrin + accInt);
+                  const chosenLoans = activeLoans.filter(l => selectedLoanIds.includes(l.id));
+                  if (chosenLoans.length === 0) {
+                    alert('กรุณาเลือกบิลที่ต้องการแจ้งยอดอย่างน้อย 1 บิลครับ');
+                    return;
+                  }
+                  setNoticeLoans(chosenLoans);
+                  const totalAmt = calculateSelectedTotalAmount();
+                  setCustomNoticeAmount(totalAmt);
                   
                   if (adminBankList.length > 0) {
                     setNoticeForm(adminBankList[0]);
@@ -270,10 +307,14 @@ export default function CustomerDetail({
 
                   setNoticeModalOpen(true);
                 }}
-                className="px-3 py-2 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+                className={`px-3 py-2 font-bold rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1.5 ${
+                  selectedLoanIds.length > 0 
+                    ? 'bg-rose-700 hover:bg-rose-600 text-white cursor-pointer' 
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>แจ้งยอด</span>
+                <span>แจ้งยอดบิลที่เลือก ({selectedLoanIds.length})</span>
               </button>
             </div>
           )}
@@ -328,11 +369,22 @@ export default function CustomerDetail({
           </div>
         </div>
 
-        {/* ================= 📌 โซนที่ 1: รายการสัญญาที่ยังเปิดใช้งาน (Active Loans) ================= */}
+        {/* ================= 📌 โซนที่ 1: รายการสัญญาที่ยังเปิดใช้งาน (Active Loans) พร้อม Checkbox เลือกบิล ================= */}
         <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-sm">
-          <h4 className="font-bold text-slate-800 border-b border-purple-100 pb-2 text-sm sm:text-base flex items-center justify-between">
-            <span>📝 สัญญาที่ต้องติดตามเก็บเงิน ({activeLoans.length} บิล)</span>
-          </h4>
+          <div className="flex justify-between items-center border-b border-purple-100 pb-2">
+            <h4 className="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
+              <span>📝 สัญญาที่ต้องติดตามเก็บเงิน ({activeLoans.length} บิล)</span>
+            </h4>
+            {activeLoans.length > 0 && (
+              <button
+                type="button"
+                onClick={handleSelectAllActive}
+                className="text-xs text-purple-700 font-bold underline hover:text-purple-900 cursor-pointer"
+              >
+                {selectedLoanIds.length === activeLoans.length ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
+              </button>
+            )}
+          </div>
           
           {activeLoans.length === 0 ? (
             <div className="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center text-xs sm:text-sm font-bold">
@@ -341,6 +393,7 @@ export default function CustomerDetail({
           ) : (
             <div className="space-y-3">
               {activeLoans.map((loan) => {
+                const isChecked = selectedLoanIds.includes(loan.id);
                 const accrued = calculateAccruedInterest(loan);
                 const currentRemaining = Number(loan.remaining_principal ?? loan.principal_amount ?? 0);
                 const hasFine = Number(loan.fine_amount || 0) > 0;
@@ -348,87 +401,109 @@ export default function CustomerDetail({
                 const latestPayment = loanPayments.length > 0 ? loanPayments[0] : null;
 
                 return (
-                  <div key={loan.id} className="bg-purple-50/40 border border-purple-200 hover:border-purple-400 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 space-y-3 transition-all">
-                    <div className="flex justify-between items-start gap-2">
+                  <div 
+                    key={loan.id} 
+                    onClick={() => toggleSelectLoan(loan.id)}
+                    className={`border rounded-xl sm:rounded-2xl p-3.5 sm:p-5 space-y-3 transition-all cursor-pointer ${
+                      isChecked 
+                        ? 'bg-purple-50/70 border-purple-400 shadow-sm' 
+                        : 'bg-white border-slate-200 opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Checkbox เลือกบิล */}
+                      <div className="pt-1">
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // จัดการผ่าน div ด้านนอก
+                          className="w-4 h-4 text-purple-700 rounded border-purple-300 cursor-pointer accent-purple-700"
+                        />
+                      </div>
+
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-sm sm:text-base font-bold text-purple-800">บิล: {loan.bill_code}</span>
-                          <span className="text-sm sm:text-base font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-600 mt-1">
-                          <span className="shrink-0">ประเภท: {loan.loan_type}</span> 
-                          <span className="text-slate-300 hidden sm:inline">|</span> 
-                          <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
-                          <span className="text-slate-300 hidden sm:inline">|</span> 
-                          <span className="flex items-center gap-1 text-emerald-700 font-mono font-bold shrink-0">
-                            <Clock className="w-3.5 h-3.5" />
-                            สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
-                          </span>
-                          <span className="text-slate-300 hidden sm:inline">|</span>
-                          <span className="shrink-0">ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></span>
-
-                          {latestPayment && (
-                            <>
-                              <span className="text-slate-300 hidden sm:inline">|</span>
-                              <span className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold text-xs shrink-0">
-                                🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-sm sm:text-base font-bold text-purple-800">บิล: {loan.bill_code}</span>
+                              <span className="text-sm sm:text-base font-bold text-slate-800">{loan.full_name || selectedCustomerName}</span>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-600 mt-1">
+                              <span className="shrink-0">ประเภท: {loan.loan_type}</span> 
+                              <span className="text-slate-300 hidden sm:inline">|</span> 
+                              <span className="shrink-0">รอบจ่าย: <strong className="text-purple-800">{loan.payment_schedule || 'จ่ายทุกวัน'}</strong></span> 
+                              <span className="text-slate-300 hidden sm:inline">|</span> 
+                              <span className="flex items-center gap-1 text-emerald-700 font-mono font-bold shrink-0">
+                                <Clock className="w-3.5 h-3.5" />
+                                สร้าง: {loan.loan_date || (loan.created_at ? formatThaiDate(loan.created_at) : '-')}
                               </span>
-                            </>
-                          )}
+                              <span className="text-slate-300 hidden sm:inline">|</span>
+                              <span className="shrink-0">ครบกำหนด: <span className="text-amber-700 font-mono font-bold">{loan.cycle_date || '-'}</span></span>
+
+                              {latestPayment && (
+                                <>
+                                  <span className="text-slate-300 hidden sm:inline">|</span>
+                                  <span className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold text-xs shrink-0">
+                                    🟢 ตัดล่าสุด: {formatThaiDate(latestPayment.created_at)} (฿{Number(latestPayment.payment_amount || latestPayment.amount || 0).toLocaleString()})
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            {hasFine && (
+                              <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
+                                🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
+                              </span>
+                            )}
+                            <span className="px-2.5 py-1 rounded text-xs font-bold shrink-0 bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              {loan.status || 'อนุมัติแล้ว'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        {hasFine && (
-                          <span className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1 rounded-full font-mono font-bold text-xs shadow-sm animate-pulse">
-                            🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
-                          </span>
-                        )}
-                        <span className="px-2.5 py-1 rounded text-xs font-bold shrink-0 bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          {loan.status || 'อนุมัติแล้ว'}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm bg-white p-3 sm:p-4 rounded-xl border border-purple-100">
-                      <div>
-                        <span className="text-slate-400 block text-xs">เงินต้น / ยอดขอกู้:</span>
-                        <span className="font-mono font-bold text-emerald-600 text-base">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-xs">คงเหลือ:</span>
-                        <span className="font-mono font-bold text-amber-600 text-base">฿{currentRemaining.toLocaleString()}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-xs">ดอกเบี้ย/วัน:</span>
-                        <span className="font-mono font-bold text-teal-700 text-base">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-xs">ดอกสะสมเรียลไทม์:</span>
-                        <span className="font-mono font-bold text-purple-800 text-base">฿{accrued.toLocaleString()}</span>
-                      </div>
-                    </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm bg-white p-3 sm:p-4 rounded-xl border border-purple-100 mt-3">
+                          <div>
+                            <span className="text-slate-400 block text-xs">เงินต้น / ยอดขอกู้:</span>
+                            <span className="font-mono font-bold text-emerald-600 text-base">฿{Number(loan.principal_amount || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-xs">คงเหลือ:</span>
+                            <span className="font-mono font-bold text-amber-600 text-base">฿{currentRemaining.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-xs">ดอกเบี้ย/วัน:</span>
+                            <span className="font-mono font-bold text-teal-700 text-base">฿{Number(loan.daily_interest || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-xs">ดอกสะสมเรียลไทม์:</span>
+                            <span className="font-mono font-bold text-purple-800 text-base">฿{accrued.toLocaleString()}</span>
+                          </div>
+                        </div>
 
-                    <div className="flex gap-2.5 pt-1 flex-wrap sm:flex-nowrap justify-between items-center">
-                      <button
-                        type="button"
-                        onClick={() => onDeleteLoan(loan.id, loan.bill_code)}
-                        className="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                        title="ลบรายการบิลนี้"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>ลบบิลนี้</span>
-                      </button>
+                        <div className="flex gap-2.5 pt-2 flex-wrap sm:flex-nowrap justify-between items-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteLoan(loan.id, loan.bill_code)}
+                            className="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                            title="ลบรายการบิลนี้"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>ลบบิลนี้</span>
+                          </button>
 
-                      <div className="flex gap-2 flex-1 sm:justify-end flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => onOpenPaymentModal(loan)}
-                          className="flex-1 sm:flex-initial px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
-                        >
-                          บันทึกรับชำระ
-                        </button>
+                          <div className="flex gap-2 flex-1 sm:justify-end flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => onOpenPaymentModal(loan)}
+                              className="flex-1 sm:flex-initial px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
+                            >
+                              บันทึกรับชำระ
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -533,15 +608,15 @@ export default function CustomerDetail({
 
       </div>
 
-      {/* ================= 📌 Notice Bill Modal ================= */}
-      {noticeModalOpen && noticeLoan && (
+      {/* ================= 📌 Notice Bill Modal (รวมบิลที่เลือก) ================= */}
+      {noticeModalOpen && noticeLoans.length > 0 && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl sm:rounded-3xl w-[92%] max-w-sm p-4 sm:p-5 shadow-2xl space-y-3.5 animate-in fade-in zoom-in duration-150 max-h-[85vh] overflow-y-auto text-sm">
             <div className="flex justify-between items-center border-b border-rose-100 pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-sm">📄</span>
                 <h3 className="font-black text-rose-900 text-sm sm:text-base">
-                  ออกบิลแจ้งยอด (NOTICE): <span className="font-mono text-rose-700">{noticeLoan.bill_code}</span>
+                  ออกบิลแจ้งยอดรวม ({noticeLoans.length} บิล)
                 </h3>
               </div>
               <button 
@@ -554,9 +629,12 @@ export default function CustomerDetail({
             </div>
 
             <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-3.5 space-y-2 font-medium text-slate-700 text-xs sm:text-sm">
-              <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{noticeLoan.full_name || selectedCustomerName}</span></div>
+              <div>ชื่อลูกค้า: <span className="font-bold text-slate-900">{selectedCustomerName}</span></div>
+              <div className="text-[11px] text-rose-800">
+                รายการบิล: {noticeLoans.map(l => l.bill_code).join(', ')}
+              </div>
               <div className="flex justify-between items-center border-t border-rose-200/60 pt-2 mt-1">
-                <span className="font-bold text-slate-800">ยอดค้างชำระ:</span>
+                <span className="font-bold text-slate-800">ยอดชำระสุทธิรวม:</span>
                 <input 
                   type="number"
                   value={customNoticeAmount}
@@ -689,16 +767,16 @@ export default function CustomerDetail({
             <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', pointerEvents: 'none' }}>
               <div ref={hiddenCaptureRef} style={{ width: '420px', background: '#ffffff', padding: '28px 24px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#1e293b', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #f43f5e', paddingBottom: '14px', marginBottom: '16px' }}>
-                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#881337', margin: 0 }}>แจ้งยอดค้างชำระ (NOTICE)</h2>
+                  <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#881337', margin: 0 }}>แจ้งยอดค้างชำระรวม (NOTICE)</h2>
                   <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>SUBLON 819</p>
                 </div>
 
                 <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '14px', marginBottom: '14px', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิล:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.bill_code}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{noticeLoan.full_name || selectedCustomerName}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>ชื่อลูกค้า:</span> <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{selectedCustomerName}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span style={{ color: '#64748b', fontWeight: 'bold' }}>รหัสบิลที่แจ้ง:</span> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{noticeLoans.map(l => l.bill_code).join(', ')}</span></div>
                   
                   <div style={{ borderTop: '1px solid #fecdd3', paddingTop: '10px', marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดชำระสุทธิ:</span>
+                    <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '13px' }}>ยอดชำระสุทธิรวม:</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#e11d48', fontSize: '20px' }}>฿{Number(customNoticeAmount || 0).toLocaleString()}</span>
                   </div>
                 </div>
