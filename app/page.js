@@ -995,12 +995,18 @@ export default function AdminDashboard() {
                             🚨 ค่าปรับ: ฿{Number(loan.fine_amount || 0).toLocaleString()}
                           </span>
                         )}
-                        <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                            loan.status === 'ชำระแล้ว' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                              'bg-amber-100 text-amber-800 border border-amber-300'
+                        {loan.status === 'ชำระแล้ว' || currentRemaining === 0 ? (
+                          <span className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black shrink-0 bg-rose-600 text-white border border-rose-700 shadow-sm flex items-center gap-1">
+                            🔴 ปิดยอดแล้ว
+                          </span>
+                        ) : (
+                          <span className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold shrink-0 ${
+                            loan.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                            'bg-amber-100 text-amber-800 border border-amber-300'
                           }`}>
-                          {loan.status || 'รออนุมัติ'}
-                        </span>
+                            {loan.status || 'รออนุมัติ'}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1011,7 +1017,9 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <span className="text-slate-400 block text-xs">คงเหลือ:</span>
-                        <span className="font-mono font-bold text-amber-600 text-sm sm:text-base">฿{currentRemaining.toLocaleString()}</span>
+                        <span className="font-mono font-bold text-amber-600 text-sm sm:text-base">
+                          {loan.status === 'ชำระแล้ว' || currentRemaining === 0 ? '฿0' : `฿${currentRemaining.toLocaleString()}`}
+                        </span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-xs">ดอกเบี้ย/วัน:</span>
