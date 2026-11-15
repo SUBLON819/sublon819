@@ -1510,7 +1510,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
+      
       {/* CustomerDetail Modal */}
       {customerProfileModalOpen && (
         <CustomerDetail
